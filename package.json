@@ -1,0 +1,44 @@
+{
+  "name": "fal-ai-ts-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@fal-ai/client": "^1.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-modal": "^3.16.1",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "concurrently \"bun run start:client\" \"bun run start:server\"",
+    "start:client": "react-scripts start",
+    "start:server": "bun run server/index.ts",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "@types/react-modal": "^3.16.3",
+    "concurrently": "^9.1.0"
+  }
+}

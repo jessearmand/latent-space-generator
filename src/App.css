@@ -1,0 +1,341 @@
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+.app-description {
+  margin-bottom: 20px;
+  font-size: 1.1em;
+  color: #555;
+}
+
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+label {
+  font-weight: bold;
+}
+
+.model-dropdown {
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.prompt-textarea {
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+.generate-btn {
+  padding: 12px 20px;
+  font-size: 1em;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.generate-btn:hover {
+  background-color: #0056b3;
+}
+
+.output-section {
+  margin-top: 30px;
+}
+
+.image-container {
+  margin-bottom: 20px;
+}
+
+.generated-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-message {
+  font-size: 1em;
+  color: #333;
+  min-height: 1.5em;
+}
+
+.modal {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 50px auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.overlay {
+  background: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+.api-key-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.config-options {
+  margin-top: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-group select, .form-group input[type="number"] {
+  padding: 5px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.form-group input[type="checkbox"] {
+  margin-top: 5px;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.visibility-toggle {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+/* Styling for image upload and preview */
+.form-group input[type="file"] {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.image-preview {
+  max-width: 200px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  display: block; /* Ensure it's block-level for better layout */
+}
+
+/* General form group styling if needed for consistency with new inputs */
+.form-group input[type="number"] {
+  width: 100%; /* Make number inputs full width for consistency */
+  padding: 5px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.save-btn {
+  margin-top: 15px;
+  padding: 10px 15px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background-color: #218838;
+}
+
+/* Ensure API key groups have consistent spacing and width */
+.api-key-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Add spacing between API key groups */
+}
+
+.api-key-group {
+  display: flex;
+  flex-direction: column; /* Stack label and input vertically for consistency */
+}
+
+.api-key-input {
+  width: 100%; /* Ensure full width for both inputs */
+  padding: 10px; /* Match padding with other inputs */
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Existing .api-key-container can stay, but ensure it doesn't override width */
+.api-key-container {
+  display: flex;
+  gap: 10px; /* Keep spacing between input and toggle button */
+  width: 100%; /* Ensure the container takes full width */
+}
+
+/* Styling for the expand/hide config button */
+.expand-config-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 1em;
+  text-decoration: underline;
+}
+
+.expand-config-btn:hover {
+  color: #0056b3;
+}
+
+/* Model selector styles */
+.model-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.refresh-btn {
+  background: none;
+  border: 1px solid #007bff;
+  color: #007bff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background-color: #007bff;
+  color: white;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.model-error {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin: 5px 0;
+}
+
+.model-description {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Config panel styles */
+.config-panel {
+  margin-top: 15px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.config-header h4 {
+  margin: 0;
+}
+
+.custom-size-inputs {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.custom-size-inputs input {
+  width: 100px;
+}
+
+/* Generate button disabled state */
+.generate-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Settings button text style */
+.settings-btn {
+  background: none;
+  border: 1px solid #333;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  background-color: #f0f0f0;
+}
