@@ -15,7 +15,10 @@
     "start:server": "bun run server/index.ts",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write ."
   },
   "eslintConfig": {
     "extends": [
@@ -36,6 +39,7 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.10",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
     "@types/react-modal": "^3.16.3",
