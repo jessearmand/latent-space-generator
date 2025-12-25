@@ -9,6 +9,7 @@ import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
+import { parseFalError } from './services/errors';
 
 const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
@@ -18,8 +19,15 @@ const AppContent: React.FC = () => {
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [statusMessage, setStatusMessage] = useState<string>('');
+    const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isOpenaiApiKeyVisible, setIsOpenaiApiKeyVisible] = useState<boolean>(false);
+
+    // Helper to set status with type
+    const setStatus = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+        setStatusMessage(message);
+        setStatusType(type);
+    };
 
     const config = useConfig();
     const { selectedModel, isLoading: modelsLoading } = useModels();
@@ -46,7 +54,7 @@ const AppContent: React.FC = () => {
     // Function to generate image using fal-ai queue methods
     const generateImage = async (prompt: string, model: ModelConfig) => {
         if (!prompt) {
-            setStatusMessage('Error: Please enter a text prompt.');
+            setStatus('Please enter a text prompt.', 'error');
             console.error('Prompt text is empty. Cannot generate image.');
             return;
         }
@@ -58,7 +66,7 @@ const AppContent: React.FC = () => {
 
         console.log(`Generating image with model: ${modelName}`);
 
-        setStatusMessage(`Submitting request for image generation using ${modelName}...`);
+        setStatus(`Submitting request for image generation using ${modelName}...`);
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
         let input: Record<string, unknown> | undefined;
@@ -67,13 +75,13 @@ const AppContent: React.FC = () => {
         // GPT models use direct OpenAI API calls (not through fal.ai)
         if (isGptModel) {
             if (!openaiApiKey) {
-                setStatusMessage('Error: OPENAI_API_KEY is required for GPT Image models.');
+                setStatus('OPENAI_API_KEY is required for GPT Image models.', 'error');
                 console.error('OPENAI_API_KEY is missing for GPT Image model.');
                 return;
             }
 
             try {
-                setStatusMessage(`Generating image with OpenAI ${modelName}...`);
+                setStatus(`Generating image with OpenAI ${modelName}...`);
 
                 // Map model endpoint to OpenAI model name
                 let openaiModel: OpenAIImageParams['model'] = 'gpt-image-1.5';
@@ -101,19 +109,18 @@ const AppContent: React.FC = () => {
                     const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
                     console.log(`OpenAI image generated successfully`);
                     setImageUrl(dataUrl);
-                    setStatusMessage(`Image generated successfully using ${modelName}!`);
+                    setStatus(`Image generated successfully using ${modelName}!`, 'success');
 
                     if (response.usage) {
                         console.log(`Token usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}, Total: ${response.usage.total_tokens}`);
                     }
                 } else {
-                    const errorMsg = `Error: OpenAI response missing image data`;
-                    setStatusMessage(errorMsg);
-                    console.error(errorMsg, response);
+                    setStatus('OpenAI response missing image data', 'error');
+                    console.error('OpenAI response missing image data', response);
                 }
             } catch (error: unknown) {
                 const errorMsg = `OpenAI error: ${error instanceof Error ? error.message : String(error)}`;
-                setStatusMessage(errorMsg);
+                setStatus(errorMsg, 'error');
                 console.error(errorMsg, error);
             }
 
@@ -123,14 +130,14 @@ const AppContent: React.FC = () => {
         // For other models (Flux, etc.), handle image upload if supported
         if (supportsImageInput && uploadedImage) {
             try {
-                setStatusMessage(`Uploading image for ${modelName}...`);
+                setStatus(`Uploading image for ${modelName}...`);
                 const uploadResult = await fal.storage.upload(uploadedImage);
                 uploadedImageUrl = uploadResult;
                 console.log(`Image uploaded successfully. URL: ${uploadedImageUrl}`);
-                setStatusMessage(`Image uploaded. Submitting request for ${modelName}...`);
+                setStatus(`Image uploaded. Submitting request for ${modelName}...`);
             } catch (uploadError: unknown) {
                 const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
-                setStatusMessage(errorMsg);
+                setStatus(errorMsg, 'error');
                 console.error(errorMsg);
                 return;
             }
@@ -159,7 +166,7 @@ const AppContent: React.FC = () => {
             });
             const requestId = submitResult.request_id;
             console.log(`Request submitted successfully. Request ID: ${requestId}`);
-            setStatusMessage(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
+            setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
             // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
             while (true) {
@@ -171,7 +178,7 @@ const AppContent: React.FC = () => {
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
                     const logMessages = logs?.map((log) => log.message).join(', ') || 'Processing...';
-                    setStatusMessage(`Request is ${statusResult.status}: ${logMessages}`);
+                    setStatus(`Request is ${statusResult.status}: ${logMessages}`);
                     console.log(`Status logs: ${logMessages}`);
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } else if (statusResult.status === "COMPLETED") {
@@ -183,32 +190,33 @@ const AppContent: React.FC = () => {
                         const imageUrl = result.data.images[0].url;
                         console.log(`Image URL received: ${imageUrl}`);
                         setImageUrl(imageUrl);
-                        setStatusMessage(`Image generated successfully using ${modelName}!`);
+                        setStatus(`Image generated successfully using ${modelName}!`, 'success');
                     } else {
-                        const errorMsg = `Error: Image generation failed. No image URL found in result. Full result: ${JSON.stringify(result)}`;
-                        setStatusMessage(errorMsg);
-                        console.error(errorMsg);
+                        setStatus('Image generation failed. No image URL found in result.', 'error');
+                        console.error('No image URL in result:', result);
                     }
                     break;
                 } else {
                     // Handle unexpected status (e.g., FAILED or unknown)
                     const status = (statusResult as { status: string }).status;
-                    const errorMsg = `Error: Request failed with status ${status}.`;
-                    setStatusMessage(errorMsg);
-                    console.error(errorMsg, statusResult);
+                    setStatus(`Request failed with status: ${status}`, 'error');
+                    console.error(`Request failed with status ${status}:`, statusResult);
                     break;
                 }
             }
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : String(error);
-            const errorMsg = `An error occurred during image generation: ${message}`;
-            setStatusMessage(errorMsg);
-            console.error(errorMsg, error);
-            if (message.includes("401") || message.includes("Unauthorized")) {
+            console.error('Image generation error:', error);
+
+            // Parse the error to get a user-friendly message
+            const parsedError = parseFalError(error);
+
+            // Check for authentication errors
+            const rawMessage = error instanceof Error ? error.message : String(error);
+            if (rawMessage.includes("401") || rawMessage.includes("Unauthorized")) {
                 console.error("Authentication error detected. The API key may be invalid or not applied correctly.");
-                setStatusMessage(`${errorMsg} (Likely invalid API key or authentication issue)`);
+                setStatus('Authentication failed. Please check your API key.', 'error');
             } else {
-                console.error("Other error occurred. Check network tab for details.");
+                setStatus(parsedError, 'error');
             }
         }
     };
@@ -263,7 +271,7 @@ const AppContent: React.FC = () => {
                     className="save-btn"
                     onClick={() => {
                         localStorage.setItem('OPENAI_API_KEY', openaiApiKey);
-                        setStatusMessage('Settings saved.');
+                        setStatus('Settings saved.', 'success');
                         setIsModalOpen(false);
                     }}
                 >
@@ -312,7 +320,7 @@ const AppContent: React.FC = () => {
                         <img src={imageUrl} alt="Generated result" className="generated-image" />
                     </div>
                 )}
-                <p className="status-message">{statusMessage}</p>
+                <p className={`status-message ${statusType}`}>{statusMessage}</p>
             </div>
         </div>
     );
