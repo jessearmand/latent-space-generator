@@ -63,6 +63,20 @@ export interface ModelConfig {
     thumbnailUrl?: string;
 }
 
+/**
+ * Generate display name from endpoint ID
+ * Removes 'fal-ai/' prefix and preserves the rest of the path
+ * e.g., 'fal-ai/flux-2/lora/edit' → 'flux-2/lora/edit'
+ *       'bria/text-to-image/3.2' → 'bria/text-to-image/3.2'
+ */
+function formatDisplayName(endpointId: string): string {
+    // Remove 'fal-ai/' prefix if present
+    if (endpointId.startsWith('fal-ai/')) {
+        return endpointId.slice(7); // 'fal-ai/'.length === 7
+    }
+    return endpointId;
+}
+
 /** Convert API model to internal ModelConfig */
 export function normalizeModel(model: FalModel): ModelConfig {
     const metadata = model.metadata || {};
@@ -70,7 +84,7 @@ export function normalizeModel(model: FalModel): ModelConfig {
 
     return {
         endpointId: model.endpoint_id,
-        displayName: metadata.display_name || model.endpoint_id,
+        displayName: formatDisplayName(model.endpoint_id),
         category,
         description: metadata.description || '',
         supportsImageInput: category === 'image-to-image',
