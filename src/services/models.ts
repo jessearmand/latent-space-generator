@@ -4,11 +4,11 @@
  */
 
 import {
-    FalModel,
-    ModelsApiResponse,
-    ModelsQueryParams,
-    ModelConfig,
-    ImageModelCategory,
+    type FalModel,
+    type ModelsApiResponse,
+    type ModelsQueryParams,
+    type ModelConfig,
+    type ImageModelCategory,
     normalizeModel,
 } from '../types/models';
 
@@ -29,7 +29,9 @@ function buildUrl(path: string, params: ModelsQueryParams): string {
     }
     if (params.endpoint_id) {
         const ids = Array.isArray(params.endpoint_id) ? params.endpoint_id : [params.endpoint_id];
-        ids.forEach(id => url.searchParams.append('endpoint_id', id));
+        for (const id of ids) {
+            url.searchParams.append('endpoint_id', id);
+        }
     }
     if (params.q) {
         url.searchParams.set('q', params.q);
@@ -42,7 +44,9 @@ function buildUrl(path: string, params: ModelsQueryParams): string {
     }
     if (params.expand) {
         const expands = Array.isArray(params.expand) ? params.expand : [params.expand];
-        expands.forEach(e => url.searchParams.append('expand', e));
+        for (const e of expands) {
+            url.searchParams.append('expand', e);
+        }
     }
 
     return url.toString();

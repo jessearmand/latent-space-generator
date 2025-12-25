@@ -211,3 +211,7 @@ sketch
 .claude
 .mcp.json
 mise.toml
+
+# Vite config build artifacts
+vite.config.js
+vite.config.d.ts

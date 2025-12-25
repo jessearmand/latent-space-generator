@@ -3,7 +3,7 @@
  * Displays available models with loading/error states and refresh capability
  */
 
-import React from 'react';
+import type React from 'react';
 import { useModels } from '../contexts/ModelsContext';
 
 interface ModelSelectorProps {

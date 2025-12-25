@@ -3,8 +3,9 @@
  * Renders different options based on model category
  */
 
-import React, { useState } from 'react';
-import { ModelConfig } from '../types/models';
+import type React from 'react';
+import { useState } from 'react';
+import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
 
 interface ModelConfigPanelProps {
@@ -79,8 +80,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
     return (
         <>
             <div className="form-group">
-                <label>Safety Tolerance:</label>
+                <label htmlFor="safety-tolerance">Safety Tolerance:</label>
                 <select
+                    id="safety-tolerance"
                     value={config.safetyTolerance}
                     onChange={(e) => config.setSafetyTolerance(e.target.value)}
                 >
@@ -91,8 +93,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             </div>
 
             <div className="form-group">
-                <label>Aspect Ratio:</label>
+                <label htmlFor="aspect-ratio">Aspect Ratio:</label>
                 <select
+                    id="aspect-ratio"
                     value={config.aspectRatio}
                     onChange={(e) => config.setAspectRatio(e.target.value)}
                 >
@@ -103,8 +106,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             </div>
 
             <div className="form-group">
-                <label>Image Size:</label>
+                <label htmlFor="image-size">Image Size:</label>
                 <select
+                    id="image-size"
                     value={typeof config.imageSize === 'string' ? config.imageSize : 'custom'}
                     onChange={(e) => {
                         if (e.target.value !== 'custom') {
@@ -127,7 +131,7 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                             value={config.imageSize.width}
                             onChange={(e) => config.setImageSize({
                                 ...(config.imageSize as { width: number; height: number }),
-                                width: parseInt(e.target.value) || 1024
+                                width: parseInt(e.target.value, 10) || 1024
                             })}
                         />
                         <input
@@ -136,7 +140,7 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                             value={config.imageSize.height}
                             onChange={(e) => config.setImageSize({
                                 ...(config.imageSize as { width: number; height: number }),
-                                height: parseInt(e.target.value) || 1280
+                                height: parseInt(e.target.value, 10) || 1280
                             })}
                         />
                     </div>
@@ -144,8 +148,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             </div>
 
             <div className="form-group">
-                <label>Raw Output:</label>
+                <label htmlFor="raw-output">Raw Output:</label>
                 <input
+                    id="raw-output"
                     type="checkbox"
                     checked={config.raw}
                     onChange={(e) => config.setRaw(e.target.checked)}
@@ -153,8 +158,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             </div>
 
             <div className="form-group">
-                <label>Enable Safety Checker:</label>
+                <label htmlFor="enable-safety-checker">Enable Safety Checker:</label>
                 <input
+                    id="enable-safety-checker"
                     type="checkbox"
                     checked={config.enableSafetyChecker}
                     onChange={(e) => config.setEnableSafetyChecker(e.target.checked)}
@@ -162,17 +168,19 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             </div>
 
             <div className="form-group">
-                <label>Seed (leave blank for random):</label>
+                <label htmlFor="seed">Seed (leave blank for random):</label>
                 <input
+                    id="seed"
                     type="number"
                     value={config.seed !== null ? config.seed : ''}
-                    onChange={(e) => config.setSeed(e.target.value ? parseInt(e.target.value) : null)}
+                    onChange={(e) => config.setSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
                 />
             </div>
 
             <div className="form-group">
-                <label>Guidance Scale:</label>
+                <label htmlFor="guidance-scale">Guidance Scale:</label>
                 <input
+                    id="guidance-scale"
                     type="number"
                     step="0.1"
                     value={config.guidanceScale}
@@ -184,8 +192,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
             {supportsImageInput && (
                 <>
                     <div className="form-group">
-                        <label>Image Prompt Strength:</label>
+                        <label htmlFor="image-prompt-strength">Image Prompt Strength:</label>
                         <input
+                            id="image-prompt-strength"
                             type="number"
                             step="0.1"
                             min="0"
@@ -196,8 +205,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                         />
                     </div>
                     <div className="form-group">
-                        <label>Upload Image:</label>
+                        <label htmlFor="upload-image">Upload Image:</label>
                         <input
+                            id="upload-image"
                             type="file"
                             accept="image/*"
                             onChange={(e) => onImageChange(e.target.files ? e.target.files[0] : null)}
@@ -220,8 +230,9 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
     return (
         <>
             <div className="form-group">
-                <label>GPT Image Size:</label>
+                <label htmlFor="gpt-image-size">GPT Image Size:</label>
                 <select
+                    id="gpt-image-size"
                     value={config.gptImageSize}
                     onChange={(e) => config.setGptImageSize(e.target.value)}
                 >
@@ -232,18 +243,20 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
             </div>
 
             <div className="form-group">
-                <label>Number of Images:</label>
+                <label htmlFor="gpt-num-images">Number of Images:</label>
                 <input
+                    id="gpt-num-images"
                     type="number"
                     min="1"
                     value={config.gptNumImages}
-                    onChange={(e) => config.setGptNumImages(parseInt(e.target.value) || 1)}
+                    onChange={(e) => config.setGptNumImages(parseInt(e.target.value, 10) || 1)}
                 />
             </div>
 
             <div className="form-group">
-                <label>Quality:</label>
+                <label htmlFor="gpt-quality">Quality:</label>
                 <select
+                    id="gpt-quality"
                     value={config.gptQuality}
                     onChange={(e) => config.setGptQuality(e.target.value)}
                 >
@@ -254,8 +267,9 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
             </div>
 
             <div className="form-group">
-                <label>Background:</label>
+                <label htmlFor="gpt-background">Background:</label>
                 <select
+                    id="gpt-background"
                     value={config.gptBackground}
                     onChange={(e) => config.setGptBackground(e.target.value)}
                 >

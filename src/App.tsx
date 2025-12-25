@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { fal } from '@fal-ai/client';
 import './App.css';
@@ -6,8 +7,8 @@ import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
-import { ModelConfig } from './types/models';
-import { generateOpenAIImage, base64ToDataUrl, OpenAIImageParams } from './services/openai';
+import type { ModelConfig } from './types/models';
+import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 
 const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
@@ -60,7 +61,7 @@ const AppContent: React.FC = () => {
         setStatusMessage(`Submitting request for image generation using ${modelName}...`);
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
-        let input;
+        let input: Record<string, unknown> | undefined;
         let uploadedImageUrl: string | null = null;
 
         // GPT models use direct OpenAI API calls (not through fal.ai)
@@ -96,7 +97,7 @@ const AppContent: React.FC = () => {
 
                 const response = await generateOpenAIImage(openaiApiKey, params);
 
-                if (response.data && response.data[0] && response.data[0].b64_json) {
+                if (response.data?.[0]?.b64_json) {
                     const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
                     console.log(`OpenAI image generated successfully`);
                     setImageUrl(dataUrl);
@@ -110,8 +111,8 @@ const AppContent: React.FC = () => {
                     setStatusMessage(errorMsg);
                     console.error(errorMsg, response);
                 }
-            } catch (error: any) {
-                const errorMsg = `OpenAI error: ${error.message}`;
+            } catch (error: unknown) {
+                const errorMsg = `OpenAI error: ${error instanceof Error ? error.message : String(error)}`;
                 setStatusMessage(errorMsg);
                 console.error(errorMsg, error);
             }
@@ -127,8 +128,8 @@ const AppContent: React.FC = () => {
                 uploadedImageUrl = uploadResult;
                 console.log(`Image uploaded successfully. URL: ${uploadedImageUrl}`);
                 setStatusMessage(`Image uploaded. Submitting request for ${modelName}...`);
-            } catch (uploadError: any) {
-                const errorMsg = `Error uploading image: ${uploadError.message}`;
+            } catch (uploadError: unknown) {
+                const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
                 setStatusMessage(errorMsg);
                 console.error(errorMsg);
                 return;
@@ -168,7 +169,8 @@ const AppContent: React.FC = () => {
                 });
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
-                    const logMessages = (statusResult as any).logs?.map((log: { message: string }) => log.message).join(', ') || 'Processing...';
+                    const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
+                    const logMessages = logs?.map((log) => log.message).join(', ') || 'Processing...';
                     setStatusMessage(`Request is ${statusResult.status}: ${logMessages}`);
                     console.log(`Status logs: ${logMessages}`);
                     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -177,7 +179,7 @@ const AppContent: React.FC = () => {
                         requestId,
                     });
                     console.log(`Request completed. Full result:`, result);
-                    if (result.data.images && result.data.images[0] && result.data.images[0].url) {
+                    if (result.data.images?.[0]?.url) {
                         const imageUrl = result.data.images[0].url;
                         console.log(`Image URL received: ${imageUrl}`);
                         setImageUrl(imageUrl);
@@ -189,17 +191,20 @@ const AppContent: React.FC = () => {
                     }
                     break;
                 } else {
-                    const errorMsg = `Error: Request failed with status ${(statusResult as any).status}.`;
+                    // Handle unexpected status (e.g., FAILED or unknown)
+                    const status = (statusResult as { status: string }).status;
+                    const errorMsg = `Error: Request failed with status ${status}.`;
                     setStatusMessage(errorMsg);
                     console.error(errorMsg, statusResult);
                     break;
                 }
             }
-        } catch (error: any) {
-            const errorMsg = `An error occurred during image generation: ${error.message}`;
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            const errorMsg = `An error occurred during image generation: ${message}`;
             setStatusMessage(errorMsg);
             console.error(errorMsg, error);
-            if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+            if (message.includes("401") || message.includes("Unauthorized")) {
                 console.error("Authentication error detected. The API key may be invalid or not applied correctly.");
                 setStatusMessage(`${errorMsg} (Likely invalid API key or authentication issue)`);
             } else {
@@ -215,7 +220,7 @@ const AppContent: React.FC = () => {
         <div className="app-container">
             <header className="app-header">
                 <h1>fal.ai Image Generator</h1>
-                <button className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
+                <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
             </header>
 
             <Modal
@@ -226,16 +231,17 @@ const AppContent: React.FC = () => {
             >
                 <div className="modal-header">
                     <h3>Settings</h3>
-                    <button className="close-btn" onClick={() => setIsModalOpen(false)}>X</button>
+                    <button type="button" className="close-btn" onClick={() => setIsModalOpen(false)}>X</button>
                 </div>
                 <p>
                     The FAL API key is configured server-side. Only OpenAI key is needed for GPT models.
                 </p>
                 <div className="api-key-settings">
                     <div className="form-group api-key-group">
-                        <label>OpenAI API Key (required for GPT models):</label>
+                        <label htmlFor="openai-api-key">OpenAI API Key (required for GPT models):</label>
                         <div className="api-key-container">
                             <input
+                                id="openai-api-key"
                                 type={isOpenaiApiKeyVisible ? 'text' : 'password'}
                                 value={openaiApiKey}
                                 onChange={(e) => setOpenaiApiKey(e.target.value)}
@@ -243,6 +249,7 @@ const AppContent: React.FC = () => {
                                 className="api-key-input"
                             />
                             <button
+                                type="button"
                                 className="visibility-toggle"
                                 onClick={() => setIsOpenaiApiKeyVisible(!isOpenaiApiKeyVisible)}
                             >
@@ -252,6 +259,7 @@ const AppContent: React.FC = () => {
                     </div>
                 </div>
                 <button
+                    type="button"
                     className="save-btn"
                     onClick={() => {
                         localStorage.setItem('OPENAI_API_KEY', openaiApiKey);
@@ -288,6 +296,7 @@ const AppContent: React.FC = () => {
                 />
 
                 <button
+                    type="button"
                     className="generate-btn"
                     onClick={() => selectedModel && generateImage(promptText, selectedModel)}
                     disabled={!selectedModel || modelsLoading}

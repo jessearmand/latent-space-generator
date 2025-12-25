@@ -3,8 +3,9 @@
  * Handles fetching, caching, and selection of fal.ai models
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { ModelConfig } from '../types/models';
+import type React from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import type { ModelConfig } from '../types/models';
 import {
     fetchImageGenerationModels,
     getCachedModels,

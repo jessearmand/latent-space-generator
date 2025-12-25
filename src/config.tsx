@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
 
 interface ConfigState {
   safetyTolerance: string;
@@ -38,11 +38,11 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | string>(JSON.parse(localStorage.getItem('IMAGE_SIZE') || '"landscape_4_3"'));
   const [raw, setRaw] = useState<boolean>(localStorage.getItem('RAW') === 'true');
   const [enableSafetyChecker, setEnableSafetyChecker] = useState<boolean>(localStorage.getItem('ENABLE_SAFETY_CHECKER') === 'true');
-  const [seed, setSeed] = useState<number | null>(localStorage.getItem('SEED') !== 'null' ? parseInt(localStorage.getItem('SEED') || '0') : null);
+  const [seed, setSeed] = useState<number | null>(localStorage.getItem('SEED') !== 'null' ? parseInt(localStorage.getItem('SEED') || '0', 10) : null);
   const [guidanceScale, setGuidanceScale] = useState<number>(parseFloat(localStorage.getItem('GUIDANCE_SCALE') || '3.5'));  // Default from API
   const [imagePromptStrength, setImagePromptStrength] = useState<number>(parseFloat(localStorage.getItem('IMAGE_PROMPT_STRENGTH') || '0.1'));  // Default for image-editing
   const [gptImageSize, setGptImageSize] = useState<string>(localStorage.getItem('GPT_IMAGE_SIZE') || 'auto');
-  const [gptNumImages, setGptNumImages] = useState<number>(parseInt(localStorage.getItem('GPT_NUM_IMAGES') || '1') || 1);
+  const [gptNumImages, setGptNumImages] = useState<number>(parseInt(localStorage.getItem('GPT_NUM_IMAGES') || '1', 10) || 1);
   const [gptQuality, setGptQuality] = useState<string>(localStorage.getItem('GPT_QUALITY') || 'auto');
   const [gptBackground, setGptBackground] = useState<string>(localStorage.getItem('GPT_BACKGROUND') || 'auto');
 
