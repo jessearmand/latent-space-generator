@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
     // Configure fal client to use proxy (API key is server-side)
     useEffect(() => {
         fal.config({
-            proxyUrl: 'http://localhost:3001/api/fal/proxy',
+            proxyUrl: '/api/fal/proxy',
         });
         console.log('Fal client configured with proxy');
     }, []);

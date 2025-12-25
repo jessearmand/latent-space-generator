@@ -19,7 +19,7 @@ const ALLOWED_HOSTS = [
 const corsHeaders = {
     "Access-Control-Allow-Origin": "http://localhost:3000",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-fal-target-url, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, x-fal-target-url, x-fal-queue-priority, Authorization",
     "Access-Control-Max-Age": "86400",
 };
 
