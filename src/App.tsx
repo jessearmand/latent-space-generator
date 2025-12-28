@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Modal from 'react-modal';
+import TextareaAutosize from 'react-textarea-autosize';
 import { fal } from '@fal-ai/client';
 import './App.css';
 import { useConfig } from './config';
@@ -300,12 +301,13 @@ const AppContent: React.FC = () => {
                 />
 
                 <label htmlFor="prompt-input">Enter your prompt:</label>
-                <textarea
+                <TextareaAutosize
                     id="prompt-input"
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="A surreal photo of..."
-                    rows={3}
+                    minRows={3}
+                    maxRows={10}
                     className="prompt-textarea"
                 />
 

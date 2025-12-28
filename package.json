@@ -11,7 +11,8 @@
     "caniuse-lite": "^1.0.30001761",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-modal": "^3.16.1"
+    "react-modal": "^3.16.1",
+    "react-textarea-autosize": "^8.5.9"
   },
   "scripts": {
     "start": "concurrently \"bun run start:client\" \"bun run start:server\"",
