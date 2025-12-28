@@ -1,0 +1,332 @@
+/* Prompt Optimizer Component Styles */
+
+.prompt-optimizer {
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    overflow: hidden;
+}
+
+.prompt-optimizer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+    border: none;
+    text-align: left;
+    font: inherit;
+}
+
+.prompt-optimizer-header:hover {
+    background-color: #e8e8e8;
+}
+
+.prompt-optimizer-header:focus {
+    outline: 2px solid #6c5ce7;
+    outline-offset: -2px;
+}
+
+.prompt-optimizer-header h4 {
+    margin: 0;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prompt-optimizer-header .collapse-icon {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.prompt-optimizer-content {
+    padding: 15px;
+}
+
+/* Model selector row */
+.optimizer-model-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.optimizer-model-select {
+    flex: 1;
+    padding: 8px;
+    font-size: 0.95em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.optimizer-model-refresh {
+    background: none;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.optimizer-model-refresh:hover:not(:disabled) {
+    background-color: #007bff;
+    color: white;
+}
+
+.optimizer-model-refresh:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Filter row */
+.optimizer-filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.optimizer-provider-select {
+    padding: 6px 10px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    min-width: 120px;
+}
+
+.optimizer-search {
+    flex: 1;
+    min-width: 150px;
+    padding: 6px 10px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+/* Advanced filters row */
+.optimizer-advanced-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.optimizer-context-select,
+.optimizer-max-tokens-select,
+.optimizer-moderated-select {
+    padding: 6px 10px;
+    font-size: 0.85em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+/* Format selector row */
+.optimizer-format-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.format-label {
+    font-size: 0.9em;
+    color: #555;
+    font-weight: 500;
+}
+
+.format-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    user-select: none;
+}
+
+.format-option input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.format-option:hover {
+    color: #6c5ce7;
+}
+
+/* Action buttons */
+.optimizer-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.optimize-btn {
+    padding: 10px 16px;
+    font-size: 0.95em;
+    background-color: #6c5ce7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.optimize-btn:hover:not(:disabled) {
+    background-color: #5b4bd5;
+}
+
+.optimize-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.stop-btn {
+    padding: 10px 16px;
+    font-size: 0.95em;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.stop-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Completion preview area */
+.optimizer-preview {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 12px;
+    min-height: 60px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.optimizer-preview.empty {
+    color: #999;
+    font-style: italic;
+}
+
+.optimizer-preview.streaming {
+    border-color: #6c5ce7;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        border-color: #6c5ce7;
+    }
+    50% {
+        border-color: #a29bfe;
+    }
+}
+
+/* Result actions */
+.optimizer-result-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.use-prompt-btn {
+    padding: 8px 14px;
+    font-size: 0.9em;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.use-prompt-btn:hover {
+    background-color: #218838;
+}
+
+.regenerate-btn {
+    padding: 8px 14px;
+    font-size: 0.9em;
+    background-color: #ffc107;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.regenerate-btn:hover {
+    background-color: #e0a800;
+}
+
+.copy-btn {
+    padding: 8px 14px;
+    font-size: 0.9em;
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+    background-color: #138496;
+}
+
+/* Error state */
+.optimizer-error {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* No API key message */
+.no-api-key-message {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 0.9em;
+}

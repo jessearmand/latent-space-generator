@@ -7,6 +7,7 @@ import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
+import { PromptOptimizer } from './components/PromptOptimizer';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
@@ -291,6 +292,11 @@ const AppContent: React.FC = () => {
                     uploadedImage={uploadedImage}
                     imagePreview={imagePreview}
                     onImageChange={setUploadedImage}
+                />
+
+                <PromptOptimizer
+                    originalPrompt={promptText}
+                    onPromptOptimized={(optimized) => setPromptText(optimized)}
                 />
 
                 <label htmlFor="prompt-input">Enter your prompt:</label>
