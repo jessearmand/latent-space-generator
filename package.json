@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/react": "^3.0.3",
+    "@ai-sdk/react": "^1.2.12",
     "@fal-ai/client": "^1.0.0",
     "@openrouter/ai-sdk-provider": "^1.5.4",
-    "ai": "^6.0.3",
+    "ai": "^5.0.116",
     "baseline-browser-mapping": "^2.9.11",
     "caniuse-lite": "^1.0.30001761",
     "react": "^18.2.0",
