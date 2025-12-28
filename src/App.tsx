@@ -1,12 +1,14 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Modal from 'react-modal';
+import TextareaAutosize from 'react-textarea-autosize';
 import { fal } from '@fal-ai/client';
 import './App.css';
 import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
+import { PromptOptimizer } from './components/PromptOptimizer';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
@@ -293,13 +295,19 @@ const AppContent: React.FC = () => {
                     onImageChange={setUploadedImage}
                 />
 
+                <PromptOptimizer
+                    originalPrompt={promptText}
+                    onPromptOptimized={(optimized) => setPromptText(optimized)}
+                />
+
                 <label htmlFor="prompt-input">Enter your prompt:</label>
-                <textarea
+                <TextareaAutosize
                     id="prompt-input"
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="A surreal photo of..."
-                    rows={3}
+                    minRows={3}
+                    maxRows={10}
                     className="prompt-textarea"
                 />
 
