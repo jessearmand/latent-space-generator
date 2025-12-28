@@ -90,6 +90,28 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
         return filterModels(models, filters);
     }, [models, filters]);
 
+    // Auto-select model when current selection is not in filtered list
+    useEffect(() => {
+        // Skip during initial load when models haven't loaded yet
+        if (models.length === 0) return;
+
+        // If no filtered models available, clear selection
+        if (filteredModels.length === 0) {
+            setSelectedModelState(null);
+            localStorage.removeItem(SELECTED_MODEL_KEY);
+            return;
+        }
+
+        // If current selection exists in filtered list, keep it
+        if (selectedModel && filteredModels.some((m) => m.id === selectedModel.id)) {
+            return;
+        }
+
+        // Auto-select first model from filtered list
+        setSelectedModelState(filteredModels[0]);
+        localStorage.setItem(SELECTED_MODEL_KEY, filteredModels[0].id);
+    }, [filteredModels, selectedModel, models.length]);
+
     // Compute available providers (derived from model IDs)
     const availableProviders = useMemo(() => {
         // Get providers from text-only models if textOnly filter is active
