@@ -58,14 +58,9 @@ function buildSystemPrompt(format: PromptFormat = "plain"): string {
     return PROMPT_OPTIMIZATION_BASE + (FORMAT_INSTRUCTIONS[format] || "");
 }
 
-// Allowed fal.ai domains for security
-const ALLOWED_HOSTS = [
-    "api.fal.ai",
-    "queue.fal.run",
-    "fal.run",
-    "storage.fal.ai",
-    "gateway.fal.ai",
-];
+// Regex to validate fal.ai domains (matches official fal proxy implementation)
+// Allows: fal.run, fal.ai, fal.dev and any subdomain (*.fal.run, *.fal.ai, *.fal.dev)
+const FAL_URL_REG_EXP = /(\.|^)fal\.(run|ai|dev)$/;
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -78,7 +73,7 @@ const corsHeaders = {
 function isAllowedHost(url: string): boolean {
     try {
         const { host } = new URL(url);
-        return ALLOWED_HOSTS.some(allowed => host === allowed || host.endsWith(`.${allowed}`));
+        return FAL_URL_REG_EXP.test(host);
     } catch {
         return false;
     }

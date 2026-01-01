@@ -9,9 +9,12 @@ import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
 import { PromptOptimizer } from './components/PromptOptimizer';
+import { GenerationTabs, type GenerationMode } from './components/GenerationTabs';
+import { ImageUploadZone } from './components/ImageUploadZone';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
+import { getImageInputConfig } from './services/modelParams';
 
 const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
@@ -20,6 +23,8 @@ const AppContent: React.FC = () => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<GenerationMode>('text-to-image');
+    const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -53,6 +58,22 @@ const AppContent: React.FC = () => {
         }
     }, [uploadedImage]);
 
+    // Auto-switch tab when selected model's category changes
+    useEffect(() => {
+        if (selectedModel) {
+            const modelCategory = selectedModel.category;
+            if (modelCategory === 'text-to-image' || modelCategory === 'image-to-image') {
+                setActiveTab(modelCategory);
+            }
+        }
+    }, [selectedModel]);
+
+    // Handle tab change
+    const handleTabChange = (tab: GenerationMode) => {
+        setActiveTab(tab);
+        // Keep uploaded image (ignored during T2I generation)
+    };
+
     // Function to generate image using fal-ai queue methods
     const generateImage = async (prompt: string, model: ModelConfig) => {
         if (!prompt) {
@@ -66,6 +87,13 @@ const AppContent: React.FC = () => {
         const isGptModel = modelId.includes('gpt-image');
         const supportsImageInput = model.supportsImageInput;
 
+        // For image-to-image mode, require an uploaded image
+        if (activeTab === 'image-to-image' && supportsImageInput && !uploadedImage) {
+            setStatus('Please upload an image for image-to-image generation.', 'error');
+            return;
+        }
+
+        setIsGenerating(true);
         console.log(`Generating image with model: ${modelName}`);
 
         setStatus(`Submitting request for image generation using ${modelName}...`);
@@ -79,6 +107,7 @@ const AppContent: React.FC = () => {
             if (!openaiApiKey) {
                 setStatus('OPENAI_API_KEY is required for GPT Image models.', 'error');
                 console.error('OPENAI_API_KEY is missing for GPT Image model.');
+                setIsGenerating(false);
                 return;
             }
 
@@ -124,6 +153,8 @@ const AppContent: React.FC = () => {
                 const errorMsg = `OpenAI error: ${error instanceof Error ? error.message : String(error)}`;
                 setStatus(errorMsg, 'error');
                 console.error(errorMsg, error);
+            } finally {
+                setIsGenerating(false);
             }
 
             return; // Exit early for GPT models - don't use fal.ai queue
@@ -141,10 +172,25 @@ const AppContent: React.FC = () => {
                 const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
                 setStatus(errorMsg, 'error');
                 console.error(errorMsg);
+                setIsGenerating(false);
                 return;
             }
             console.log(`Uploaded image URL type and value:`, typeof uploadedImageUrl, uploadedImageUrl);
         }
+
+        // Build image input params based on model type
+        // Uses pattern matching to determine correct parameter format per model
+        const imageConfig = getImageInputConfig(modelId);
+        const imageInputParams = supportsImageInput && uploadedImageUrl
+            ? {
+                [imageConfig.paramName]: imageConfig.isArray
+                    ? [uploadedImageUrl]
+                    : uploadedImageUrl,
+                ...(imageConfig.strengthParam
+                    ? { [imageConfig.strengthParam]: config.imagePromptStrength }
+                    : {}),
+            }
+            : {};
 
         input = {
             prompt,
@@ -155,7 +201,7 @@ const AppContent: React.FC = () => {
             enable_safety_checker: config.enableSafetyChecker,
             seed: config.seed,
             guidance_scale: config.guidanceScale,
-            ...(supportsImageInput && uploadedImageUrl ? { image_url: uploadedImageUrl, image_prompt_strength: config.imagePromptStrength } : {})
+            ...imageInputParams
         };
 
         try {
@@ -220,6 +266,8 @@ const AppContent: React.FC = () => {
             } else {
                 setStatus(parsedError, 'error');
             }
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -282,17 +330,32 @@ const AppContent: React.FC = () => {
             </Modal>
 
             <p className="app-description">
-                Select a model and enter a text prompt to generate an image.
+                {activeTab === 'text-to-image'
+                    ? 'Select a model and enter a text prompt to generate an image.'
+                    : 'Upload an image and enter a prompt to transform it.'}
             </p>
 
             <div className="input-section">
-                <ModelSelector />
+                <GenerationTabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    disabled={isGenerating}
+                />
+
+                <ModelSelector filterByCategory={activeTab} />
+
+                {activeTab === 'image-to-image' && (
+                    <ImageUploadZone
+                        uploadedImage={uploadedImage}
+                        imagePreview={imagePreview}
+                        onImageChange={setUploadedImage}
+                        disabled={isGenerating}
+                    />
+                )}
 
                 <ModelConfigPanel
                     selectedModel={selectedModel}
-                    uploadedImage={uploadedImage}
-                    imagePreview={imagePreview}
-                    onImageChange={setUploadedImage}
+                    activeTab={activeTab}
                 />
 
                 <PromptOptimizer
@@ -305,19 +368,22 @@ const AppContent: React.FC = () => {
                     id="prompt-input"
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
-                    placeholder="A surreal photo of..."
+                    placeholder={activeTab === 'text-to-image'
+                        ? 'A surreal photo of...'
+                        : 'Transform the image into...'}
                     minRows={3}
                     maxRows={10}
                     className="prompt-textarea"
+                    disabled={isGenerating}
                 />
 
                 <button
                     type="button"
                     className="generate-btn"
                     onClick={() => selectedModel && generateImage(promptText, selectedModel)}
-                    disabled={!selectedModel || modelsLoading}
+                    disabled={!selectedModel || modelsLoading || isGenerating}
                 >
-                    {modelsLoading ? 'Loading models...' : 'Generate Image'}
+                    {isGenerating ? 'Generating...' : modelsLoading ? 'Loading models...' : 'Generate Image'}
                 </button>
             </div>
 

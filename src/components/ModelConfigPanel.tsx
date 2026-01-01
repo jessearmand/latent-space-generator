@@ -7,19 +7,16 @@ import type React from 'react';
 import { useState } from 'react';
 import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
+import { getImageInputConfig } from '../services/modelParams';
 
 interface ModelConfigPanelProps {
     selectedModel: ModelConfig | null;
-    uploadedImage: File | null;
-    imagePreview: string | null;
-    onImageChange: (file: File | null) => void;
+    activeTab?: 'text-to-image' | 'image-to-image';
 }
 
 export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     selectedModel,
-    uploadedImage,
-    imagePreview,
-    onImageChange,
+    activeTab = 'text-to-image',
 }) => {
     const config = useConfig();
     const [isExpanded, setIsExpanded] = useState(true);
@@ -51,10 +48,9 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                     ) : (
                         <FluxConfigOptions
                             config={config}
-                            supportsImageInput={isImageToImage}
-                            uploadedImage={uploadedImage}
-                            imagePreview={imagePreview}
-                            onImageChange={onImageChange}
+                            modelId={selectedModel.endpointId}
+                            activeTab={activeTab}
+                            isImageToImage={isImageToImage}
                         />
                     )}
                 </div>
@@ -65,18 +61,22 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
 interface FluxConfigOptionsProps {
     config: ReturnType<typeof useConfig>;
-    supportsImageInput: boolean;
-    uploadedImage: File | null;
-    imagePreview: string | null;
-    onImageChange: (file: File | null) => void;
+    modelId: string;
+    activeTab: 'text-to-image' | 'image-to-image';
+    isImageToImage: boolean;
 }
 
 const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
     config,
-    supportsImageInput,
-    imagePreview,
-    onImageChange,
+    modelId,
+    activeTab,
+    isImageToImage,
 }) => {
+    // Check if this model supports strength parameter
+    const imageConfig = getImageInputConfig(modelId);
+    const showImageStrength = activeTab === 'image-to-image'
+        && isImageToImage
+        && imageConfig.strengthParam !== null;
     return (
         <>
             <div className="form-group">
@@ -189,34 +189,23 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                 />
             </div>
 
-            {supportsImageInput && (
-                <>
-                    <div className="form-group">
-                        <label htmlFor="image-prompt-strength">Image Prompt Strength:</label>
-                        <input
-                            id="image-prompt-strength"
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="1"
-                            value={config.imagePromptStrength}
-                            onChange={(e) => config.setImagePromptStrength(parseFloat(e.target.value) || 0.1)}
-                            placeholder="e.g., 0.1"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="upload-image">Upload Image:</label>
-                        <input
-                            id="upload-image"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => onImageChange(e.target.files ? e.target.files[0] : null)}
-                        />
-                        {imagePreview && (
-                            <img src={imagePreview} alt="Preview" className="image-preview" />
-                        )}
-                    </div>
-                </>
+            {showImageStrength && (
+                <div className="form-group">
+                    <label htmlFor="image-prompt-strength">
+                        {imageConfig.strengthParam === 'strength' ? 'Strength' : 'Image Prompt Strength'}:
+                        <span className="hint"> (0 = preserve original, 1 = full transformation)</span>
+                    </label>
+                    <input
+                        id="image-prompt-strength"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.imagePromptStrength}
+                        onChange={(e) => config.setImagePromptStrength(parseFloat(e.target.value))}
+                    />
+                    <span className="range-value">{config.imagePromptStrength.toFixed(2)}</span>
+                </div>
             )}
         </>
     );
