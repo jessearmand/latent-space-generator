@@ -27,6 +27,8 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
+    const isQwenModel = selectedModel.endpointId.includes('qwen-image');
+    const isQwenLayeredModel = selectedModel.endpointId.includes('qwen-image-layered');
 
     return (
         <div className="config-panel">
@@ -46,12 +48,20 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                     {isGptModel ? (
                         <GptConfigOptions config={config} />
                     ) : (
-                        <FluxConfigOptions
-                            config={config}
-                            modelId={selectedModel.endpointId}
-                            activeTab={activeTab}
-                            isImageToImage={isImageToImage}
-                        />
+                        <>
+                            <FluxConfigOptions
+                                config={config}
+                                modelId={selectedModel.endpointId}
+                                activeTab={activeTab}
+                                isImageToImage={isImageToImage}
+                            />
+                            {isQwenModel && (
+                                <QwenConfigOptions
+                                    config={config}
+                                    showNumLayers={isQwenLayeredModel}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             )}
@@ -265,6 +275,58 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
                     {['auto', 'transparent', 'opaque'].map((val) => (
                         <option key={val} value={val}>{val}</option>
                     ))}
+                </select>
+            </div>
+        </>
+    );
+};
+
+interface QwenConfigOptionsProps {
+    config: ReturnType<typeof useConfig>;
+    showNumLayers: boolean;  // Only show num_layers for qwen-image-layered
+}
+
+/**
+ * Config options for Qwen image models
+ * - acceleration: Speed vs quality tradeoff ("none" | "regular" | "high") - available for all Qwen models
+ * - num_layers: Number of layers to decompose into (1-10) - only for qwen-image-layered
+ */
+const QwenConfigOptions: React.FC<QwenConfigOptionsProps> = ({ config, showNumLayers }) => {
+    return (
+        <>
+            <div className="form-group-divider">
+                <span>{showNumLayers ? 'Layer Decomposition Settings' : 'Qwen Model Settings'}</span>
+            </div>
+
+            {showNumLayers && (
+                <div className="form-group">
+                    <label htmlFor="num-layers">Number of Layers:</label>
+                    <input
+                        id="num-layers"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={config.numLayers}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            // Clamp to valid range 1-10
+                            config.setNumLayers(Math.max(1, Math.min(10, val || 4)));
+                        }}
+                    />
+                    <span className="hint"> (1-10, how many layers to decompose into)</span>
+                </div>
+            )}
+
+            <div className="form-group">
+                <label htmlFor="qwen-acceleration">Acceleration:</label>
+                <select
+                    id="qwen-acceleration"
+                    value={config.acceleration}
+                    onChange={(e) => config.setAcceleration(e.target.value)}
+                >
+                    <option value="none">None (highest quality)</option>
+                    <option value="regular">Regular (balanced)</option>
+                    <option value="high">High (fastest)</option>
                 </select>
             </div>
         </>

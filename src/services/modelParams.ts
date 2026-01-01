@@ -4,6 +4,7 @@
  * Different models use different parameter naming conventions:
  * - Some use `image_urls` (array), others use `image_url` (string)
  * - Some use `strength`, others use `image_prompt_strength`, some have none
+ * - Some support multiple input images (up to 9 for flux-2-pro/edit)
  */
 
 export interface ImageInputConfig {
@@ -13,6 +14,8 @@ export interface ImageInputConfig {
     isArray: boolean;
     /** The strength parameter name, or null if not supported */
     strengthParam: 'strength' | 'image_prompt_strength' | null;
+    /** Maximum number of images supported (1 for single image, higher for multi-image models) */
+    maxImages: number;
 }
 
 /**
@@ -23,9 +26,11 @@ export interface ImageInputConfig {
  *
  * API Parameter Reference (from fal.ai docs):
  *
- * Models using image_urls (array):
- * - flux-2-pro/edit, flux-2/edit, flux-2/flash/edit (multi-reference editors)
+ * Models using image_urls (array) - multi-image support:
+ * - flux-2-pro/edit, flux-2/edit, flux-2/flash/edit (up to 9 reference images)
  * - qwen-image-edit-2509, qwen-image-edit-2511 (multi-image support)
+ * - qwen-image-edit-plus (multi-image support)
+ * - wan/v2.6/image-to-image and other wan image models
  *
  * Models using image_url (string) + strength:
  * - flux-lora/image-to-image
@@ -36,14 +41,20 @@ export interface ImageInputConfig {
  * Models using image_url (string) without strength:
  * - flux-pro/kontext
  * - qwen-image-edit (base, no /image-to-image)
+ * - qwen-image-layered
  */
 export function getImageInputConfig(modelId: string): ImageInputConfig {
-    // Models requiring image_urls (array format)
-    // - /edit endpoints: Multi-reference editors like flux-2-pro/edit
+    // Models requiring image_urls (array format) - support multiple images
+    // - /edit endpoints: Multi-reference editors like flux-2-pro/edit (up to 9 images)
     // - qwen-image-edit-25XX: Qwen models with date suffix have multi-image support
+    // - qwen-image-edit-plus: Multi-image support
+    // - wan image models: Support multiple reference images
     const arrayImageModels = [
         /\/edit$/,
         /qwen-image-edit-25\d{2}/,
+        /qwen-image-edit-plus/,
+        /wan.*\/image-to-image/,
+        /wan.*image/i,
     ];
 
     // Models that don't support strength parameter
@@ -51,19 +62,43 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
     // - /kontext: Contextual editing, no strength parameter
     // - qwen-image-edit (base): No strength, use /image-to-image variant for that
     // - qwen-image-edit-25XX: Multi-image models don't have strength
+    // - qwen-image-edit-plus: No strength parameter
+    // - qwen-image-layered: Layer decomposition model, no transformation strength
+    // - wan models: No strength parameter for image-to-image
     const noStrengthModels = [
         /\/edit$/,
         /\/kontext$/,
         /qwen-image-edit-25\d{2}/,
+        /qwen-image-edit-plus/,
         /qwen-image-edit(?!\/image-to-image)/,
+        /qwen-image-layered/,
+        /wan.*\/image-to-image/,
+        /wan.*image/i,
+    ];
+
+    // Models that support many images (e.g., flux-2-pro/edit supports up to 9)
+    const manyImagesModels = [
+        /flux-2-pro\/edit/,
+        /flux-2\/edit/,
+        /flux-2\/flash\/edit/,
     ];
 
     const usesArray = arrayImageModels.some(pattern => pattern.test(modelId));
     const hasStrength = !noStrengthModels.some(pattern => pattern.test(modelId));
+    const supportsManyImages = manyImagesModels.some(pattern => pattern.test(modelId));
+
+    // Determine max images: 9 for flux edit models, 4 for other array models, 1 for single
+    let maxImages = 1;
+    if (supportsManyImages) {
+        maxImages = 9;
+    } else if (usesArray) {
+        maxImages = 4;  // Reasonable default for multi-image models
+    }
 
     return {
         paramName: usesArray ? 'image_urls' : 'image_url',
         isArray: usesArray,
         strengthParam: hasStrength ? 'strength' : null,
+        maxImages,
     };
 }

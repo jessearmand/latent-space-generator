@@ -20,9 +20,11 @@ const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
     const [openaiApiKey, setOpenaiApiKey] = useState<string>(localStorage.getItem('OPENAI_API_KEY') || '');
     const [promptText, setPromptText] = useState<string>('');
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    // Support multiple output images (e.g., qwen-image-layered returns layers)
+    const [imageUrls, setImageUrls] = useState<string[]>([]);
+    // Support multiple input images (e.g., flux-2-pro/edit supports up to 9)
+    const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<GenerationMode>('text-to-image');
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -47,16 +49,21 @@ const AppContent: React.FC = () => {
         console.log('Fal client configured with proxy');
     }, []);
 
-    // Handle image preview
+    // Handle image previews for multiple files
     useEffect(() => {
-        if (uploadedImage) {
-            const previewUrl = URL.createObjectURL(uploadedImage);
-            setImagePreview(previewUrl);
-            return () => URL.revokeObjectURL(previewUrl);
+        if (uploadedImages.length > 0) {
+            const newPreviews = uploadedImages.map(file => URL.createObjectURL(file));
+            setImagePreviews(newPreviews);
+            // Cleanup: revoke object URLs when dependencies change
+            return () => {
+                for (const url of newPreviews) {
+                    URL.revokeObjectURL(url);
+                }
+            };
         } else {
-            setImagePreview(null);
+            setImagePreviews([]);
         }
-    }, [uploadedImage]);
+    }, [uploadedImages]);
 
     // Auto-switch tab when selected model's category changes
     useEffect(() => {
@@ -87,8 +94,8 @@ const AppContent: React.FC = () => {
         const isGptModel = modelId.includes('gpt-image');
         const supportsImageInput = model.supportsImageInput;
 
-        // For image-to-image mode, require an uploaded image
-        if (activeTab === 'image-to-image' && supportsImageInput && !uploadedImage) {
+        // For image-to-image mode, require at least one uploaded image
+        if (activeTab === 'image-to-image' && supportsImageInput && uploadedImages.length === 0) {
             setStatus('Please upload an image for image-to-image generation.', 'error');
             return;
         }
@@ -100,7 +107,6 @@ const AppContent: React.FC = () => {
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
         let input: Record<string, unknown> | undefined;
-        let uploadedImageUrl: string | null = null;
 
         // GPT models use direct OpenAI API calls (not through fal.ai)
         if (isGptModel) {
@@ -139,7 +145,7 @@ const AppContent: React.FC = () => {
                 if (response.data?.[0]?.b64_json) {
                     const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
                     console.log(`OpenAI image generated successfully`);
-                    setImageUrl(dataUrl);
+                    setImageUrls([dataUrl]);
                     setStatus(`Image generated successfully using ${modelName}!`, 'success');
 
                     if (response.usage) {
@@ -160,14 +166,23 @@ const AppContent: React.FC = () => {
             return; // Exit early for GPT models - don't use fal.ai queue
         }
 
+        // Get image input configuration for this model
+        const imageConfig = getImageInputConfig(modelId);
+        const uploadedImageUrls: string[] = [];
+
         // For other models (Flux, etc.), handle image upload if supported
-        if (supportsImageInput && uploadedImage) {
+        if (supportsImageInput && uploadedImages.length > 0) {
             try {
-                setStatus(`Uploading image for ${modelName}...`);
-                const uploadResult = await fal.storage.upload(uploadedImage);
-                uploadedImageUrl = uploadResult;
-                console.log(`Image uploaded successfully. URL: ${uploadedImageUrl}`);
-                setStatus(`Image uploaded. Submitting request for ${modelName}...`);
+                const imageCount = uploadedImages.length;
+                setStatus(`Uploading ${imageCount} image${imageCount > 1 ? 's' : ''} for ${modelName}...`);
+
+                // Upload all images in parallel
+                const uploadPromises = uploadedImages.map(file => fal.storage.upload(file));
+                const uploadResults = await Promise.all(uploadPromises);
+                uploadedImageUrls.push(...uploadResults);
+
+                console.log(`${imageCount} image(s) uploaded successfully:`, uploadedImageUrls);
+                setStatus(`Image${imageCount > 1 ? 's' : ''} uploaded. Submitting request for ${modelName}...`);
             } catch (uploadError: unknown) {
                 const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
                 setStatus(errorMsg, 'error');
@@ -175,22 +190,34 @@ const AppContent: React.FC = () => {
                 setIsGenerating(false);
                 return;
             }
-            console.log(`Uploaded image URL type and value:`, typeof uploadedImageUrl, uploadedImageUrl);
         }
 
         // Build image input params based on model type
         // Uses pattern matching to determine correct parameter format per model
-        const imageConfig = getImageInputConfig(modelId);
-        const imageInputParams = supportsImageInput && uploadedImageUrl
+        const imageInputParams = supportsImageInput && uploadedImageUrls.length > 0
             ? {
                 [imageConfig.paramName]: imageConfig.isArray
-                    ? [uploadedImageUrl]
-                    : uploadedImageUrl,
+                    ? uploadedImageUrls  // Pass all URLs as array
+                    : uploadedImageUrls[0],  // Pass first URL as string
                 ...(imageConfig.strengthParam
                     ? { [imageConfig.strengthParam]: config.imagePromptStrength }
                     : {}),
             }
             : {};
+
+        // Build model-specific params
+        const isQwenLayered = modelId.includes('qwen-image-layered');
+        const isQwenModel = modelId.includes('qwen-image');
+
+        // Qwen Image Layered specific params
+        const layerParams = isQwenLayered ? {
+            num_layers: config.numLayers,
+        } : {};
+
+        // Acceleration is available for multiple Qwen models
+        const accelerationParams = isQwenModel ? {
+            acceleration: config.acceleration,
+        } : {};
 
         input = {
             prompt,
@@ -201,7 +228,9 @@ const AppContent: React.FC = () => {
             enable_safety_checker: config.enableSafetyChecker,
             seed: config.seed,
             guidance_scale: config.guidanceScale,
-            ...imageInputParams
+            ...imageInputParams,
+            ...layerParams,
+            ...accelerationParams,
         };
 
         try {
@@ -234,11 +263,13 @@ const AppContent: React.FC = () => {
                         requestId,
                     });
                     console.log(`Request completed. Full result:`, result);
-                    if (result.data.images?.[0]?.url) {
-                        const imageUrl = result.data.images[0].url;
-                        console.log(`Image URL received: ${imageUrl}`);
-                        setImageUrl(imageUrl);
-                        setStatus(`Image generated successfully using ${modelName}!`, 'success');
+                    if (result.data.images?.length > 0) {
+                        // Handle multi-image response (e.g., qwen-image-layered returns layers)
+                        const urls = result.data.images.map((img: { url: string }) => img.url);
+                        console.log(`${urls.length} image(s) received:`, urls);
+                        setImageUrls(urls);
+                        const layerMsg = urls.length > 1 ? ` (${urls.length} layers)` : '';
+                        setStatus(`Image generated successfully using ${modelName}!${layerMsg}`, 'success');
                     } else {
                         setStatus('Image generation failed. No image URL found in result.', 'error');
                         console.error('No image URL in result:', result);
@@ -344,11 +375,12 @@ const AppContent: React.FC = () => {
 
                 <ModelSelector filterByCategory={activeTab} />
 
-                {activeTab === 'image-to-image' && (
+                {activeTab === 'image-to-image' && selectedModel && (
                     <ImageUploadZone
-                        uploadedImage={uploadedImage}
-                        imagePreview={imagePreview}
-                        onImageChange={setUploadedImage}
+                        uploadedImages={uploadedImages}
+                        imagePreviews={imagePreviews}
+                        onImagesChange={setUploadedImages}
+                        maxImages={getImageInputConfig(selectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
                 )}
@@ -388,10 +420,23 @@ const AppContent: React.FC = () => {
             </div>
 
             <div className="output-section">
-                {imageUrl && (
+                {imageUrls.length === 1 && (
                     <div className="image-container">
                         <h3>Generated Image</h3>
-                        <img src={imageUrl} alt="Generated result" className="generated-image" />
+                        <img src={imageUrls[0]} alt="Generated result" className="generated-image" />
+                    </div>
+                )}
+                {imageUrls.length > 1 && (
+                    <div className="image-container">
+                        <h3>Generated Layers ({imageUrls.length})</h3>
+                        <div className="layer-gallery">
+                            {imageUrls.map((url, idx) => (
+                                <div key={url} className="layer-item">
+                                    <span className="layer-label">Layer {idx + 1}</span>
+                                    <img src={url} alt={`Layer ${idx + 1}`} className="layer-image" />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
                 <p className={`status-message ${statusType}`}>{statusMessage}</p>

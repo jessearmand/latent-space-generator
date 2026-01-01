@@ -13,6 +13,9 @@ interface ConfigState {
   gptNumImages: number;
   gptQuality: string;
   gptBackground: string;
+  // Qwen model specific settings
+  numLayers: number;  // Number of layers to generate (1-10) - qwen-image-layered only
+  acceleration: string;  // Acceleration level: "none" | "regular" | "high" - all Qwen models
 }
 
 interface ConfigContextType extends ConfigState {
@@ -28,6 +31,9 @@ interface ConfigContextType extends ConfigState {
   setGptNumImages: (value: number) => void;
   setGptQuality: (value: string) => void;
   setGptBackground: (value: string) => void;
+  // Qwen model setters
+  setNumLayers: (value: number) => void;
+  setAcceleration: (value: string) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -45,6 +51,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [gptNumImages, setGptNumImages] = useState<number>(parseInt(localStorage.getItem('GPT_NUM_IMAGES') || '1', 10) || 1);
   const [gptQuality, setGptQuality] = useState<string>(localStorage.getItem('GPT_QUALITY') || 'auto');
   const [gptBackground, setGptBackground] = useState<string>(localStorage.getItem('GPT_BACKGROUND') || 'auto');
+  // Qwen model settings
+  const [numLayers, setNumLayers] = useState<number>(parseInt(localStorage.getItem('NUM_LAYERS') || '4', 10));
+  const [acceleration, setAcceleration] = useState<string>(localStorage.getItem('ACCELERATION') || 'regular');
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -59,7 +68,10 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('GPT_NUM_IMAGES', gptNumImages.toString());
     localStorage.setItem('GPT_QUALITY', gptQuality);
     localStorage.setItem('GPT_BACKGROUND', gptBackground);
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground]);
+    // Qwen model persistence
+    localStorage.setItem('NUM_LAYERS', numLayers.toString());
+    localStorage.setItem('ACCELERATION', acceleration);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration]);
 
   return (
     <ConfigContext.Provider value={{
@@ -74,7 +86,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       gptImageSize, setGptImageSize,
       gptNumImages, setGptNumImages,
       gptQuality, setGptQuality,
-      gptBackground, setGptBackground
+      gptBackground, setGptBackground,
+      numLayers, setNumLayers,
+      acceleration, setAcceleration
     }}>
       {children}
     </ConfigContext.Provider>
