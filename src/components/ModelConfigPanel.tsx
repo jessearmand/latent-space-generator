@@ -4,22 +4,19 @@
  */
 
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
+import { getImageInputConfig } from '../services/modelParams';
 
 interface ModelConfigPanelProps {
     selectedModel: ModelConfig | null;
-    uploadedImage: File | null;
-    imagePreview: string | null;
-    onImageChange: (file: File | null) => void;
+    activeTab?: 'text-to-image' | 'image-to-image';
 }
 
 export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     selectedModel,
-    uploadedImage,
-    imagePreview,
-    onImageChange,
+    activeTab = 'text-to-image',
 }) => {
     const config = useConfig();
     const [isExpanded, setIsExpanded] = useState(true);
@@ -30,6 +27,8 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
+    const isQwenModel = selectedModel.endpointId.includes('qwen-image');
+    const isQwenLayeredModel = selectedModel.endpointId.includes('qwen-image-layered');
 
     return (
         <div className="config-panel">
@@ -49,13 +48,20 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                     {isGptModel ? (
                         <GptConfigOptions config={config} />
                     ) : (
-                        <FluxConfigOptions
-                            config={config}
-                            supportsImageInput={isImageToImage}
-                            uploadedImage={uploadedImage}
-                            imagePreview={imagePreview}
-                            onImageChange={onImageChange}
-                        />
+                        <>
+                            <FluxConfigOptions
+                                config={config}
+                                modelId={selectedModel.endpointId}
+                                activeTab={activeTab}
+                                isImageToImage={isImageToImage}
+                            />
+                            {isQwenModel && (
+                                <QwenConfigOptions
+                                    config={config}
+                                    showNumLayers={isQwenLayeredModel}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             )}
@@ -65,18 +71,22 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
 interface FluxConfigOptionsProps {
     config: ReturnType<typeof useConfig>;
-    supportsImageInput: boolean;
-    uploadedImage: File | null;
-    imagePreview: string | null;
-    onImageChange: (file: File | null) => void;
+    modelId: string;
+    activeTab: 'text-to-image' | 'image-to-image';
+    isImageToImage: boolean;
 }
 
 const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
     config,
-    supportsImageInput,
-    imagePreview,
-    onImageChange,
+    modelId,
+    activeTab,
+    isImageToImage,
 }) => {
+    // Check if this model supports strength parameter
+    const imageConfig = getImageInputConfig(modelId);
+    const showImageStrength = activeTab === 'image-to-image'
+        && isImageToImage
+        && imageConfig.strengthParam !== null;
     return (
         <>
             <div className="form-group">
@@ -189,34 +199,23 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                 />
             </div>
 
-            {supportsImageInput && (
-                <>
-                    <div className="form-group">
-                        <label htmlFor="image-prompt-strength">Image Prompt Strength:</label>
-                        <input
-                            id="image-prompt-strength"
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="1"
-                            value={config.imagePromptStrength}
-                            onChange={(e) => config.setImagePromptStrength(parseFloat(e.target.value) || 0.1)}
-                            placeholder="e.g., 0.1"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="upload-image">Upload Image:</label>
-                        <input
-                            id="upload-image"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => onImageChange(e.target.files ? e.target.files[0] : null)}
-                        />
-                        {imagePreview && (
-                            <img src={imagePreview} alt="Preview" className="image-preview" />
-                        )}
-                    </div>
-                </>
+            {showImageStrength && (
+                <div className="form-group">
+                    <label htmlFor="image-prompt-strength">
+                        {imageConfig.strengthParam === 'strength' ? 'Strength' : 'Image Prompt Strength'}:
+                        <span className="hint"> (0 = preserve original, 1 = full transformation)</span>
+                    </label>
+                    <input
+                        id="image-prompt-strength"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.imagePromptStrength}
+                        onChange={(e) => config.setImagePromptStrength(parseFloat(e.target.value))}
+                    />
+                    <span className="range-value">{config.imagePromptStrength.toFixed(2)}</span>
+                </div>
             )}
         </>
     );
@@ -276,6 +275,81 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
                     {['auto', 'transparent', 'opaque'].map((val) => (
                         <option key={val} value={val}>{val}</option>
                     ))}
+                </select>
+            </div>
+        </>
+    );
+};
+
+interface QwenConfigOptionsProps {
+    config: ReturnType<typeof useConfig>;
+    showNumLayers: boolean;  // Only show num_layers for qwen-image-layered
+}
+
+/**
+ * Config options for Qwen image models
+ * - acceleration: Speed vs quality tradeoff ("none" | "regular" | "high") - available for all Qwen models
+ * - num_layers: Number of layers to decompose into (1-10) - only for qwen-image-layered
+ */
+const QwenConfigOptions: React.FC<QwenConfigOptionsProps> = ({ config, showNumLayers }) => {
+    // Use local string state to allow free typing without immediate clamping
+    const [layersInput, setLayersInput] = useState(config.numLayers.toString());
+
+    // Sync local state when config changes externally
+    useEffect(() => {
+        setLayersInput(config.numLayers.toString());
+    }, [config.numLayers]);
+
+    const commitLayersValue = (value: string) => {
+        const parsed = parseInt(value, 10);
+        if (!Number.isNaN(parsed)) {
+            // Clamp to valid range 1-10
+            const clamped = Math.max(1, Math.min(10, parsed));
+            config.setNumLayers(clamped);
+            setLayersInput(clamped.toString());
+        } else {
+            // Reset to current config value if invalid
+            setLayersInput(config.numLayers.toString());
+        }
+    };
+
+    return (
+        <>
+            <div className="form-group-divider">
+                <span>{showNumLayers ? 'Layer Decomposition Settings' : 'Qwen Model Settings'}</span>
+            </div>
+
+            {showNumLayers && (
+                <div className="form-group">
+                    <label htmlFor="num-layers">Number of Layers:</label>
+                    <input
+                        id="num-layers"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={layersInput}
+                        onChange={(e) => setLayersInput(e.target.value)}
+                        onBlur={(e) => commitLayersValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                commitLayersValue(layersInput);
+                            }
+                        }}
+                    />
+                    <span className="hint"> (1-10, how many layers to decompose into)</span>
+                </div>
+            )}
+
+            <div className="form-group">
+                <label htmlFor="qwen-acceleration">Acceleration:</label>
+                <select
+                    id="qwen-acceleration"
+                    value={config.acceleration}
+                    onChange={(e) => config.setAcceleration(e.target.value)}
+                >
+                    <option value="none">None (highest quality)</option>
+                    <option value="regular">Regular (balanced)</option>
+                    <option value="high">High (fastest)</option>
                 </select>
             </div>
         </>

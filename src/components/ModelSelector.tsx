@@ -4,14 +4,43 @@
  */
 
 import type React from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useModels } from '../contexts/ModelsContext';
 
 interface ModelSelectorProps {
     className?: string;
+    filterByCategory?: 'text-to-image' | 'image-to-image' | null;
 }
 
-export const ModelSelector: React.FC<ModelSelectorProps> = ({ className }) => {
+export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterByCategory }) => {
     const { models, isLoading, error, selectedModel, setSelectedModel, refreshModels } = useModels();
+
+    // Memoize filtered models to prevent unnecessary re-renders
+    const filteredModels = useMemo(
+        () => filterByCategory
+            ? models.filter(m => m.category === filterByCategory)
+            : models,
+        [models, filterByCategory]
+    );
+
+    // Track previous filterByCategory to detect actual changes
+    const prevFilterRef = useRef(filterByCategory);
+
+    // Auto-select first model when filter changes and current selection is not in filtered list
+    useEffect(() => {
+        const filterChanged = prevFilterRef.current !== filterByCategory;
+        prevFilterRef.current = filterByCategory;
+
+        // Only auto-select when filter actually changes (not on every render)
+        if (filterChanged && filteredModels.length > 0) {
+            const isInFiltered = selectedModel
+                ? filteredModels.some(m => m.endpointId === selectedModel.endpointId)
+                : false;
+            if (!isInFiltered) {
+                setSelectedModel(filteredModels[0]);
+            }
+        }
+    }, [filterByCategory, filteredModels, selectedModel, setSelectedModel]);
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const endpointId = e.target.value;
@@ -25,7 +54,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className }) => {
         await refreshModels();
     };
 
-    if (isLoading && models.length === 0) {
+    if (isLoading && filteredModels.length === 0) {
         return (
             <div className={className}>
                 <label htmlFor="model-selector">Select Model:</label>
@@ -60,15 +89,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className }) => {
                 value={selectedModel?.endpointId || ''}
                 onChange={handleChange}
                 className="model-dropdown"
-                disabled={models.length === 0}
+                disabled={filteredModels.length === 0}
             >
-                {models.length === 0 ? (
+                {filteredModels.length === 0 ? (
                     <option value="">No models available</option>
                 ) : (
-                    models.map((model) => (
+                    filteredModels.map((model) => (
                         <option key={model.endpointId} value={model.endpointId}>
                             {model.displayName}
-                            {model.supportsImageInput ? ' (Image-to-Image)' : ''}
                         </option>
                     ))
                 )}
