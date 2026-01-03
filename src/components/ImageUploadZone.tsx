@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import './ImageUploadZone.css';
 
 interface ImageUploadZoneProps {
@@ -174,6 +174,47 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
         [handleClick]
     );
 
+    /**
+     * Handle clipboard paste events (Ctrl/Cmd+V)
+     * Extracts image files from clipboard data and processes them
+     * Compatible with Chrome, Firefox, Safari, and Edge
+     */
+    const handlePaste = useCallback(
+        (e: ClipboardEvent) => {
+            if (disabled || !canAddMore) return;
+
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            const imageFiles: File[] = [];
+
+            // Iterate through clipboard items to find images
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        imageFiles.push(file);
+                    }
+                }
+            }
+
+            if (imageFiles.length > 0) {
+                e.preventDefault();
+                handleFiles(imageFiles);
+            }
+        },
+        [disabled, canAddMore, handleFiles]
+    );
+
+    // Add global paste event listener
+    useEffect(() => {
+        document.addEventListener('paste', handlePaste);
+        return () => {
+            document.removeEventListener('paste', handlePaste);
+        };
+    }, [handlePaste]);
+
     const zoneClasses = [
         'image-upload-zone',
         isDragOver && 'drag-over',
@@ -241,8 +282,8 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                     !canAddMore
                         ? `Maximum ${maxImages} images reached`
                         : uploadedImages.length > 0
-                            ? 'Click to add more images'
-                            : 'Click or drag to upload image'
+                            ? 'Click to add more images or paste with Ctrl+V'
+                            : 'Click, drag, or paste with Ctrl+V to upload image'
                 }
             >
                 <input
@@ -281,7 +322,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                                 ? `Maximum ${maxImages} images uploaded`
                                 : isMultiImage && uploadedImages.length > 0
                                     ? `Add more images (${uploadedImages.length}/${maxImages})`
-                                    : 'Drag and drop image(s) here, or click to select'}
+                                    : 'Drag and drop, click to select, or paste (Ctrl+V / Cmd+V)'}
                         </p>
                         <p className="upload-hint">
                             Supports PNG, JPEG, WebP (max 10MB each)
