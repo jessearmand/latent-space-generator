@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
 import { getImageInputConfig } from '../services/modelParams';
@@ -292,6 +292,27 @@ interface QwenConfigOptionsProps {
  * - num_layers: Number of layers to decompose into (1-10) - only for qwen-image-layered
  */
 const QwenConfigOptions: React.FC<QwenConfigOptionsProps> = ({ config, showNumLayers }) => {
+    // Use local string state to allow free typing without immediate clamping
+    const [layersInput, setLayersInput] = useState(config.numLayers.toString());
+
+    // Sync local state when config changes externally
+    useEffect(() => {
+        setLayersInput(config.numLayers.toString());
+    }, [config.numLayers]);
+
+    const commitLayersValue = (value: string) => {
+        const parsed = parseInt(value, 10);
+        if (!Number.isNaN(parsed)) {
+            // Clamp to valid range 1-10
+            const clamped = Math.max(1, Math.min(10, parsed));
+            config.setNumLayers(clamped);
+            setLayersInput(clamped.toString());
+        } else {
+            // Reset to current config value if invalid
+            setLayersInput(config.numLayers.toString());
+        }
+    };
+
     return (
         <>
             <div className="form-group-divider">
@@ -306,11 +327,13 @@ const QwenConfigOptions: React.FC<QwenConfigOptionsProps> = ({ config, showNumLa
                         type="number"
                         min="1"
                         max="10"
-                        value={config.numLayers}
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            // Clamp to valid range 1-10
-                            config.setNumLayers(Math.max(1, Math.min(10, val || 4)));
+                        value={layersInput}
+                        onChange={(e) => setLayersInput(e.target.value)}
+                        onBlur={(e) => commitLayersValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                commitLayersValue(layersInput);
+                            }
                         }}
                     />
                     <span className="hint"> (1-10, how many layers to decompose into)</span>

@@ -4,7 +4,7 @@
 
 **Source**: https://fal.ai/models/fal-ai/flux-2-pro/edit/api
 
-Production-grade multi-reference image editing with FLUX.2 [pro] from Black Forest Labs. Combines up to 9 reference images (9 MP total) with zero-configuration.
+Production-grade multi-reference image editing with FLUX.2 [pro] from Black Forest Labs. Combines up to 8 reference images with zero-configuration.
 
 ## Usage Example
 
@@ -75,8 +75,18 @@ const result = await fal.subscribe("fal-ai/flux-2-pro/edit", {
 
 ## Key Notes
 
-- Uses `image_urls` (array) - can accept up to 9 reference images
+- Uses `image_urls` (array) - can accept up to **8 reference images** (see limitation below)
 - Does NOT support strength parameter
 - `safety_tolerance` must be a STRING ("1"-"5"), not a number
-- Maximum 9 megapixels total across all input images
+- Maximum 9 megapixels total for input AND output combined
 - Supports sequential/chained editing workflows
+
+## Image Count Limitation
+
+While the fal.ai documentation states "up to 9 reference images", the practical limit is **8 images**:
+
+- The API enforces a **9 MP total budget** for both input AND output
+- Each image is counted as **1 MP minimum** regardless of actual resolution
+- With `image_size: "auto"`, output is typically at least 1 MP
+- **9 images × 1 MP + 1 MP output = 10 MP** exceeds the limit
+- **8 images × 1 MP + 1 MP output = 9 MP** stays within budget
