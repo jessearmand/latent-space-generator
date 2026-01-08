@@ -74,6 +74,17 @@ label {
   margin-bottom: 20px;
 }
 
+.image-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.image-header h3 {
+  margin: 0;
+}
+
 .generated-image {
   max-width: 100%;
   height: auto;
@@ -401,6 +412,12 @@ label {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
+}
+
+.layer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .layer-label {

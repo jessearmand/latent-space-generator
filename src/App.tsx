@@ -11,6 +11,7 @@ import { ModelConfigPanel } from './components/ModelConfigPanel';
 import { PromptOptimizer } from './components/PromptOptimizer';
 import { GenerationTabs, type GenerationMode } from './components/GenerationTabs';
 import { ImageUploadZone } from './components/ImageUploadZone';
+import { DownloadButton } from './components/DownloadButton';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
@@ -422,7 +423,10 @@ const AppContent: React.FC = () => {
             <div className="output-section">
                 {imageUrls.length === 1 && (
                     <div className="image-container">
-                        <h3>Generated Image</h3>
+                        <div className="image-header">
+                            <h3>Generated Image</h3>
+                            <DownloadButton url={imageUrls[0]} />
+                        </div>
                         <img src={imageUrls[0]} alt="Generated result" className="generated-image" />
                     </div>
                 )}
@@ -432,7 +436,10 @@ const AppContent: React.FC = () => {
                         <div className="layer-gallery">
                             {imageUrls.map((url, idx) => (
                                 <div key={url} className="layer-item">
-                                    <span className="layer-label">Layer {idx + 1}</span>
+                                    <div className="layer-header">
+                                        <span className="layer-label">Layer {idx + 1}</span>
+                                        <DownloadButton url={url} />
+                                    </div>
                                     <img src={url} alt={`Layer ${idx + 1}`} className="layer-image" />
                                 </div>
                             ))}
