@@ -16,6 +16,13 @@ interface ConfigState {
   // Qwen model specific settings
   numLayers: number;  // Number of layers to generate (1-10) - qwen-image-layered only
   acceleration: string;  // Acceleration level: "none" | "regular" | "high" - all Qwen models
+  // Video generation settings
+  videoDuration: string;  // "5s", "6s", "7s", "8s", "10s"
+  videoAspectRatio: string;  // "16:9", "9:16", "1:1"
+  videoResolution: string;  // "480p", "720p", "1080p"
+  videoGuidanceScale: number;  // CFG scale for video generation
+  videoSeed: number | null;  // Seed for reproducibility
+  videoNegativePrompt: string;  // Content to avoid
 }
 
 interface ConfigContextType extends ConfigState {
@@ -25,8 +32,8 @@ interface ConfigContextType extends ConfigState {
   setRaw: (value: boolean) => void;
   setEnableSafetyChecker: (value: boolean) => void;
   setSeed: (value: number | null) => void;
-  setGuidanceScale: (value: number) => void;  // New setter
-  setImagePromptStrength: (value: number) => void;  // New setter
+  setGuidanceScale: (value: number) => void;
+  setImagePromptStrength: (value: number) => void;
   setGptImageSize: (value: string) => void;
   setGptNumImages: (value: number) => void;
   setGptQuality: (value: string) => void;
@@ -34,6 +41,13 @@ interface ConfigContextType extends ConfigState {
   // Qwen model setters
   setNumLayers: (value: number) => void;
   setAcceleration: (value: string) => void;
+  // Video generation setters
+  setVideoDuration: (value: string) => void;
+  setVideoAspectRatio: (value: string) => void;
+  setVideoResolution: (value: string) => void;
+  setVideoGuidanceScale: (value: number) => void;
+  setVideoSeed: (value: number | null) => void;
+  setVideoNegativePrompt: (value: string) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -54,6 +68,13 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   // Qwen model settings
   const [numLayers, setNumLayers] = useState<number>(parseInt(localStorage.getItem('NUM_LAYERS') || '4', 10));
   const [acceleration, setAcceleration] = useState<string>(localStorage.getItem('ACCELERATION') || 'regular');
+  // Video generation settings
+  const [videoDuration, setVideoDuration] = useState<string>(localStorage.getItem('VIDEO_DURATION') || '5s');
+  const [videoAspectRatio, setVideoAspectRatio] = useState<string>(localStorage.getItem('VIDEO_ASPECT_RATIO') || '16:9');
+  const [videoResolution, setVideoResolution] = useState<string>(localStorage.getItem('VIDEO_RESOLUTION') || '720p');
+  const [videoGuidanceScale, setVideoGuidanceScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_GUIDANCE_SCALE') || '3'));
+  const [videoSeed, setVideoSeed] = useState<number | null>(localStorage.getItem('VIDEO_SEED') !== 'null' ? parseInt(localStorage.getItem('VIDEO_SEED') || '0', 10) : null);
+  const [videoNegativePrompt, setVideoNegativePrompt] = useState<string>(localStorage.getItem('VIDEO_NEGATIVE_PROMPT') || '');
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -71,7 +92,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     // Qwen model persistence
     localStorage.setItem('NUM_LAYERS', numLayers.toString());
     localStorage.setItem('ACCELERATION', acceleration);
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration]);
+    // Video generation persistence
+    localStorage.setItem('VIDEO_DURATION', videoDuration);
+    localStorage.setItem('VIDEO_ASPECT_RATIO', videoAspectRatio);
+    localStorage.setItem('VIDEO_RESOLUTION', videoResolution);
+    localStorage.setItem('VIDEO_GUIDANCE_SCALE', videoGuidanceScale.toString());
+    localStorage.setItem('VIDEO_SEED', videoSeed !== null ? videoSeed.toString() : 'null');
+    localStorage.setItem('VIDEO_NEGATIVE_PROMPT', videoNegativePrompt);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt]);
 
   return (
     <ConfigContext.Provider value={{
@@ -88,7 +116,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       gptQuality, setGptQuality,
       gptBackground, setGptBackground,
       numLayers, setNumLayers,
-      acceleration, setAcceleration
+      acceleration, setAcceleration,
+      // Video generation
+      videoDuration, setVideoDuration,
+      videoAspectRatio, setVideoAspectRatio,
+      videoResolution, setVideoResolution,
+      videoGuidanceScale, setVideoGuidanceScale,
+      videoSeed, setVideoSeed,
+      videoNegativePrompt, setVideoNegativePrompt
     }}>
       {children}
     </ConfigContext.Provider>

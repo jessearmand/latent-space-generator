@@ -1,0 +1,56 @@
+/* Video Player Component Styles */
+
+.video-player-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.video-player {
+    width: 100%;
+    max-width: 800px;
+    border-radius: 8px;
+    background-color: #000;
+}
+
+.video-player-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.video-control-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.video-control-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #999;
+}
+
+.video-control-btn.active {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+}
+
+.video-control-btn.download-btn {
+    background-color: #4caf50;
+    border-color: #4caf50;
+    color: white;
+}
+
+.video-control-btn.download-btn:hover {
+    background-color: #43a047;
+    border-color: #43a047;
+}
