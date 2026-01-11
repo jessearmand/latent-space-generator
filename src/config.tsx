@@ -23,6 +23,18 @@ interface ConfigState {
   videoGuidanceScale: number;  // CFG scale for video generation
   videoSeed: number | null;  // Seed for reproducibility
   videoNegativePrompt: string;  // Content to avoid
+  // Model-specific video settings
+  generateAudio: boolean;  // For veo3.1 and ltx-2 models
+  videoCfgScale: number;  // CFG scale for kling models (0-1 range)
+  // Advanced video settings (used by ltx-2-19b and potentially other models)
+  videoNumFrames: number;  // 9-481, default 121
+  videoOutputSize: string;  // landscape_4_3, portrait_3_4, square, etc.
+  videoUseMultiscale: boolean;  // default true
+  videoNumInferenceSteps: number;  // 8-50, default 40
+  videoAcceleration: string;  // none, regular, high, full
+  videoCameraLora: string;  // dolly_in, dolly_out, dolly_left, dolly_right, jib_up, jib_down, static, none
+  videoCameraLoraScale: number;  // 0-1, default 1
+  videoEnablePromptExpansion: boolean;  // default false
 }
 
 interface ConfigContextType extends ConfigState {
@@ -48,6 +60,18 @@ interface ConfigContextType extends ConfigState {
   setVideoGuidanceScale: (value: number) => void;
   setVideoSeed: (value: number | null) => void;
   setVideoNegativePrompt: (value: string) => void;
+  // Model-specific video setters
+  setGenerateAudio: (value: boolean) => void;
+  setVideoCfgScale: (value: number) => void;
+  // Advanced video setters
+  setVideoNumFrames: (value: number) => void;
+  setVideoOutputSize: (value: string) => void;
+  setVideoUseMultiscale: (value: boolean) => void;
+  setVideoNumInferenceSteps: (value: number) => void;
+  setVideoAcceleration: (value: string) => void;
+  setVideoCameraLora: (value: string) => void;
+  setVideoCameraLoraScale: (value: number) => void;
+  setVideoEnablePromptExpansion: (value: boolean) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -75,6 +99,18 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [videoGuidanceScale, setVideoGuidanceScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_GUIDANCE_SCALE') || '3'));
   const [videoSeed, setVideoSeed] = useState<number | null>(localStorage.getItem('VIDEO_SEED') !== 'null' ? parseInt(localStorage.getItem('VIDEO_SEED') || '0', 10) : null);
   const [videoNegativePrompt, setVideoNegativePrompt] = useState<string>(localStorage.getItem('VIDEO_NEGATIVE_PROMPT') || '');
+  // Model-specific video settings
+  const [generateAudio, setGenerateAudio] = useState<boolean>(localStorage.getItem('GENERATE_AUDIO') !== 'false');  // Default true
+  const [videoCfgScale, setVideoCfgScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_CFG_SCALE') || '0.5'));  // Kling default
+  // Advanced video settings (used by ltx-2-19b and potentially other models)
+  const [videoNumFrames, setVideoNumFrames] = useState<number>(parseInt(localStorage.getItem('VIDEO_NUM_FRAMES') || '121', 10));
+  const [videoOutputSize, setVideoOutputSize] = useState<string>(localStorage.getItem('VIDEO_OUTPUT_SIZE') || 'landscape_4_3');
+  const [videoUseMultiscale, setVideoUseMultiscale] = useState<boolean>(localStorage.getItem('VIDEO_USE_MULTISCALE') !== 'false');  // Default true
+  const [videoNumInferenceSteps, setVideoNumInferenceSteps] = useState<number>(parseInt(localStorage.getItem('VIDEO_NUM_INFERENCE_STEPS') || '40', 10));
+  const [videoAcceleration, setVideoAcceleration] = useState<string>(localStorage.getItem('VIDEO_ACCELERATION') || 'regular');
+  const [videoCameraLora, setVideoCameraLora] = useState<string>(localStorage.getItem('VIDEO_CAMERA_LORA') || 'none');
+  const [videoCameraLoraScale, setVideoCameraLoraScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_CAMERA_LORA_SCALE') || '1'));
+  const [videoEnablePromptExpansion, setVideoEnablePromptExpansion] = useState<boolean>(localStorage.getItem('VIDEO_ENABLE_PROMPT_EXPANSION') === 'true');
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -99,7 +135,19 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('VIDEO_GUIDANCE_SCALE', videoGuidanceScale.toString());
     localStorage.setItem('VIDEO_SEED', videoSeed !== null ? videoSeed.toString() : 'null');
     localStorage.setItem('VIDEO_NEGATIVE_PROMPT', videoNegativePrompt);
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt]);
+    // Model-specific video persistence
+    localStorage.setItem('GENERATE_AUDIO', generateAudio.toString());
+    localStorage.setItem('VIDEO_CFG_SCALE', videoCfgScale.toString());
+    // Advanced video settings persistence
+    localStorage.setItem('VIDEO_NUM_FRAMES', videoNumFrames.toString());
+    localStorage.setItem('VIDEO_OUTPUT_SIZE', videoOutputSize);
+    localStorage.setItem('VIDEO_USE_MULTISCALE', videoUseMultiscale.toString());
+    localStorage.setItem('VIDEO_NUM_INFERENCE_STEPS', videoNumInferenceSteps.toString());
+    localStorage.setItem('VIDEO_ACCELERATION', videoAcceleration);
+    localStorage.setItem('VIDEO_CAMERA_LORA', videoCameraLora);
+    localStorage.setItem('VIDEO_CAMERA_LORA_SCALE', videoCameraLoraScale.toString());
+    localStorage.setItem('VIDEO_ENABLE_PROMPT_EXPANSION', videoEnablePromptExpansion.toString());
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion]);
 
   return (
     <ConfigContext.Provider value={{
@@ -123,7 +171,19 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       videoResolution, setVideoResolution,
       videoGuidanceScale, setVideoGuidanceScale,
       videoSeed, setVideoSeed,
-      videoNegativePrompt, setVideoNegativePrompt
+      videoNegativePrompt, setVideoNegativePrompt,
+      // Model-specific video settings
+      generateAudio, setGenerateAudio,
+      videoCfgScale, setVideoCfgScale,
+      // Advanced video settings
+      videoNumFrames, setVideoNumFrames,
+      videoOutputSize, setVideoOutputSize,
+      videoUseMultiscale, setVideoUseMultiscale,
+      videoNumInferenceSteps, setVideoNumInferenceSteps,
+      videoAcceleration, setVideoAcceleration,
+      videoCameraLora, setVideoCameraLora,
+      videoCameraLoraScale, setVideoCameraLoraScale,
+      videoEnablePromptExpansion, setVideoEnablePromptExpansion
     }}>
       {children}
     </ConfigContext.Provider>

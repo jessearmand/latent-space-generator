@@ -260,9 +260,9 @@ const AppContent: React.FC = () => {
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const logMessages = logs?.map((log) => log.message).join(', ') || 'Processing...';
-                    setStatus(`Request is ${statusResult.status}: ${logMessages}`);
-                    console.log(`Status logs: ${logMessages}`);
+                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                    console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } else if (statusResult.status === "COMPLETED") {
                     const result = await fal.queue.result(modelId, {
@@ -380,9 +380,50 @@ const AppContent: React.FC = () => {
             input.resolution = config.videoResolution;
         }
 
-        // Add guidance scale if set
-        if (config.videoGuidanceScale > 0) {
+        // Model detection for specific parameters
+        const modelIdLower = modelId.toLowerCase();
+        const isKlingModel = modelIdLower.includes('kling');
+        const isVeoModel = modelIdLower.includes('veo');
+        const isLtx19bModel = modelIdLower.includes('ltx-2-19b');  // 19B version has more params
+        const isLtxProFastModel = modelIdLower.includes('ltx-2') && !modelIdLower.includes('ltx-2-19b');
+        const isLtxModel = modelIdLower.includes('ltx-2');  // Any LTX-2 model
+        const supportsAudio = isVeoModel || isLtxModel;
+        // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, and kling don't
+        const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+
+        // Add CFG scale for Kling models (0-1 range)
+        if (isKlingModel) {
+            input.cfg_scale = config.videoCfgScale;
+        }
+
+        // Add guidance scale only for models that support it
+        if (supportsGuidanceScale && config.videoGuidanceScale > 0) {
             input.guidance_scale = config.videoGuidanceScale;
+        }
+
+        // Add generate_audio for veo and ltx-2 models
+        if (supportsAudio) {
+            input.generate_audio = config.generateAudio;
+        }
+
+        // LTX-2 19B specific parameters
+        if (isLtx19bModel) {
+            input.num_frames = config.videoNumFrames;
+            input.video_size = config.videoOutputSize;
+            input.use_multiscale = config.videoUseMultiscale;
+            input.num_inference_steps = config.videoNumInferenceSteps;
+            input.acceleration = config.videoAcceleration;
+            input.enable_prompt_expansion = config.videoEnablePromptExpansion;
+
+            // Camera LoRA only if not 'none'
+            if (config.videoCameraLora !== 'none') {
+                input.camera_lora = config.videoCameraLora;
+                input.camera_lora_scale = config.videoCameraLoraScale;
+            }
+
+            // LTX-2 19B doesn't use duration/resolution - uses num_frames and video_size instead
+            delete input.duration;
+            delete input.resolution;
         }
 
         // Add seed if set
@@ -416,9 +457,9 @@ const AppContent: React.FC = () => {
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const logMessages = logs?.map((log) => log.message).join(', ') || 'Processing...';
-                    setStatus(`Request is ${statusResult.status}: ${logMessages}`);
-                    console.log(`Status logs: ${logMessages}`);
+                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                    console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 3000)); // Longer poll interval for video
                 } else if (statusResult.status === "COMPLETED") {
                     const result = await fal.queue.result(modelId, {
