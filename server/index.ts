@@ -252,6 +252,8 @@ Bun.serve({
                     headers: {
                         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
                         "Content-Type": "application/json",
+                        "HTTP-Referer": "https://github.com/jessearmand/fal-generator-ts",
+                        "X-Title": "fal-generator-ts",
                     },
                 });
 
@@ -316,6 +318,10 @@ Bun.serve({
 
                 const openrouter = createOpenRouter({
                     apiKey: OPENROUTER_API_KEY,
+                    headers: {
+                        "HTTP-Referer": "https://github.com/jessearmand/fal-generator-ts",
+                        "X-Title": "fal-generator-ts",
+                    },
                 });
 
                 const result = streamText({
