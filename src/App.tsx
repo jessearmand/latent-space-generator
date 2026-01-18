@@ -445,6 +445,11 @@ const AppContent: React.FC = () => {
             input.generate_audio = config.generateAudio;
         }
 
+        // Add fps for LTX-2 Pro/Fast models (not 19B which uses num_frames for frame control)
+        if (isLtxProFastModel) {
+            input.fps = parseInt(config.videoFps, 10);
+        }
+
         // LTX-2 19B specific parameters
         if (isLtx19bModel) {
             input.num_frames = config.videoNumFrames;

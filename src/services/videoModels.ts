@@ -74,6 +74,22 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         supportsImageInput: false,
         outputType: 'video',
     },
+    {
+        endpointId: 'fal-ai/ltx-2/text-to-video',
+        displayName: 'LTX-2 Pro',
+        category: 'text-to-video',
+        description: 'High-fidelity video with audio from text, up to 2160p',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2/text-to-video/fast',
+        displayName: 'LTX-2 Fast',
+        category: 'text-to-video',
+        description: 'Fast video generation with audio, up to 20s duration',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
 ];
 
 /**
@@ -142,6 +158,14 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'Kling 1.6 Pro',
         category: 'image-to-video',
         description: 'Professional image-to-video generation',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2/image-to-video',
+        displayName: 'LTX-2 Pro I2V',
+        category: 'image-to-video',
+        description: 'Transform images into videos with audio, up to 2160p',
         supportsImageInput: true,
         outputType: 'video',
     },

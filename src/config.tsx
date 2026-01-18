@@ -26,6 +26,7 @@ interface ConfigState {
   // Model-specific video settings
   generateAudio: boolean;  // For veo3.1 and ltx-2 models
   videoCfgScale: number;  // CFG scale for kling models (0-1 range)
+  videoFps: string;  // FPS for ltx-2 Pro/Fast models (25 or 50)
   // Advanced video settings (used by ltx-2-19b and potentially other models)
   videoNumFrames: number;  // 9-481, default 121
   videoOutputSize: string;  // landscape_4_3, portrait_3_4, square, etc.
@@ -63,6 +64,7 @@ interface ConfigContextType extends ConfigState {
   // Model-specific video setters
   setGenerateAudio: (value: boolean) => void;
   setVideoCfgScale: (value: number) => void;
+  setVideoFps: (value: string) => void;
   // Advanced video setters
   setVideoNumFrames: (value: number) => void;
   setVideoOutputSize: (value: string) => void;
@@ -102,6 +104,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   // Model-specific video settings
   const [generateAudio, setGenerateAudio] = useState<boolean>(localStorage.getItem('GENERATE_AUDIO') !== 'false');  // Default true
   const [videoCfgScale, setVideoCfgScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_CFG_SCALE') || '0.5'));  // Kling default
+  const [videoFps, setVideoFps] = useState<string>(localStorage.getItem('VIDEO_FPS') || '25');  // LTX-2 Pro/Fast default
   // Advanced video settings (used by ltx-2-19b and potentially other models)
   const [videoNumFrames, setVideoNumFrames] = useState<number>(parseInt(localStorage.getItem('VIDEO_NUM_FRAMES') || '121', 10));
   const [videoOutputSize, setVideoOutputSize] = useState<string>(localStorage.getItem('VIDEO_OUTPUT_SIZE') || 'landscape_4_3');
@@ -138,6 +141,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     // Model-specific video persistence
     localStorage.setItem('GENERATE_AUDIO', generateAudio.toString());
     localStorage.setItem('VIDEO_CFG_SCALE', videoCfgScale.toString());
+    localStorage.setItem('VIDEO_FPS', videoFps);
     // Advanced video settings persistence
     localStorage.setItem('VIDEO_NUM_FRAMES', videoNumFrames.toString());
     localStorage.setItem('VIDEO_OUTPUT_SIZE', videoOutputSize);
@@ -147,7 +151,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('VIDEO_CAMERA_LORA', videoCameraLora);
     localStorage.setItem('VIDEO_CAMERA_LORA_SCALE', videoCameraLoraScale.toString());
     localStorage.setItem('VIDEO_ENABLE_PROMPT_EXPANSION', videoEnablePromptExpansion.toString());
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion]);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion]);
 
   return (
     <ConfigContext.Provider value={{
@@ -175,6 +179,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       // Model-specific video settings
       generateAudio, setGenerateAudio,
       videoCfgScale, setVideoCfgScale,
+      videoFps, setVideoFps,
       // Advanced video settings
       videoNumFrames, setVideoNumFrames,
       videoOutputSize, setVideoOutputSize,
