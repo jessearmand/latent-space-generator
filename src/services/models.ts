@@ -8,7 +8,7 @@ import {
     type ModelsApiResponse,
     type ModelsQueryParams,
     type ModelConfig,
-    type ImageModelCategory,
+    type ModelCategory,
     normalizeModel,
 } from '../types/models';
 
@@ -57,27 +57,38 @@ async function fetchModelsPage(
     params: ModelsQueryParams
 ): Promise<ModelsApiResponse> {
     const targetUrl = buildUrl('/models', params);
+    console.log('[ModelsAPI] Fetching:', targetUrl);
 
     // Route through proxy - API key is added server-side
     const response = await fetch(PROXY_URL, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
             'x-fal-target-url': targetUrl,
         },
     });
 
+    console.log('[ModelsAPI] Response status:', response.status);
+
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: response.statusText }));
+        const errorText = await response.text();
+        console.error('[ModelsAPI] Error response:', errorText);
+        let error: { message?: string } = { message: response.statusText };
+        try {
+            error = JSON.parse(errorText);
+        } catch {
+            // Keep default error
+        }
         throw new Error(error.message || `API error: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('[ModelsAPI] Got', data.models?.length || 0, 'models, has_more:', data.has_more);
+    return data;
 }
 
 /** Fetch all models for a given category, handling pagination */
 async function fetchAllModelsForCategory(
-    category: ImageModelCategory
+    category: ModelCategory
 ): Promise<FalModel[]> {
     const allModels: FalModel[] = [];
     let cursor: string | undefined;
@@ -117,8 +128,27 @@ export async function fetchImageGenerationModels(): Promise<ModelConfig[]> {
     return normalized;
 }
 
-/** Cache key for localStorage */
-const CACHE_KEY = 'fal_models_cache';
+/** Fetch all video generation models (text-to-video and image-to-video) */
+export async function fetchVideoGenerationModels(): Promise<ModelConfig[]> {
+    // Fetch both categories in parallel
+    const [textToVideo, imageToVideo] = await Promise.all([
+        fetchAllModelsForCategory('text-to-video'),
+        fetchAllModelsForCategory('image-to-video'),
+    ]);
+
+    // Combine and normalize
+    const allModels = [...textToVideo, ...imageToVideo];
+
+    // Sort by display name
+    const normalized = allModels.map(normalizeModel);
+    normalized.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    return normalized;
+}
+
+/** Cache keys for localStorage */
+const IMAGE_CACHE_KEY = 'fal_models_cache';
+const VIDEO_CACHE_KEY = 'fal_video_models_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheEntry {
@@ -126,17 +156,17 @@ interface CacheEntry {
     timestamp: number;
 }
 
-/** Get cached models if available and not expired */
-export function getCachedModels(): ModelConfig[] | null {
+/** Generic cache getter */
+function getCachedModelsFromKey(cacheKey: string): ModelConfig[] | null {
     try {
-        const cached = localStorage.getItem(CACHE_KEY);
+        const cached = localStorage.getItem(cacheKey);
         if (!cached) return null;
 
         const entry: CacheEntry = JSON.parse(cached);
         const age = Date.now() - entry.timestamp;
 
         if (age > CACHE_TTL) {
-            localStorage.removeItem(CACHE_KEY);
+            localStorage.removeItem(cacheKey);
             return null;
         }
 
@@ -146,20 +176,45 @@ export function getCachedModels(): ModelConfig[] | null {
     }
 }
 
-/** Cache models in localStorage */
-export function cacheModels(models: ModelConfig[]): void {
+/** Generic cache setter */
+function cacheModelsToKey(cacheKey: string, models: ModelConfig[]): void {
     try {
         const entry: CacheEntry = {
             models,
             timestamp: Date.now(),
         };
-        localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+        localStorage.setItem(cacheKey, JSON.stringify(entry));
     } catch {
         // Ignore localStorage errors (quota exceeded, etc.)
     }
 }
 
-/** Clear the models cache */
+/** Get cached image models if available and not expired */
+export function getCachedModels(): ModelConfig[] | null {
+    return getCachedModelsFromKey(IMAGE_CACHE_KEY);
+}
+
+/** Cache image models in localStorage */
+export function cacheModels(models: ModelConfig[]): void {
+    cacheModelsToKey(IMAGE_CACHE_KEY, models);
+}
+
+/** Clear the image models cache */
 export function clearModelsCache(): void {
-    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(IMAGE_CACHE_KEY);
+}
+
+/** Get cached video models if available and not expired */
+export function getCachedVideoModels(): ModelConfig[] | null {
+    return getCachedModelsFromKey(VIDEO_CACHE_KEY);
+}
+
+/** Cache video models in localStorage */
+export function cacheVideoModels(models: ModelConfig[]): void {
+    cacheModelsToKey(VIDEO_CACHE_KEY, models);
+}
+
+/** Clear the video models cache */
+export function clearVideoModelsCache(): void {
+    localStorage.removeItem(VIDEO_CACHE_KEY);
 }

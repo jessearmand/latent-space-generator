@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from 'react-modal';
 import TextareaAutosize from 'react-textarea-autosize';
 import { fal } from '@fal-ai/client';
@@ -9,13 +9,26 @@ import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
 import { PromptOptimizer } from './components/PromptOptimizer';
-import { GenerationTabs, type GenerationMode } from './components/GenerationTabs';
+import { GenerationTabs, type GenerationMode, isVideoMode, requiresImageInput, isValidGenerationMode } from './components/GenerationTabs';
 import { ImageUploadZone } from './components/ImageUploadZone';
 import { DownloadButton } from './components/DownloadButton';
+import { VideoPlayer } from './components/VideoPlayer';
 import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
 import { getImageInputConfig } from './services/modelParams';
+
+/** Storage key for active tab */
+const ACTIVE_TAB_KEY = 'fal_active_tab';
+
+/** Get initial active tab from localStorage */
+function getInitialActiveTab(): GenerationMode {
+    const saved = localStorage.getItem(ACTIVE_TAB_KEY);
+    if (saved && isValidGenerationMode(saved)) {
+        return saved;
+    }
+    return 'text-to-image';
+}
 
 const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
@@ -23,10 +36,12 @@ const AppContent: React.FC = () => {
     const [promptText, setPromptText] = useState<string>('');
     // Support multiple output images (e.g., qwen-image-layered returns layers)
     const [imageUrls, setImageUrls] = useState<string[]>([]);
+    // Video output URL
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
     // Support multiple input images (e.g., flux-2-pro/edit supports up to 9)
     const [uploadedImages, setUploadedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState<GenerationMode>('text-to-image');
+    const [activeTab, setActiveTab] = useState<GenerationMode>(getInitialActiveTab);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
@@ -40,7 +55,10 @@ const AppContent: React.FC = () => {
     };
 
     const config = useConfig();
-    const { selectedModel, isLoading: modelsLoading } = useModels();
+    const { selectedModel, selectedVideoModel, isLoading: modelsLoading } = useModels();
+
+    // Use the appropriate selected model based on active tab
+    const currentSelectedModel = isVideoMode(activeTab) ? selectedVideoModel : selectedModel;
 
     // Configure fal client to use proxy (API key is server-side)
     useEffect(() => {
@@ -66,15 +84,41 @@ const AppContent: React.FC = () => {
         }
     }, [uploadedImages]);
 
+    // Track previous selected model to detect user-initiated changes vs initial load
+    const prevSelectedModelRef = useRef<ModelConfig | null>(null);
+
     // Auto-switch tab when selected model's category changes
+    // Only triggers when user manually changes model selection (not on initial load)
     useEffect(() => {
+        // Skip if this is the initial load (selectedModel going from null to a value)
+        // Only auto-switch when changing from one model to another
+        if (prevSelectedModelRef.current === null && selectedModel !== null) {
+            // Initial load - don't auto-switch, just record the model
+            prevSelectedModelRef.current = selectedModel;
+            return;
+        }
+
+        // Skip if model hasn't actually changed
+        if (prevSelectedModelRef.current?.endpointId === selectedModel?.endpointId) {
+            return;
+        }
+
+        prevSelectedModelRef.current = selectedModel;
+
         if (selectedModel) {
             const modelCategory = selectedModel.category;
-            if (modelCategory === 'text-to-image' || modelCategory === 'image-to-image') {
-                setActiveTab(modelCategory);
+            // Handle both image and video model categories
+            if (modelCategory === 'text-to-image' || modelCategory === 'image-to-image' ||
+                modelCategory === 'text-to-video' || modelCategory === 'image-to-video') {
+                setActiveTab(modelCategory as GenerationMode);
             }
         }
     }, [selectedModel]);
+
+    // Persist active tab to localStorage
+    useEffect(() => {
+        localStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+    }, [activeTab]);
 
     // Handle tab change
     const handleTabChange = (tab: GenerationMode) => {
@@ -255,9 +299,9 @@ const AppContent: React.FC = () => {
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const logMessages = logs?.map((log) => log.message).join(', ') || 'Processing...';
-                    setStatus(`Request is ${statusResult.status}: ${logMessages}`);
-                    console.log(`Status logs: ${logMessages}`);
+                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                    console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } else if (statusResult.status === "COMPLETED") {
                     const result = await fal.queue.result(modelId, {
@@ -303,13 +347,239 @@ const AppContent: React.FC = () => {
         }
     };
 
+    // Function to generate video using fal-ai queue methods
+    const generateVideo = async (prompt: string, model: ModelConfig) => {
+        if (!prompt) {
+            setStatus('Please enter a text prompt.', 'error');
+            console.error('Prompt text is empty. Cannot generate video.');
+            return;
+        }
+
+        const modelId = model.endpointId;
+        const modelName = model.displayName;
+        const isImageToVideo = activeTab === 'image-to-video';
+
+        // For image-to-video mode, require an uploaded image
+        if (isImageToVideo && uploadedImages.length === 0) {
+            setStatus('Please upload an image for image-to-video generation.', 'error');
+            return;
+        }
+
+        setIsGenerating(true);
+        setVideoUrl(null); // Clear previous video
+        console.log(`Generating video with model: ${modelName}`);
+
+        setStatus(`Submitting request for video generation using ${modelName}...`);
+        console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
+
+        let uploadedImageUrl: string | undefined;
+
+        // For image-to-video, upload the image first
+        if (isImageToVideo && uploadedImages.length > 0) {
+            try {
+                setStatus(`Uploading image for ${modelName}...`);
+                uploadedImageUrl = await fal.storage.upload(uploadedImages[0]);
+                console.log('Image uploaded successfully:', uploadedImageUrl);
+                setStatus(`Image uploaded. Submitting request for ${modelName}...`);
+            } catch (uploadError: unknown) {
+                const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                setStatus(errorMsg, 'error');
+                console.error(errorMsg);
+                setIsGenerating(false);
+                return;
+            }
+        }
+
+        // Build video generation input parameters
+        // Different models support different parameter names, so we build a flexible input
+        const input: Record<string, unknown> = {
+            prompt,
+        };
+
+        // Add image_url for image-to-video models
+        if (isImageToVideo && uploadedImageUrl) {
+            input.image_url = uploadedImageUrl;
+        }
+
+        // Add duration (parse to number if model expects seconds)
+        if (config.videoDuration) {
+            // Some models expect "5s", others expect 5
+            // Try to handle both by sending both formats
+            const durationNum = parseInt(config.videoDuration.replace('s', ''), 10);
+            input.duration = durationNum || config.videoDuration;
+        }
+
+        // Add aspect ratio
+        if (config.videoAspectRatio) {
+            input.aspect_ratio = config.videoAspectRatio;
+        }
+
+        // Add resolution if supported
+        if (config.videoResolution) {
+            input.resolution = config.videoResolution;
+        }
+
+        // Model detection for specific parameters
+        const modelIdLower = modelId.toLowerCase();
+        const isKlingModel = modelIdLower.includes('kling');
+        const isVeoModel = modelIdLower.includes('veo');
+        const isLtx19bModel = modelIdLower.includes('ltx-2-19b');  // 19B version has more params
+        const isLtxProFastModel = modelIdLower.includes('ltx-2') && !modelIdLower.includes('ltx-2-19b');
+        const isLtxModel = modelIdLower.includes('ltx-2');  // Any LTX-2 model
+        const supportsAudio = isVeoModel || isLtxModel;
+        // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, and kling don't
+        const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+
+        // Add CFG scale for Kling models (0-1 range)
+        if (isKlingModel) {
+            input.cfg_scale = config.videoCfgScale;
+        }
+
+        // Add guidance scale only for models that support it
+        if (supportsGuidanceScale && config.videoGuidanceScale > 0) {
+            input.guidance_scale = config.videoGuidanceScale;
+        }
+
+        // Add generate_audio for veo and ltx-2 models
+        if (supportsAudio) {
+            input.generate_audio = config.generateAudio;
+        }
+
+        // LTX-2 19B specific parameters
+        if (isLtx19bModel) {
+            input.num_frames = config.videoNumFrames;
+            input.video_size = config.videoOutputSize;
+            input.use_multiscale = config.videoUseMultiscale;
+            input.num_inference_steps = config.videoNumInferenceSteps;
+            input.acceleration = config.videoAcceleration;
+            input.enable_prompt_expansion = config.videoEnablePromptExpansion;
+
+            // Camera LoRA only if not 'none'
+            if (config.videoCameraLora !== 'none') {
+                input.camera_lora = config.videoCameraLora;
+                input.camera_lora_scale = config.videoCameraLoraScale;
+            }
+
+            // LTX-2 19B doesn't use duration/resolution - uses num_frames and video_size instead
+            delete input.duration;
+            delete input.resolution;
+        }
+
+        // Add seed if set
+        if (config.videoSeed !== null) {
+            input.seed = config.videoSeed;
+        }
+
+        // Add negative prompt if set
+        if (config.videoNegativePrompt) {
+            input.negative_prompt = config.videoNegativePrompt;
+        }
+
+        try {
+            // Log the input being sent to the API for debugging
+            console.log(`Input sent to API for model ${modelName}:`, input);
+
+            // Step 1: Submit the request and get request ID
+            const submitResult = await fal.queue.submit(modelId, {
+                input: input,
+            });
+            const requestId = submitResult.request_id;
+            console.log(`Request submitted successfully. Request ID: ${requestId}`);
+            setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
+
+            // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
+            while (true) {
+                const statusResult = await fal.queue.status(modelId, {
+                    requestId,
+                    logs: true,
+                });
+                console.log(`Status update for request ID ${requestId}:`, statusResult.status);
+                if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
+                    const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
+                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                    console.log(`Status logs:`, logs?.map((log) => log.message));
+                    await new Promise(resolve => setTimeout(resolve, 3000)); // Longer poll interval for video
+                } else if (statusResult.status === "COMPLETED") {
+                    const result = await fal.queue.result(modelId, {
+                        requestId,
+                    });
+                    console.log(`Request completed. Full result:`, result);
+
+                    // Video response can have different structures:
+                    // - result.data.video.url (most common)
+                    // - result.data.video (direct URL string)
+                    // - result.data.videos[0].url (array format)
+                    const data = result.data as Record<string, unknown>;
+                    let videoResultUrl: string | undefined;
+
+                    if (data.video) {
+                        if (typeof data.video === 'string') {
+                            videoResultUrl = data.video;
+                        } else if (typeof data.video === 'object' && data.video !== null) {
+                            const videoObj = data.video as { url?: string };
+                            videoResultUrl = videoObj.url;
+                        }
+                    } else if (Array.isArray(data.videos) && data.videos.length > 0) {
+                        const firstVideo = data.videos[0] as { url?: string } | string;
+                        videoResultUrl = typeof firstVideo === 'string' ? firstVideo : firstVideo.url;
+                    }
+
+                    if (videoResultUrl) {
+                        console.log(`Video generated successfully:`, videoResultUrl);
+                        setVideoUrl(videoResultUrl);
+                        setImageUrls([]); // Clear any previous images
+                        setStatus(`Video generated successfully using ${modelName}!`, 'success');
+                    } else {
+                        setStatus('Video generation failed. No video URL found in result.', 'error');
+                        console.error('No video URL in result:', result);
+                    }
+                    break;
+                } else {
+                    // Handle unexpected status (e.g., FAILED or unknown)
+                    const status = (statusResult as { status: string }).status;
+                    setStatus(`Request failed with status: ${status}`, 'error');
+                    console.error(`Request failed with status ${status}:`, statusResult);
+                    break;
+                }
+            }
+        } catch (error: unknown) {
+            console.error('Video generation error:', error);
+
+            // Parse the error to get a user-friendly message
+            const parsedError = parseFalError(error);
+
+            // Check for authentication errors
+            const rawMessage = error instanceof Error ? error.message : String(error);
+            if (rawMessage.includes("401") || rawMessage.includes("Unauthorized")) {
+                console.error("Authentication error detected. The API key may be invalid or not applied correctly.");
+                setStatus('Authentication failed. Please check your API key.', 'error');
+            } else {
+                setStatus(parsedError, 'error');
+            }
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    // Handler for the generate button - routes to image or video generation
+    const handleGenerate = () => {
+        if (!currentSelectedModel) return;
+
+        if (isVideoMode(activeTab)) {
+            generateVideo(promptText, currentSelectedModel);
+        } else {
+            generateImage(promptText, currentSelectedModel);
+        }
+    };
+
     // Set up Modal for accessibility
     Modal.setAppElement('#root');
 
     return (
         <div className="app-container">
             <header className="app-header">
-                <h1>fal.ai Image Generator</h1>
+                <h1>fal.ai Generator</h1>
                 <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
             </header>
 
@@ -362,9 +632,10 @@ const AppContent: React.FC = () => {
             </Modal>
 
             <p className="app-description">
-                {activeTab === 'text-to-image'
-                    ? 'Select a model and enter a text prompt to generate an image.'
-                    : 'Upload an image and enter a prompt to transform it.'}
+                {activeTab === 'text-to-image' && 'Select a model and enter a text prompt to generate an image.'}
+                {activeTab === 'image-to-image' && 'Upload an image and enter a prompt to transform it.'}
+                {activeTab === 'text-to-video' && 'Select a model and enter a text prompt to generate a video.'}
+                {activeTab === 'image-to-video' && 'Upload an image and enter a prompt to animate it.'}
             </p>
 
             <div className="input-section">
@@ -376,18 +647,18 @@ const AppContent: React.FC = () => {
 
                 <ModelSelector filterByCategory={activeTab} />
 
-                {activeTab === 'image-to-image' && selectedModel && (
+                {requiresImageInput(activeTab) && currentSelectedModel && (
                     <ImageUploadZone
                         uploadedImages={uploadedImages}
                         imagePreviews={imagePreviews}
                         onImagesChange={setUploadedImages}
-                        maxImages={getImageInputConfig(selectedModel.endpointId).maxImages}
+                        maxImages={activeTab === 'image-to-video' ? 1 : getImageInputConfig(currentSelectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
                 )}
 
                 <ModelConfigPanel
-                    selectedModel={selectedModel}
+                    selectedModel={currentSelectedModel}
                     activeTab={activeTab}
                 />
 
@@ -401,9 +672,12 @@ const AppContent: React.FC = () => {
                     id="prompt-input"
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
-                    placeholder={activeTab === 'text-to-image'
-                        ? 'A surreal photo of...'
-                        : 'Transform the image into...'}
+                    placeholder={
+                        activeTab === 'text-to-image' ? 'A surreal photo of...' :
+                        activeTab === 'image-to-image' ? 'Transform the image into...' :
+                        activeTab === 'text-to-video' ? 'A cinematic scene of...' :
+                        'Animate this image with...'
+                    }
                     minRows={3}
                     maxRows={10}
                     className="prompt-textarea"
@@ -413,15 +687,30 @@ const AppContent: React.FC = () => {
                 <button
                     type="button"
                     className="generate-btn"
-                    onClick={() => selectedModel && generateImage(promptText, selectedModel)}
-                    disabled={!selectedModel || modelsLoading || isGenerating}
+                    onClick={handleGenerate}
+                    disabled={!currentSelectedModel || modelsLoading || isGenerating}
                 >
-                    {isGenerating ? 'Generating...' : modelsLoading ? 'Loading models...' : 'Generate Image'}
+                    {isGenerating
+                        ? 'Generating...'
+                        : modelsLoading
+                        ? 'Loading models...'
+                        : isVideoMode(activeTab)
+                        ? 'Generate Video'
+                        : 'Generate Image'}
                 </button>
             </div>
 
             <div className="output-section">
-                {imageUrls.length === 1 && (
+                {/* Video output */}
+                {videoUrl && (
+                    <div className="video-container">
+                        <h3>Generated Video</h3>
+                        <VideoPlayer src={videoUrl} />
+                    </div>
+                )}
+
+                {/* Single image output */}
+                {imageUrls.length === 1 && !videoUrl && (
                     <div className="image-container">
                         <div className="image-header">
                             <h3>Generated Image</h3>
@@ -430,7 +719,9 @@ const AppContent: React.FC = () => {
                         <img src={imageUrls[0]} alt="Generated result" className="generated-image" />
                     </div>
                 )}
-                {imageUrls.length > 1 && (
+
+                {/* Multiple images (layers) output */}
+                {imageUrls.length > 1 && !videoUrl && (
                     <div className="image-container">
                         <h3>Generated Layers ({imageUrls.length})</h3>
                         <div className="layer-gallery">
@@ -446,6 +737,7 @@ const AppContent: React.FC = () => {
                         </div>
                     </div>
                 )}
+
                 <p className={`status-message ${statusType}`}>{statusMessage}</p>
             </div>
         </div>

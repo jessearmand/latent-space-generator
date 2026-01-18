@@ -1,6 +1,6 @@
 /**
  * Dynamic configuration panel for model-specific settings
- * Renders different options based on model category
+ * Renders different options based on model category (image or video)
  */
 
 import type React from 'react';
@@ -8,10 +8,12 @@ import { useState, useEffect } from 'react';
 import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
 import { getImageInputConfig } from '../services/modelParams';
+import { VideoConfigOptions } from './VideoConfigOptions';
+import type { GenerationMode } from './GenerationTabs';
 
 interface ModelConfigPanelProps {
     selectedModel: ModelConfig | null;
-    activeTab?: 'text-to-image' | 'image-to-image';
+    activeTab?: GenerationMode;
 }
 
 export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
@@ -25,6 +27,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
         return null;
     }
 
+    const isVideoModel = selectedModel.outputType === 'video';
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
     const isQwenModel = selectedModel.endpointId.includes('qwen-image');
@@ -45,7 +48,9 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
             {isExpanded && (
                 <div className="config-options">
-                    {isGptModel ? (
+                    {isVideoModel ? (
+                        <VideoConfigOptions selectedModel={selectedModel} />
+                    ) : isGptModel ? (
                         <GptConfigOptions config={config} />
                     ) : (
                         <>
@@ -72,7 +77,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 interface FluxConfigOptionsProps {
     config: ReturnType<typeof useConfig>;
     modelId: string;
-    activeTab: 'text-to-image' | 'image-to-image';
+    activeTab: GenerationMode;
     isImageToImage: boolean;
 }
 

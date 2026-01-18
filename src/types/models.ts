@@ -6,8 +6,17 @@
 /** Model categories for image generation */
 export type ImageModelCategory = 'text-to-image' | 'image-to-image';
 
-/** All supported model categories */
-export type ModelCategory = ImageModelCategory | 'image-to-video' | 'video-to-video' | string;
+/** Model categories for video generation */
+export type VideoModelCategory = 'text-to-video' | 'image-to-video';
+
+/** All generation categories (used for tabs and filtering) */
+export type GenerationCategory = ImageModelCategory | VideoModelCategory;
+
+/** All supported model categories (includes future categories) */
+export type ModelCategory = GenerationCategory | 'video-to-video' | string;
+
+/** Output type for generation results */
+export type OutputType = 'image' | 'video';
 
 /** Model status from API */
 export type ModelStatus = 'active' | 'deprecated';
@@ -60,6 +69,7 @@ export interface ModelConfig {
     category: ModelCategory;
     description: string;
     supportsImageInput: boolean;
+    outputType: OutputType;
     thumbnailUrl?: string;
 }
 
@@ -77,6 +87,19 @@ function formatDisplayName(endpointId: string): string {
     return endpointId;
 }
 
+/** Determine output type based on category */
+function getOutputType(category: ModelCategory): OutputType {
+    if (category === 'text-to-video' || category === 'image-to-video') {
+        return 'video';
+    }
+    return 'image';
+}
+
+/** Determine if model supports image input based on category */
+function getSupportsImageInput(category: ModelCategory): boolean {
+    return category === 'image-to-image' || category === 'image-to-video';
+}
+
 /** Convert API model to internal ModelConfig */
 export function normalizeModel(model: FalModel): ModelConfig {
     const metadata = model.metadata || {};
@@ -87,7 +110,8 @@ export function normalizeModel(model: FalModel): ModelConfig {
         displayName: formatDisplayName(model.endpoint_id),
         category,
         description: metadata.description || '',
-        supportsImageInput: category === 'image-to-image',
+        supportsImageInput: getSupportsImageInput(category),
+        outputType: getOutputType(category),
         thumbnailUrl: metadata.thumbnail_url,
     };
 }

@@ -1,12 +1,17 @@
 /**
- * Tab bar component for switching between text-to-image and image-to-image modes
+ * Tab bar component for switching between generation modes
+ * Supports both image and video generation tabs
  */
 
 import type React from 'react';
 import { useCallback } from 'react';
 import './GenerationTabs.css';
 
-export type GenerationMode = 'text-to-image' | 'image-to-image';
+export type GenerationMode =
+    | 'text-to-image'
+    | 'image-to-image'
+    | 'text-to-video'
+    | 'image-to-video';
 
 interface GenerationTabsProps {
     activeTab: GenerationMode;
@@ -17,7 +22,27 @@ interface GenerationTabsProps {
 const tabs: { id: GenerationMode; label: string }[] = [
     { id: 'text-to-image', label: 'Text to Image' },
     { id: 'image-to-image', label: 'Image to Image' },
+    { id: 'text-to-video', label: 'Text to Video' },
+    { id: 'image-to-video', label: 'Image to Video' },
 ];
+
+/** Helper to check if a mode is a video generation mode */
+export function isVideoMode(mode: GenerationMode): boolean {
+    return mode === 'text-to-video' || mode === 'image-to-video';
+}
+
+/** Helper to check if a mode requires image input */
+export function requiresImageInput(mode: GenerationMode): boolean {
+    return mode === 'image-to-image' || mode === 'image-to-video';
+}
+
+/** Helper to validate if a string is a valid generation mode */
+export function isValidGenerationMode(value: string): value is GenerationMode {
+    return value === 'text-to-image' ||
+           value === 'image-to-image' ||
+           value === 'text-to-video' ||
+           value === 'image-to-video';
+}
 
 export const GenerationTabs: React.FC<GenerationTabsProps> = ({
     activeTab,
