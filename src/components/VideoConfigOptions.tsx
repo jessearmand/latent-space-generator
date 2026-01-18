@@ -4,6 +4,7 @@
  */
 
 import type React from 'react';
+import { useEffect } from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
 
@@ -114,6 +115,24 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     const durationOptions = getDurationOptions();
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
+
+    // Validate and reset config values when model changes if current values are not supported
+    useEffect(() => {
+        // Check if current duration is valid for this model, reset to first option if not
+        if (!durationOptions.includes(config.videoDuration)) {
+            config.setVideoDuration(durationOptions[0]);
+        }
+
+        // Check if current aspect ratio is valid for this model, reset to first option if not
+        if (!aspectRatioOptions.includes(config.videoAspectRatio)) {
+            config.setVideoAspectRatio(aspectRatioOptions[0]);
+        }
+
+        // Check if current resolution is valid for this model, reset to first option if not
+        if (!resolutionOptions.includes(config.videoResolution)) {
+            config.setVideoResolution(resolutionOptions[0]);
+        }
+    }, [durationOptions, aspectRatioOptions, resolutionOptions, config]);
 
     return (
         <>
