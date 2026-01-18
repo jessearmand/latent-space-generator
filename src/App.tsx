@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from 'react-modal';
 import TextareaAutosize from 'react-textarea-autosize';
 import { fal } from '@fal-ai/client';
@@ -9,7 +9,7 @@ import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { ModelSelector } from './components/ModelSelector';
 import { ModelConfigPanel } from './components/ModelConfigPanel';
 import { PromptOptimizer } from './components/PromptOptimizer';
-import { GenerationTabs, type GenerationMode, isVideoMode, requiresImageInput } from './components/GenerationTabs';
+import { GenerationTabs, type GenerationMode, isVideoMode, requiresImageInput, isValidGenerationMode } from './components/GenerationTabs';
 import { ImageUploadZone } from './components/ImageUploadZone';
 import { DownloadButton } from './components/DownloadButton';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -17,6 +17,18 @@ import type { ModelConfig } from './types/models';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './services/openai';
 import { parseFalError } from './services/errors';
 import { getImageInputConfig } from './services/modelParams';
+
+/** Storage key for active tab */
+const ACTIVE_TAB_KEY = 'fal_active_tab';
+
+/** Get initial active tab from localStorage */
+function getInitialActiveTab(): GenerationMode {
+    const saved = localStorage.getItem(ACTIVE_TAB_KEY);
+    if (saved && isValidGenerationMode(saved)) {
+        return saved;
+    }
+    return 'text-to-image';
+}
 
 const AppContent: React.FC = () => {
     // OpenAI API key for GPT models (passed as payload parameter, not for auth)
@@ -29,7 +41,7 @@ const AppContent: React.FC = () => {
     // Support multiple input images (e.g., flux-2-pro/edit supports up to 9)
     const [uploadedImages, setUploadedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState<GenerationMode>('text-to-image');
+    const [activeTab, setActiveTab] = useState<GenerationMode>(getInitialActiveTab);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
@@ -43,7 +55,10 @@ const AppContent: React.FC = () => {
     };
 
     const config = useConfig();
-    const { selectedModel, isLoading: modelsLoading } = useModels();
+    const { selectedModel, selectedVideoModel, isLoading: modelsLoading } = useModels();
+
+    // Use the appropriate selected model based on active tab
+    const currentSelectedModel = isVideoMode(activeTab) ? selectedVideoModel : selectedModel;
 
     // Configure fal client to use proxy (API key is server-side)
     useEffect(() => {
@@ -69,8 +84,27 @@ const AppContent: React.FC = () => {
         }
     }, [uploadedImages]);
 
+    // Track previous selected model to detect user-initiated changes vs initial load
+    const prevSelectedModelRef = useRef<ModelConfig | null>(null);
+
     // Auto-switch tab when selected model's category changes
+    // Only triggers when user manually changes model selection (not on initial load)
     useEffect(() => {
+        // Skip if this is the initial load (selectedModel going from null to a value)
+        // Only auto-switch when changing from one model to another
+        if (prevSelectedModelRef.current === null && selectedModel !== null) {
+            // Initial load - don't auto-switch, just record the model
+            prevSelectedModelRef.current = selectedModel;
+            return;
+        }
+
+        // Skip if model hasn't actually changed
+        if (prevSelectedModelRef.current?.endpointId === selectedModel?.endpointId) {
+            return;
+        }
+
+        prevSelectedModelRef.current = selectedModel;
+
         if (selectedModel) {
             const modelCategory = selectedModel.category;
             // Handle both image and video model categories
@@ -80,6 +114,11 @@ const AppContent: React.FC = () => {
             }
         }
     }, [selectedModel]);
+
+    // Persist active tab to localStorage
+    useEffect(() => {
+        localStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+    }, [activeTab]);
 
     // Handle tab change
     const handleTabChange = (tab: GenerationMode) => {
@@ -525,12 +564,12 @@ const AppContent: React.FC = () => {
 
     // Handler for the generate button - routes to image or video generation
     const handleGenerate = () => {
-        if (!selectedModel) return;
+        if (!currentSelectedModel) return;
 
         if (isVideoMode(activeTab)) {
-            generateVideo(promptText, selectedModel);
+            generateVideo(promptText, currentSelectedModel);
         } else {
-            generateImage(promptText, selectedModel);
+            generateImage(promptText, currentSelectedModel);
         }
     };
 
@@ -608,18 +647,18 @@ const AppContent: React.FC = () => {
 
                 <ModelSelector filterByCategory={activeTab} />
 
-                {requiresImageInput(activeTab) && selectedModel && (
+                {requiresImageInput(activeTab) && currentSelectedModel && (
                     <ImageUploadZone
                         uploadedImages={uploadedImages}
                         imagePreviews={imagePreviews}
                         onImagesChange={setUploadedImages}
-                        maxImages={activeTab === 'image-to-video' ? 1 : getImageInputConfig(selectedModel.endpointId).maxImages}
+                        maxImages={activeTab === 'image-to-video' ? 1 : getImageInputConfig(currentSelectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
                 )}
 
                 <ModelConfigPanel
-                    selectedModel={selectedModel}
+                    selectedModel={currentSelectedModel}
                     activeTab={activeTab}
                 />
 
@@ -649,7 +688,7 @@ const AppContent: React.FC = () => {
                     type="button"
                     className="generate-btn"
                     onClick={handleGenerate}
-                    disabled={!selectedModel || modelsLoading || isGenerating}
+                    disabled={!currentSelectedModel || modelsLoading || isGenerating}
                 >
                     {isGenerating
                         ? 'Generating...'

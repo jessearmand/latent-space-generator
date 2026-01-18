@@ -38,9 +38,16 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         loadAllVideoModels,
         getFilteredVideoModels,
         allVideoModels,
+        // Video model selection
+        selectedVideoModel,
+        setSelectedVideoModel,
     } = useModels();
 
     const isVideoTab = isVideoCategory(filterByCategory);
+
+    // Use the appropriate selection based on tab type
+    const currentSelectedModel = isVideoTab ? selectedVideoModel : selectedModel;
+    const setCurrentSelectedModel = isVideoTab ? setSelectedVideoModel : setSelectedModel;
 
     // Memoize filtered models to prevent unnecessary re-renders
     const filteredModels = useMemo(() => {
@@ -67,21 +74,21 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
 
         // Auto-select when filter or search changes and current selection is not in filtered list
         if ((filterChanged || modelsChanged) && filteredModels.length > 0) {
-            const isInFiltered = selectedModel
-                ? filteredModels.some(m => m.endpointId === selectedModel.endpointId)
+            const isInFiltered = currentSelectedModel
+                ? filteredModels.some(m => m.endpointId === currentSelectedModel.endpointId)
                 : false;
             if (!isInFiltered) {
-                setSelectedModel(filteredModels[0]);
+                setCurrentSelectedModel(filteredModels[0]);
             }
         }
-    }, [filterByCategory, filteredModels, selectedModel, setSelectedModel]);
+    }, [filterByCategory, filteredModels, currentSelectedModel, setCurrentSelectedModel]);
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const endpointId = e.target.value;
         // Search in filteredModels first (works for both image and video)
         const model = filteredModels.find(m => m.endpointId === endpointId);
         if (model) {
-            setSelectedModel(model);
+            setCurrentSelectedModel(model);
         }
     };
 
@@ -175,7 +182,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
 
             <select
                 id="model-selector"
-                value={selectedModel?.endpointId || ''}
+                value={currentSelectedModel?.endpointId || ''}
                 onChange={handleChange}
                 className="model-dropdown"
                 disabled={filteredModels.length === 0 || isCurrentlyLoading}
@@ -195,8 +202,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
                 )}
             </select>
 
-            {selectedModel?.description && (
-                <p className="model-description">{selectedModel.description}</p>
+            {currentSelectedModel?.description && (
+                <p className="model-description">{currentSelectedModel.description}</p>
             )}
         </div>
     );

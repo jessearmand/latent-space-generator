@@ -29,7 +29,7 @@ interface ModelsContextType {
     setSelectedModel: (model: ModelConfig | null) => void;
     refreshModels: () => Promise<void>;
 
-    // Video models (new)
+    // Video models
     videoModels: ModelConfig[];
     allVideoModels: ModelConfig[];
     showAllVideoModels: boolean;
@@ -39,6 +39,10 @@ interface ModelsContextType {
     isLoadingAllVideoModels: boolean;
     loadAllVideoModels: () => Promise<void>;
     getFilteredVideoModels: (category?: VideoModelCategory) => ModelConfig[];
+
+    // Video model selection (separate from image model selection)
+    selectedVideoModel: ModelConfig | null;
+    setSelectedVideoModel: (model: ModelConfig | null) => void;
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
@@ -47,8 +51,10 @@ interface ModelsProviderProps {
     children: ReactNode;
 }
 
-/** Storage key for selected model */
+/** Storage key for selected image model */
 const SELECTED_MODEL_KEY = 'fal_selected_model';
+/** Storage key for selected video model */
+const SELECTED_VIDEO_MODEL_KEY = 'fal_selected_video_model';
 
 export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     // Image models state (existing)
@@ -57,11 +63,12 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const [error, setError] = useState<string | null>(null);
     const [selectedModel, setSelectedModelState] = useState<ModelConfig | null>(null);
 
-    // Video models state (new)
+    // Video models state
     const [allVideoModels, setAllVideoModels] = useState<ModelConfig[]>([]);
     const [showAllVideoModels, setShowAllVideoModels] = useState(false);
     const [videoSearchQuery, setVideoSearchQuery] = useState('');
     const [isLoadingAllVideoModels, setIsLoadingAllVideoModels] = useState(false);
+    const [selectedVideoModel, setSelectedVideoModelState] = useState<ModelConfig | null>(null);
 
     // Curated video models (static, no API call needed)
     const curatedVideoModels = useMemo(() => getCuratedVideoModels(), []);
@@ -89,6 +96,38 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         // Default to first model if no saved selection
         if (modelList.length > 0) {
             setSelectedModelState(modelList[0]);
+        }
+    }, []);
+
+    // Persist selected video model to localStorage
+    const setSelectedVideoModel = useCallback((model: ModelConfig | null) => {
+        setSelectedVideoModelState(model);
+        if (model) {
+            localStorage.setItem(SELECTED_VIDEO_MODEL_KEY, model.endpointId);
+        } else {
+            localStorage.removeItem(SELECTED_VIDEO_MODEL_KEY);
+        }
+    }, []);
+
+    // Restore selected video model from localStorage
+    // Searches both curated and all video models
+    const restoreSelectedVideoModel = useCallback((videoModelList: ModelConfig[], curatedList: ModelConfig[]) => {
+        const savedEndpointId = localStorage.getItem(SELECTED_VIDEO_MODEL_KEY);
+        if (savedEndpointId) {
+            // First check in the provided list (all video models if loaded)
+            let saved = videoModelList.find(m => m.endpointId === savedEndpointId);
+            // Fall back to curated list
+            if (!saved) {
+                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+            }
+            if (saved) {
+                setSelectedVideoModelState(saved);
+                return;
+            }
+        }
+        // Default to first curated model if no saved selection
+        if (curatedList.length > 0) {
+            setSelectedVideoModelState(curatedList[0]);
         }
     }, []);
 
@@ -146,6 +185,11 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         loadModels();
     }, [loadModels]);
 
+    // Restore video model selection on mount (from curated models)
+    useEffect(() => {
+        restoreSelectedVideoModel([], curatedVideoModels);
+    }, [curatedVideoModels, restoreSelectedVideoModel]);
+
     // Refresh function exposed to consumers
     const refreshModels = useCallback(async () => {
         await loadModels(true);
@@ -171,6 +215,8 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             if (cached && cached.length > 0) {
                 console.log('[VideoModels] Loaded from cache:', cached.length, 'models');
                 setAllVideoModels(cached);
+                // Re-restore video model selection in case it's in the full list but not curated
+                restoreSelectedVideoModel(cached, curatedVideoModels);
                 setIsLoadingAllVideoModels(false);
                 return;
             }
@@ -181,6 +227,8 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             console.log('[VideoModels] Fetched from API:', fetchedModels.length, 'models');
             setAllVideoModels(fetchedModels);
             cacheVideoModels(fetchedModels);
+            // Re-restore video model selection in case it's in the full list but not curated
+            restoreSelectedVideoModel(fetchedModels, curatedVideoModels);
         } catch (err) {
             console.error('[VideoModels] Failed to load all video models:', err);
 
@@ -195,7 +243,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         } finally {
             setIsLoadingAllVideoModels(false);
         }
-    }, [allVideoModels.length, isLoadingAllVideoModels]);
+    }, [allVideoModels.length, isLoadingAllVideoModels, curatedVideoModels, restoreSelectedVideoModel]);
 
     // Get filtered video models based on current settings
     const getFilteredVideoModels = useCallback((category?: VideoModelCategory): ModelConfig[] => {
@@ -249,6 +297,10 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
                 isLoadingAllVideoModels,
                 loadAllVideoModels,
                 getFilteredVideoModels,
+
+                // Video model selection
+                selectedVideoModel,
+                setSelectedVideoModel,
             }}
         >
             {children}

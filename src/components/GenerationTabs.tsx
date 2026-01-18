@@ -36,6 +36,14 @@ export function requiresImageInput(mode: GenerationMode): boolean {
     return mode === 'image-to-image' || mode === 'image-to-video';
 }
 
+/** Helper to validate if a string is a valid generation mode */
+export function isValidGenerationMode(value: string): value is GenerationMode {
+    return value === 'text-to-image' ||
+           value === 'image-to-image' ||
+           value === 'text-to-video' ||
+           value === 'image-to-video';
+}
+
 export const GenerationTabs: React.FC<GenerationTabsProps> = ({
     activeTab,
     onTabChange,
