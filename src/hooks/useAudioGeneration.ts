@@ -5,7 +5,7 @@ import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -129,7 +129,8 @@ export function useAudioGeneration({
                     input.speed = config.ttsSpeed;
                 }
                 if (config.ttsVolume !== 1.0) {
-                    input.vol = config.ttsVolume;
+                    // API expects 0-10 range, UI stores 0-1
+                    input.vol = config.ttsVolume * 10;
                 }
                 if (config.ttsPitch !== 0) {
                     input.pitch = config.ttsPitch;
@@ -156,19 +157,42 @@ export function useAudioGeneration({
             }
 
             // Dia TTS Voice Clone specific parameters
+            // Documentation: ref_audio_url (reference audio), text (text to synthesize)
+            // Note: ref_text (transcript of reference) is optional and not collected from user
             if (isDiaVoiceClone && uploadedAudioUrl) {
-                input.source_audio_url = uploadedAudioUrl;
-                input.target_text = promptOrText;
+                input.ref_audio_url = uploadedAudioUrl;
+                input.text = promptOrText;
             }
 
             // Mirelo SFX video-to-audio parameters
             if (isMirelo && uploadedVideoUrl) {
                 input.video_url = uploadedVideoUrl;
+                // Pass prompt as text_prompt for audio guidance (optional per API docs)
+                if (promptOrText) {
+                    input.text_prompt = promptOrText;
+                }
             }
 
             // Music and SFX duration
             if ((isMusic || isSFX) && config.audioDuration > 0) {
                 input.duration = config.audioDuration;
+            }
+
+            // Beatoven-specific parameters
+            const isBeatoven = isBeatovenModel(modelId);
+            if (isBeatoven) {
+                // Refinement: higher = better quality (default 100 for music, 40 for SFX)
+                if (config.beatovenRefinement !== 100) {
+                    input.refinement = config.beatovenRefinement;
+                }
+                // Creativity: 1-32, default 16
+                if (config.beatovenCreativity !== 16) {
+                    input.creativity = config.beatovenCreativity;
+                }
+                // Negative prompt
+                if (config.beatovenNegativePrompt) {
+                    input.negative_prompt = config.beatovenNegativePrompt;
+                }
             }
 
             // Audio output format

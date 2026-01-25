@@ -7,7 +7,7 @@ import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
 import { MINIMAX_VOICES, MINIMAX_EMOTIONS } from '../types/audio';
-import { isMusicModel, isSFXModel } from '../services/audioModels';
+import { isMusicModel, isSFXModel, isBeatovenModel } from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -23,6 +23,9 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
     const isMirelo = modelId.includes('mirelo') || modelId.includes('sfx-v1');
     const isMusic = isMusicModel(selectedModel.endpointId);
     const isSFX = isSFXModel(selectedModel.endpointId);
+    const isBeatoven = isBeatovenModel(selectedModel.endpointId);
+    const isBeatovenMusic = isBeatoven && modelId.includes('music');
+    const isBeatovenSFX = isBeatoven && modelId.includes('sound-effect');
 
     return (
         <div className="audio-config-options">
@@ -186,12 +189,68 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         type="range"
                         id="audio-duration"
                         min="1"
-                        max="60"
+                        max={isBeatovenMusic ? 150 : isBeatovenSFX ? 35 : 60}
                         step="1"
                         value={config.audioDuration}
                         onChange={(e) => config.setAudioDuration(parseInt(e.target.value, 10))}
                     />
+                    {isBeatovenMusic && (
+                        <span className="hint"> (5-150s for Beatoven Music)</span>
+                    )}
+                    {isBeatovenSFX && (
+                        <span className="hint"> (1-35s for Beatoven SFX)</span>
+                    )}
                 </div>
+            )}
+
+            {/* Beatoven-specific settings */}
+            {isBeatoven && (
+                <>
+                    <div className="form-group">
+                        <label htmlFor="beatoven-refinement">
+                            Refinement:{' '}
+                            <span className="range-value">{config.beatovenRefinement}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="beatoven-refinement"
+                            min="1"
+                            max={isBeatovenMusic ? 100 : 40}
+                            step="1"
+                            value={config.beatovenRefinement}
+                            onChange={(e) => config.setBeatovenRefinement(parseInt(e.target.value, 10))}
+                        />
+                        <span className="hint"> (higher = better quality, slower)</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="beatoven-creativity">
+                            Creativity:{' '}
+                            <span className="range-value">{config.beatovenCreativity}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="beatoven-creativity"
+                            min="1"
+                            max="32"
+                            step="1"
+                            value={config.beatovenCreativity}
+                            onChange={(e) => config.setBeatovenCreativity(parseFloat(e.target.value))}
+                        />
+                        <span className="hint"> (higher = more variation)</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="beatoven-negative-prompt">Negative Prompt:</label>
+                        <input
+                            type="text"
+                            id="beatoven-negative-prompt"
+                            value={config.beatovenNegativePrompt}
+                            onChange={(e) => config.setBeatovenNegativePrompt(e.target.value)}
+                            placeholder="Content to avoid..."
+                        />
+                    </div>
+                </>
             )}
 
             {/* Output Format (for all models) */}
