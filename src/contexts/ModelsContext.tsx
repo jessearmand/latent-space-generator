@@ -5,20 +5,27 @@
 
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
-import type { ModelConfig, VideoModelCategory } from '../types/models';
+import type { ModelConfig, VideoModelCategory, AudioModelCategory } from '../types/models';
 import {
     fetchImageGenerationModels,
     fetchVideoGenerationModels,
+    fetchAudioGenerationModels,
     getCachedModels,
     cacheModels,
     clearModelsCache,
     getCachedVideoModels,
     cacheVideoModels,
+    getCachedAudioModels,
+    cacheAudioModels,
 } from '../services/models';
 import {
     getCuratedVideoModels,
     filterModelsByQuery,
 } from '../services/videoModels';
+import {
+    getCuratedAudioModels,
+    filterAudioModelsByQuery,
+} from '../services/audioModels';
 
 interface ModelsContextType {
     // Image models (existing)
@@ -43,6 +50,21 @@ interface ModelsContextType {
     // Video model selection (separate from image model selection)
     selectedVideoModel: ModelConfig | null;
     setSelectedVideoModel: (model: ModelConfig | null) => void;
+
+    // Audio models
+    audioModels: ModelConfig[];
+    allAudioModels: ModelConfig[];
+    showAllAudioModels: boolean;
+    setShowAllAudioModels: (show: boolean) => void;
+    audioSearchQuery: string;
+    setAudioSearchQuery: (query: string) => void;
+    isLoadingAllAudioModels: boolean;
+    loadAllAudioModels: () => Promise<void>;
+    getFilteredAudioModels: (category?: AudioModelCategory) => ModelConfig[];
+
+    // Audio model selection
+    selectedAudioModel: ModelConfig | null;
+    setSelectedAudioModel: (model: ModelConfig | null) => void;
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
@@ -55,6 +77,8 @@ interface ModelsProviderProps {
 const SELECTED_MODEL_KEY = 'fal_selected_model';
 /** Storage key for selected video model */
 const SELECTED_VIDEO_MODEL_KEY = 'fal_selected_video_model';
+/** Storage key for selected audio model */
+const SELECTED_AUDIO_MODEL_KEY = 'fal_selected_audio_model';
 
 export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     // Image models state (existing)
@@ -70,8 +94,18 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const [isLoadingAllVideoModels, setIsLoadingAllVideoModels] = useState(false);
     const [selectedVideoModel, setSelectedVideoModelState] = useState<ModelConfig | null>(null);
 
+    // Audio models state
+    const [allAudioModels, setAllAudioModels] = useState<ModelConfig[]>([]);
+    const [showAllAudioModels, setShowAllAudioModels] = useState(false);
+    const [audioSearchQuery, setAudioSearchQuery] = useState('');
+    const [isLoadingAllAudioModels, setIsLoadingAllAudioModels] = useState(false);
+    const [selectedAudioModel, setSelectedAudioModelState] = useState<ModelConfig | null>(null);
+
     // Curated video models (static, no API call needed)
     const curatedVideoModels = useMemo(() => getCuratedVideoModels(), []);
+
+    // Curated audio models (static, no API call needed)
+    const curatedAudioModels = useMemo(() => getCuratedAudioModels(), []);
 
     // Persist selected model to localStorage
     const setSelectedModel = useCallback((model: ModelConfig | null) => {
@@ -128,6 +162,35 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         // Default to first curated model if no saved selection
         if (curatedList.length > 0) {
             setSelectedVideoModelState(curatedList[0]);
+        }
+    }, []);
+
+    // Persist selected audio model to localStorage
+    const setSelectedAudioModel = useCallback((model: ModelConfig | null) => {
+        setSelectedAudioModelState(model);
+        if (model) {
+            localStorage.setItem(SELECTED_AUDIO_MODEL_KEY, model.endpointId);
+        } else {
+            localStorage.removeItem(SELECTED_AUDIO_MODEL_KEY);
+        }
+    }, []);
+
+    // Restore selected audio model from localStorage
+    const restoreSelectedAudioModel = useCallback((audioModelList: ModelConfig[], curatedList: ModelConfig[]) => {
+        const savedEndpointId = localStorage.getItem(SELECTED_AUDIO_MODEL_KEY);
+        if (savedEndpointId) {
+            let saved = audioModelList.find(m => m.endpointId === savedEndpointId);
+            if (!saved) {
+                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+            }
+            if (saved) {
+                setSelectedAudioModelState(saved);
+                return;
+            }
+        }
+        // Default to first curated model if no saved selection
+        if (curatedList.length > 0) {
+            setSelectedAudioModelState(curatedList[0]);
         }
     }, []);
 
@@ -271,10 +334,93 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         return filtered;
     }, [showAllVideoModels, allVideoModels, curatedVideoModels, videoSearchQuery]);
 
+    // Load all audio models from API (on demand)
+    const loadAllAudioModels = useCallback(async () => {
+        // Skip if already loaded or loading
+        if (allAudioModels.length > 0 || isLoadingAllAudioModels) {
+            console.log('[AudioModels] Skipping load - already loaded or loading', {
+                loaded: allAudioModels.length,
+                isLoading: isLoadingAllAudioModels
+            });
+            return;
+        }
+
+        console.log('[AudioModels] Starting to load all audio models...');
+        setIsLoadingAllAudioModels(true);
+
+        try {
+            // Try cache first
+            const cached = getCachedAudioModels();
+            if (cached && cached.length > 0) {
+                console.log('[AudioModels] Loaded from cache:', cached.length, 'models');
+                setAllAudioModels(cached);
+                restoreSelectedAudioModel(cached, curatedAudioModels);
+                setIsLoadingAllAudioModels(false);
+                return;
+            }
+
+            // Fetch from API
+            console.log('[AudioModels] Fetching from API...');
+            const fetchedModels = await fetchAudioGenerationModels();
+            console.log('[AudioModels] Fetched from API:', fetchedModels.length, 'models');
+            setAllAudioModels(fetchedModels);
+            cacheAudioModels(fetchedModels);
+            restoreSelectedAudioModel(fetchedModels, curatedAudioModels);
+        } catch (err) {
+            console.error('[AudioModels] Failed to load all audio models:', err);
+
+            // Try cached data as fallback
+            const cached = getCachedAudioModels();
+            if (cached && cached.length > 0) {
+                console.log('[AudioModels] Using cached fallback:', cached.length, 'models');
+                setAllAudioModels(cached);
+            } else {
+                console.error('[AudioModels] No cache available, models will be empty');
+            }
+        } finally {
+            setIsLoadingAllAudioModels(false);
+        }
+    }, [allAudioModels.length, isLoadingAllAudioModels, curatedAudioModels, restoreSelectedAudioModel]);
+
+    // Get filtered audio models based on current settings
+    const getFilteredAudioModels = useCallback((category?: AudioModelCategory): ModelConfig[] => {
+        const sourceModels = showAllAudioModels ? allAudioModels : curatedAudioModels;
+
+        console.log('[AudioModels] getFilteredAudioModels called:', {
+            showAllAudioModels,
+            sourceCount: sourceModels.length,
+            category,
+            searchQuery: audioSearchQuery
+        });
+
+        // Filter by category if specified
+        let filtered = category
+            ? sourceModels.filter(m => m.category === category)
+            : sourceModels;
+
+        // Apply search filter if showing all models
+        if (showAllAudioModels && audioSearchQuery) {
+            filtered = filterAudioModelsByQuery(filtered, audioSearchQuery);
+        }
+
+        console.log('[AudioModels] Returning', filtered.length, 'models');
+        return filtered;
+    }, [showAllAudioModels, allAudioModels, curatedAudioModels, audioSearchQuery]);
+
     // Computed video models list (for convenience)
     const videoModels = useMemo(() => {
         return showAllVideoModels ? allVideoModels : curatedVideoModels;
     }, [showAllVideoModels, allVideoModels, curatedVideoModels]);
+
+    // Computed audio models list (for convenience)
+    const audioModels = useMemo(() => {
+        return showAllAudioModels ? allAudioModels : curatedAudioModels;
+    }, [showAllAudioModels, allAudioModels, curatedAudioModels]);
+
+    // Restore audio model selection on mount (from curated models)
+    useEffect(() => {
+        restoreSelectedAudioModel([], curatedAudioModels);
+    }, [curatedAudioModels, restoreSelectedAudioModel]);
 
     return (
         <ModelsContext.Provider
@@ -301,6 +447,21 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
                 // Video model selection
                 selectedVideoModel,
                 setSelectedVideoModel,
+
+                // Audio models
+                audioModels,
+                allAudioModels,
+                showAllAudioModels,
+                setShowAllAudioModels,
+                audioSearchQuery,
+                setAudioSearchQuery,
+                isLoadingAllAudioModels,
+                loadAllAudioModels,
+                getFilteredAudioModels,
+
+                // Audio model selection
+                selectedAudioModel,
+                setSelectedAudioModel,
             }}
         >
             {children}

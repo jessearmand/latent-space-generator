@@ -36,6 +36,23 @@ export interface ConfigState {
   videoCameraLora: string;  // dolly_in, dolly_out, dolly_left, dolly_right, jib_up, jib_down, static, none
   videoCameraLoraScale: number;  // 0-1, default 1
   videoEnablePromptExpansion: boolean;  // default false
+  // Video-to-video settings
+  videoStrength: number;  // 0-1, strength for video-to-video transformation
+  // Audio generation settings
+  audioOutputFormat: string;  // 'mp3' | 'wav' | 'flac' | 'pcm'
+  audioSeed: number | null;  // Seed for reproducibility
+  // TTS settings (MiniMax Speech-02-HD)
+  ttsVoiceId: string;  // Voice ID
+  ttsSpeed: number;  // 0.5-2.0, default 1.0
+  ttsVolume: number;  // 0-1, default 1.0
+  ttsPitch: number;  // -12 to 12, default 0
+  ttsEmotion: string;  // 'neutral', 'happy', 'sad', etc.
+  // Chatterbox TTS settings
+  chatterboxExaggeration: number;  // 0-1, default 0.25
+  chatterboxTemperature: number;  // 0.1-2.0, default 0.7
+  chatterboxCfg: number;  // 0-1, default 0.5
+  // Music/SFX generation settings
+  audioDuration: number;  // seconds, for music and SFX generation
 }
 
 interface ConfigContextType extends ConfigState {
@@ -74,6 +91,23 @@ interface ConfigContextType extends ConfigState {
   setVideoCameraLora: (value: string) => void;
   setVideoCameraLoraScale: (value: number) => void;
   setVideoEnablePromptExpansion: (value: boolean) => void;
+  // Video-to-video setters
+  setVideoStrength: (value: number) => void;
+  // Audio generation setters
+  setAudioOutputFormat: (value: string) => void;
+  setAudioSeed: (value: number | null) => void;
+  // TTS setters
+  setTtsVoiceId: (value: string) => void;
+  setTtsSpeed: (value: number) => void;
+  setTtsVolume: (value: number) => void;
+  setTtsPitch: (value: number) => void;
+  setTtsEmotion: (value: string) => void;
+  // Chatterbox setters
+  setChatterboxExaggeration: (value: number) => void;
+  setChatterboxTemperature: (value: number) => void;
+  setChatterboxCfg: (value: number) => void;
+  // Music/SFX setters
+  setAudioDuration: (value: number) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -114,6 +148,23 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [videoCameraLora, setVideoCameraLora] = useState<string>(localStorage.getItem('VIDEO_CAMERA_LORA') || 'none');
   const [videoCameraLoraScale, setVideoCameraLoraScale] = useState<number>(parseFloat(localStorage.getItem('VIDEO_CAMERA_LORA_SCALE') || '1'));
   const [videoEnablePromptExpansion, setVideoEnablePromptExpansion] = useState<boolean>(localStorage.getItem('VIDEO_ENABLE_PROMPT_EXPANSION') === 'true');
+  // Video-to-video settings
+  const [videoStrength, setVideoStrength] = useState<number>(parseFloat(localStorage.getItem('VIDEO_STRENGTH') || '0.5'));
+  // Audio generation settings
+  const [audioOutputFormat, setAudioOutputFormat] = useState<string>(localStorage.getItem('AUDIO_OUTPUT_FORMAT') || 'mp3');
+  const [audioSeed, setAudioSeed] = useState<number | null>(localStorage.getItem('AUDIO_SEED') !== 'null' ? parseInt(localStorage.getItem('AUDIO_SEED') || '0', 10) : null);
+  // TTS settings (MiniMax Speech-02-HD)
+  const [ttsVoiceId, setTtsVoiceId] = useState<string>(localStorage.getItem('TTS_VOICE_ID') || 'male-qn-qingse');
+  const [ttsSpeed, setTtsSpeed] = useState<number>(parseFloat(localStorage.getItem('TTS_SPEED') || '1.0'));
+  const [ttsVolume, setTtsVolume] = useState<number>(parseFloat(localStorage.getItem('TTS_VOLUME') || '1.0'));
+  const [ttsPitch, setTtsPitch] = useState<number>(parseInt(localStorage.getItem('TTS_PITCH') || '0', 10));
+  const [ttsEmotion, setTtsEmotion] = useState<string>(localStorage.getItem('TTS_EMOTION') || 'neutral');
+  // Chatterbox TTS settings
+  const [chatterboxExaggeration, setChatterboxExaggeration] = useState<number>(parseFloat(localStorage.getItem('CHATTERBOX_EXAGGERATION') || '0.25'));
+  const [chatterboxTemperature, setChatterboxTemperature] = useState<number>(parseFloat(localStorage.getItem('CHATTERBOX_TEMPERATURE') || '0.7'));
+  const [chatterboxCfg, setChatterboxCfg] = useState<number>(parseFloat(localStorage.getItem('CHATTERBOX_CFG') || '0.5'));
+  // Music/SFX generation settings
+  const [audioDuration, setAudioDuration] = useState<number>(parseFloat(localStorage.getItem('AUDIO_DURATION') || '10'));
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -151,7 +202,24 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('VIDEO_CAMERA_LORA', videoCameraLora);
     localStorage.setItem('VIDEO_CAMERA_LORA_SCALE', videoCameraLoraScale.toString());
     localStorage.setItem('VIDEO_ENABLE_PROMPT_EXPANSION', videoEnablePromptExpansion.toString());
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion]);
+    // Video-to-video persistence
+    localStorage.setItem('VIDEO_STRENGTH', videoStrength.toString());
+    // Audio generation persistence
+    localStorage.setItem('AUDIO_OUTPUT_FORMAT', audioOutputFormat);
+    localStorage.setItem('AUDIO_SEED', audioSeed !== null ? audioSeed.toString() : 'null');
+    // TTS persistence
+    localStorage.setItem('TTS_VOICE_ID', ttsVoiceId);
+    localStorage.setItem('TTS_SPEED', ttsSpeed.toString());
+    localStorage.setItem('TTS_VOLUME', ttsVolume.toString());
+    localStorage.setItem('TTS_PITCH', ttsPitch.toString());
+    localStorage.setItem('TTS_EMOTION', ttsEmotion);
+    // Chatterbox persistence
+    localStorage.setItem('CHATTERBOX_EXAGGERATION', chatterboxExaggeration.toString());
+    localStorage.setItem('CHATTERBOX_TEMPERATURE', chatterboxTemperature.toString());
+    localStorage.setItem('CHATTERBOX_CFG', chatterboxCfg.toString());
+    // Music/SFX persistence
+    localStorage.setItem('AUDIO_DURATION', audioDuration.toString());
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration]);
 
   return (
     <ConfigContext.Provider value={{
@@ -188,7 +256,24 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       videoAcceleration, setVideoAcceleration,
       videoCameraLora, setVideoCameraLora,
       videoCameraLoraScale, setVideoCameraLoraScale,
-      videoEnablePromptExpansion, setVideoEnablePromptExpansion
+      videoEnablePromptExpansion, setVideoEnablePromptExpansion,
+      // Video-to-video settings
+      videoStrength, setVideoStrength,
+      // Audio generation
+      audioOutputFormat, setAudioOutputFormat,
+      audioSeed, setAudioSeed,
+      // TTS settings
+      ttsVoiceId, setTtsVoiceId,
+      ttsSpeed, setTtsSpeed,
+      ttsVolume, setTtsVolume,
+      ttsPitch, setTtsPitch,
+      ttsEmotion, setTtsEmotion,
+      // Chatterbox settings
+      chatterboxExaggeration, setChatterboxExaggeration,
+      chatterboxTemperature, setChatterboxTemperature,
+      chatterboxCfg, setChatterboxCfg,
+      // Music/SFX settings
+      audioDuration, setAudioDuration
     }}>
       {children}
     </ConfigContext.Provider>

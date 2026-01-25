@@ -9,6 +9,7 @@ import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
 import { getImageInputConfig } from '../services/modelParams';
 import { VideoConfigOptions } from './VideoConfigOptions';
+import { AudioConfigOptions } from './AudioConfigOptions';
 import type { GenerationMode } from './GenerationTabs';
 
 interface ModelConfigPanelProps {
@@ -28,6 +29,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     }
 
     const isVideoModel = selectedModel.outputType === 'video';
+    const isAudioModel = selectedModel.outputType === 'audio';
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
     const isQwenModel = selectedModel.endpointId.includes('qwen-image');
@@ -48,7 +50,9 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
             {isExpanded && (
                 <div className="config-options">
-                    {isVideoModel ? (
+                    {isAudioModel ? (
+                        <AudioConfigOptions selectedModel={selectedModel} />
+                    ) : isVideoModel ? (
                         <VideoConfigOptions selectedModel={selectedModel} />
                     ) : isGptModel ? (
                         <GptConfigOptions config={config} />

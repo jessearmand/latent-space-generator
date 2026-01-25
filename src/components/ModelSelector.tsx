@@ -8,7 +8,8 @@ import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useModels } from '../contexts/ModelsContext';
 import type { GenerationMode } from './GenerationTabs';
-import type { VideoModelCategory } from '../types/models';
+import { isVideoMode, isAudioMode } from './GenerationTabs';
+import type { VideoModelCategory, AudioModelCategory } from '../types/models';
 
 interface ModelSelectorProps {
     className?: string;
@@ -17,7 +18,12 @@ interface ModelSelectorProps {
 
 /** Check if category is a video mode */
 function isVideoCategory(category: GenerationMode | null | undefined): category is VideoModelCategory {
-    return category === 'text-to-video' || category === 'image-to-video';
+    return category !== null && category !== undefined && isVideoMode(category);
+}
+
+/** Check if category is an audio mode */
+function isAudioCategory(category: GenerationMode | null | undefined): category is AudioModelCategory {
+    return category !== null && category !== undefined && isAudioMode(category);
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterByCategory }) => {
@@ -41,16 +47,41 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         // Video model selection
         selectedVideoModel,
         setSelectedVideoModel,
+        // Audio models
+        showAllAudioModels,
+        setShowAllAudioModels,
+        audioSearchQuery,
+        setAudioSearchQuery,
+        isLoadingAllAudioModels,
+        loadAllAudioModels,
+        getFilteredAudioModels,
+        allAudioModels,
+        // Audio model selection
+        selectedAudioModel,
+        setSelectedAudioModel,
     } = useModels();
 
     const isVideoTab = isVideoCategory(filterByCategory);
+    const isAudioTab = isAudioCategory(filterByCategory);
 
     // Use the appropriate selection based on tab type
-    const currentSelectedModel = isVideoTab ? selectedVideoModel : selectedModel;
-    const setCurrentSelectedModel = isVideoTab ? setSelectedVideoModel : setSelectedModel;
+    const currentSelectedModel = isAudioTab
+        ? selectedAudioModel
+        : isVideoTab
+        ? selectedVideoModel
+        : selectedModel;
+    const setCurrentSelectedModel = isAudioTab
+        ? setSelectedAudioModel
+        : isVideoTab
+        ? setSelectedVideoModel
+        : setSelectedModel;
 
     // Memoize filtered models to prevent unnecessary re-renders
     const filteredModels = useMemo(() => {
+        if (isAudioTab) {
+            // Use audio models with filtering
+            return getFilteredAudioModels(filterByCategory as AudioModelCategory);
+        }
         if (isVideoTab) {
             // Use video models with filtering
             return getFilteredVideoModels(filterByCategory as VideoModelCategory);
@@ -59,7 +90,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         return filterByCategory
             ? models.filter(m => m.category === filterByCategory)
             : models;
-    }, [isVideoTab, filterByCategory, models, getFilteredVideoModels]);
+    }, [isAudioTab, isVideoTab, filterByCategory, models, getFilteredVideoModels, getFilteredAudioModels]);
 
     // Track previous values to detect actual changes
     const prevFilterRef = useRef(filterByCategory);
@@ -92,20 +123,34 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         }
     };
 
-    // Handle "Show all models" toggle for video tabs
+    // Handle "Show all models" toggle for video/audio tabs
     const handleShowAllToggle = () => {
-        const newValue = !showAllVideoModels;
-        console.log('[ModelSelector] Toggle show all:', newValue, 'current allVideoModels:', allVideoModels.length);
-        setShowAllVideoModels(newValue);
-        if (newValue && allVideoModels.length === 0) {
-            console.log('[ModelSelector] Triggering loadAllVideoModels');
-            loadAllVideoModels();
+        if (isAudioTab) {
+            const newValue = !showAllAudioModels;
+            console.log('[ModelSelector] Toggle show all audio:', newValue, 'current allAudioModels:', allAudioModels.length);
+            setShowAllAudioModels(newValue);
+            if (newValue && allAudioModels.length === 0) {
+                console.log('[ModelSelector] Triggering loadAllAudioModels');
+                loadAllAudioModels();
+            }
+        } else {
+            const newValue = !showAllVideoModels;
+            console.log('[ModelSelector] Toggle show all video:', newValue, 'current allVideoModels:', allVideoModels.length);
+            setShowAllVideoModels(newValue);
+            if (newValue && allVideoModels.length === 0) {
+                console.log('[ModelSelector] Triggering loadAllVideoModels');
+                loadAllVideoModels();
+            }
         }
     };
 
     // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setVideoSearchQuery(e.target.value);
+        if (isAudioTab) {
+            setAudioSearchQuery(e.target.value);
+        } else {
+            setVideoSearchQuery(e.target.value);
+        }
     };
 
     const handleRefresh = async () => {
@@ -113,7 +158,15 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
     };
 
     // Determine loading state based on tab type
-    const isCurrentlyLoading = isVideoTab ? isLoadingAllVideoModels : isLoading;
+    const isCurrentlyLoading = isAudioTab
+        ? isLoadingAllAudioModels
+        : isVideoTab
+        ? isLoadingAllVideoModels
+        : isLoading;
+
+    // Get the appropriate "show all" and search state
+    const showAllModels = isAudioTab ? showAllAudioModels : showAllVideoModels;
+    const searchQuery = isAudioTab ? audioSearchQuery : videoSearchQuery;
 
     if (isCurrentlyLoading && filteredModels.length === 0) {
         return (
@@ -143,40 +196,40 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
                 )}
             </div>
 
-            {/* Video tab controls: Show All toggle and Search */}
-            {isVideoTab && (
+            {/* Video/Audio tab controls: Show All toggle and Search */}
+            {(isVideoTab || isAudioTab) && (
                 <div className="video-model-controls">
                     <label className="show-all-toggle">
                         <input
                             type="checkbox"
-                            checked={showAllVideoModels}
+                            checked={showAllModels}
                             onChange={handleShowAllToggle}
-                            disabled={isLoadingAllVideoModels}
+                            disabled={isCurrentlyLoading}
                         />
                         <span>
                             Show all models
-                            {showAllVideoModels && filteredModels.length > 0 && ` (${filteredModels.length})`}
+                            {showAllModels && filteredModels.length > 0 && ` (${filteredModels.length})`}
                         </span>
                     </label>
 
-                    {showAllVideoModels && (
+                    {showAllModels && (
                         <input
                             type="text"
                             placeholder="Search models..."
-                            value={videoSearchQuery}
+                            value={searchQuery}
                             onChange={handleSearchChange}
                             className="model-search-input"
-                            disabled={isLoadingAllVideoModels}
+                            disabled={isCurrentlyLoading}
                         />
                     )}
 
-                    {isLoadingAllVideoModels && (
+                    {isCurrentlyLoading && (
                         <span className="loading-indicator">Loading all models...</span>
                     )}
                 </div>
             )}
 
-            {error && !isVideoTab && (
+            {error && !isVideoTab && !isAudioTab && (
                 <p className="model-error">{error}</p>
             )}
 
@@ -189,7 +242,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
             >
                 {filteredModels.length === 0 ? (
                     <option value="">
-                        {isVideoTab && showAllVideoModels && videoSearchQuery
+                        {(isVideoTab || isAudioTab) && showAllModels && searchQuery
                             ? 'No matching models'
                             : 'No models available'}
                     </option>
