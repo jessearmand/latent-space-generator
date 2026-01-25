@@ -48,7 +48,7 @@ The Bun-based proxy server (`server/index.ts`) handles API communication:
 |----------|---------|
 | `/api/fal/proxy` | Proxies fal.ai API calls (image and video), injects `FAL_API_KEY` server-side |
 | `/api/openai/images` | Proxies OpenAI image generation, accepts API key in request body |
-| `/api/openrouter/chat` | Proxies OpenRouter API for prompt optimization |
+| `/api/openrouter/completion` | Proxies OpenRouter API for prompt optimization |
 | `/health` | Health check endpoint |
 
 Security: Only allows requests to whitelisted fal.ai domains (`api.fal.ai`, `queue.fal.run`, `fal.run`, `storage.fal.ai`, `gateway.fal.ai`).
