@@ -171,10 +171,66 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
     },
 ];
 
+/**
+ * Curated list of video-to-video models (Updated Jan 2026)
+ * For style transfer, frame interpolation, and video enhancement
+ */
+export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
+    {
+        endpointId: 'fal-ai/wan/v2.2-a14b/video-to-video',
+        displayName: 'Wan 2.2 V2V',
+        category: 'video-to-video',
+        description: 'Transform videos with strength control, supports up to 480 frames',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/hunyuan-video/video-to-video',
+        displayName: 'Hunyuan V2V',
+        category: 'video-to-video',
+        description: 'Style transfer on video with high visual quality',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/fast-animatediff/video-to-video',
+        displayName: 'AnimateDiff V2V',
+        category: 'video-to-video',
+        description: 'Fast style transfer on video clips',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'mirelo-ai/sfx-v1/video-to-video',
+        displayName: 'Mirelo SFX V2V',
+        category: 'video-to-video',
+        description: 'Add synced sounds to video and return video with new audio',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/rife/video',
+        displayName: 'RIFE Frame Interpolation',
+        category: 'video-to-video',
+        description: 'Increase video frame rate with AI interpolation',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/luma-dream-machine/ray-2/reframe',
+        displayName: 'Luma Ray 2 Reframe',
+        category: 'video-to-video',
+        description: 'Reframe video to different aspect ratios',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+];
+
 /** All curated video models */
 export const CURATED_VIDEO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_VIDEO_MODELS,
     ...CURATED_IMAGE_TO_VIDEO_MODELS,
+    ...CURATED_VIDEO_TO_VIDEO_MODELS,
 ];
 
 /**
@@ -191,6 +247,10 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
 
     if (category === 'image-to-video') {
         return CURATED_IMAGE_TO_VIDEO_MODELS;
+    }
+
+    if (category === 'video-to-video') {
+        return CURATED_VIDEO_TO_VIDEO_MODELS;
     }
 
     return [];
