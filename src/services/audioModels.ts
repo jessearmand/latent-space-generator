@@ -40,10 +40,26 @@ export const CURATED_TEXT_TO_AUDIO_MODELS: ModelConfig[] = [
         outputType: 'audio',
     },
     {
+        endpointId: 'beatoven/music-generation',
+        displayName: 'Beatoven Music',
+        category: 'text-to-audio',
+        description: 'Royalty-free instrumental music, jazz/ambient/cinematic, 5-150s',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
         endpointId: 'fal-ai/eleven/sound-effect-generation',
         displayName: 'ElevenLabs Sound Effects',
         category: 'text-to-audio',
         description: 'Professional-grade sound effects from text descriptions',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
+        endpointId: 'beatoven/sound-effect-generation',
+        displayName: 'Beatoven Sound Effects',
+        category: 'text-to-audio',
+        description: 'Professional sound effects from text, 1-35s duration',
         supportsImageInput: false,
         outputType: 'audio',
     },
@@ -179,4 +195,12 @@ export function requiresAudioInputForModel(endpointId: string): boolean {
 export function requiresVideoInputForAudio(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
     return lowerEndpoint.includes('video-to-audio');
+}
+
+/**
+ * Check if a model is a Beatoven model
+ */
+export function isBeatovenModel(endpointId: string): boolean {
+    const lowerEndpoint = endpointId.toLowerCase();
+    return lowerEndpoint.includes('beatoven');
 }

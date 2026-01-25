@@ -111,6 +111,15 @@ export function useVideoGeneration({
         const supportsAudio = isVeoModel || isLtxModel;
         const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
 
+        // V2V model detection
+        const isVideoToVideoMode = activeTab === 'video-to-video';
+        const isMMAudioModel = modelIdLower.includes('mmaudio');
+        const isBriaBgRemoval = modelIdLower.includes('bria') && modelIdLower.includes('background-removal');
+        const isLtx19bV2V = isLtx19bModel && modelIdLower.includes('video-to-video');
+        const isWanV2V = modelIdLower.includes('wan') && modelIdLower.includes('video-to-video');
+        const isHunyuanV2V = modelIdLower.includes('hunyuan') && modelIdLower.includes('video-to-video');
+        const isAnimateDiffV2V = modelIdLower.includes('animatediff') && modelIdLower.includes('video-to-video');
+
         // Add CFG scale for Kling models (0-1 range)
         if (isKlingModel) {
             input.cfg_scale = config.videoCfgScale;
@@ -159,6 +168,31 @@ export function useVideoGeneration({
         // Add negative prompt if set
         if (config.videoNegativePrompt) {
             input.negative_prompt = config.videoNegativePrompt;
+        }
+
+        // V2V model-specific parameters
+
+        // Video strength for V2V transformation
+        if (isVideoToVideoMode && (isLtx19bV2V || isWanV2V || isHunyuanV2V || isAnimateDiffV2V)) {
+            input.strength = config.videoStrength;
+        }
+
+        // Preprocessor for LTX-2 19B V2V
+        if (isLtx19bV2V && config.videoPreprocessor !== 'none') {
+            input.preprocessor = config.videoPreprocessor;
+        }
+
+        // MMAudio V2 parameters
+        if (isMMAudioModel) {
+            input.cfg_strength = config.mmAudioCfgStrength;
+            input.num_steps = config.mmAudioNumSteps;
+            // Duration is handled separately above
+        }
+
+        // Bria Background Removal parameters
+        if (isBriaBgRemoval) {
+            input.background_color = config.briaBgColor;
+            input.output_container_and_codec = config.briaOutputCodec;
         }
 
         try {

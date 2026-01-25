@@ -177,6 +177,14 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
  */
 export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
     {
+        endpointId: 'fal-ai/ltx-2-19b/video-to-video',
+        displayName: 'LTX-2 19B V2V',
+        category: 'video-to-video',
+        description: 'Transform videos with camera controls and preprocessing',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/wan/v2.2-a14b/video-to-video',
         displayName: 'Wan 2.2 V2V',
         category: 'video-to-video',
@@ -197,6 +205,38 @@ export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'AnimateDiff V2V',
         category: 'video-to-video',
         description: 'Fast style transfer on video clips',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/mmaudio-v2',
+        displayName: 'MMAudio V2',
+        category: 'video-to-video',
+        description: 'Generate synchronized audio from text prompts for videos',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bria/video/background-removal',
+        displayName: 'Bria BG Removal',
+        category: 'video-to-video',
+        description: 'Remove video backgrounds without green screen',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/lightx/relight',
+        displayName: 'LightX Relight',
+        category: 'video-to-video',
+        description: 'Relight videos with different lighting conditions',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/lightx/recamera',
+        displayName: 'LightX Recamera',
+        category: 'video-to-video',
+        description: 'Change camera angles and movements',
         supportsImageInput: false,
         outputType: 'video',
     },
