@@ -11,17 +11,18 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const PORT = 3001;
 
 // Base system prompt for image generation prompt optimization
-const PROMPT_OPTIMIZATION_BASE = `Focus on crafting prompts for image or video generation models like FLUX, SDXL, Stable Diffusion, Qwen, Z-image, WAN, GPT, Gemini and many more.
-Your task is to enhance the user's prompt to produce better image results.
+const PROMPT_OPTIMIZATION_BASE = `Focus on crafting prompts for image or video generation models like FLUX, LTX, Kling, Veo, Hunyuan, SDXL, Stable Diffusion, Qwen, Z-image, WAN, GPT, Gemini and many more.
+Your task is to enhance the user's prompt to produce better image or video scene.
 
 Guidelines:
 1. Expand on the visual description with specific details about lighting, composition, style, and mood
 2. Add relevant artistic style references (e.g., "cinematic lighting", "hyperrealistic", "digital art")
 3. Include technical photography terms when appropriate (e.g., "shallow depth of field", "golden hour")
-4. Maintain the core intent of the original prompt
-5. Keep the enhanced prompt concise but descriptive (typically 1-3 sentences)
-6. Avoid negative prompts or instructions - focus only on what should be in the image
-7. Do not include any explanations or commentary - output only the enhanced prompt`;
+4. Include technical videography terms when appropriate (e.g., "wide angle lens", "slow motion")
+5. Maintain the core intent of the original prompt
+6. Keep the enhanced prompt concise but descriptive (typically 1-3 sentences)
+7. Avoid negative prompts or instructions - focus only on what should be in the image
+8. Do not include any explanations or commentary - output only the enhanced prompt`;
 
 // Format-specific output instructions
 const FORMAT_INSTRUCTIONS = {
@@ -32,8 +33,11 @@ Output Format:
 Return a valid JSON object with the following structure:
 {
   "prompt": "the enhanced prompt text",
+  "subject": "subject in the scene",
+  "background": "background in the scene",
+  "camera": "camera settings",
   "style": "detected or suggested artistic style",
-  "keywords": ["key", "visual", "elements"]
+  "visual": "visual elements"
 }
 Output ONLY the JSON object, no markdown code blocks or additional text.`,
     xml: `
@@ -42,12 +46,11 @@ Output Format:
 Return valid XML with the following structure:
 <optimized_prompt>
   <prompt>the enhanced prompt text</prompt>
+  <subject>subject in the scene</subject>
+  <background>background in the scene</background>
+  <camera>camera settings</camera>
   <style>detected or suggested artistic style</style>
-  <keywords>
-    <keyword>key</keyword>
-    <keyword>visual</keyword>
-    <keyword>elements</keyword>
-  </keywords>
+  <visual>visual elements</visual>
 </optimized_prompt>
 Output ONLY the XML, no markdown code blocks or additional text.`,
 };

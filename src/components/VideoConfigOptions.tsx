@@ -191,6 +191,22 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                 </div>
             )}
 
+            {/* FPS option for LTX-2 Pro/Fast models (not 19B which uses float fps via num_frames) */}
+            {isLtxProFastModel && (
+                <div className="form-group">
+                    <label htmlFor="video-fps">Frame Rate:</label>
+                    <select
+                        id="video-fps"
+                        value={config.videoFps}
+                        onChange={(e) => config.setVideoFps(e.target.value)}
+                    >
+                        <option value="25">25 fps (standard)</option>
+                        <option value="50">50 fps (smooth)</option>
+                    </select>
+                    <span className="hint"> (higher fps = smoother motion)</span>
+                </div>
+            )}
+
             {/* CFG Scale for Kling models (0-1 range) */}
             {isKlingModel && (
                 <div className="form-group">
