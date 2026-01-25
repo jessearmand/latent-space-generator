@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
 
-interface ConfigState {
+export interface ConfigState {
   safetyTolerance: string;
   aspectRatio: string;
   imageSize: { width: number; height: number } | string;
