@@ -4,6 +4,7 @@ import type { GenerationMode } from '../components/GenerationTabs';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
+import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
 import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel } from '../services/audioModels';
 
@@ -224,7 +225,7 @@ export function useAudioGeneration({
 
                     if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
                         const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                        const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                        const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
                         setStatus(`Request is ${statusResult.status}: ${latestLog}`);
                         console.log(`Status logs:`, logs?.map((log) => log.message));
                         await new Promise((resolve) => setTimeout(resolve, 2000));
