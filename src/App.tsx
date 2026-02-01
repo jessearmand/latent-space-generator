@@ -1,23 +1,14 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Modal from 'react-modal';
-import TextareaAutosize from 'react-textarea-autosize';
 import { fal } from '@fal-ai/client';
 import './App.css';
 import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
-import { ModelSelector } from './components/ModelSelector';
-import { ModelConfigPanel } from './components/ModelConfigPanel';
-import { PromptOptimizer } from './components/PromptOptimizer';
 import { Sidebar } from './components/Sidebar';
-import { isVideoMode, isAudioMode, requiresImageInput, requiresVideoInput, requiresAudioInput } from './components/GenerationTabs';
-import { ImageUploadZone } from './components/ImageUploadZone';
-import { AudioUploadZone } from './components/AudioUploadZone';
-import { VideoUploadZone } from './components/VideoUploadZone';
-import { DownloadButton } from './components/DownloadButton';
-import { VideoPlayer } from './components/VideoPlayer';
-import { AudioPlayer } from './components/AudioPlayer';
-import { getImageInputConfig } from './services/modelParams';
+import { isVideoMode, isAudioMode } from './components/GenerationTabs';
+import { InputSection } from './components/InputSection';
+import { OutputSection } from './components/OutputSection';
 import {
     useStatusMessage,
     useImageUpload,
@@ -74,6 +65,7 @@ const AppContent: React.FC = () => {
     } = useVideoGeneration({
         activeTab,
         uploadedImages,
+        uploadedVideoFile,
         config,
         setStatus,
     });
@@ -192,137 +184,30 @@ const AppContent: React.FC = () => {
                         {activeTab === 'video-to-audio' && 'Upload a video to generate synced audio.'}
                     </p>
 
-                    <div className="input-section">
-                        <ModelSelector filterByCategory={activeTab} />
+                    <InputSection
+                        activeTab={activeTab}
+                        currentSelectedModel={currentSelectedModel}
+                        uploadedImages={uploadedImages}
+                        imagePreviews={imagePreviews}
+                        setUploadedImages={setUploadedImages}
+                        uploadedVideoFile={uploadedVideoFile}
+                        setUploadedVideoFile={setUploadedVideoFile}
+                        uploadedAudioFile={uploadedAudioFile}
+                        setUploadedAudioFile={setUploadedAudioFile}
+                        promptText={promptText}
+                        setPromptText={setPromptText}
+                        isGenerating={isGenerating}
+                        modelsLoading={modelsLoading}
+                        handleGenerate={handleGenerate}
+                    />
 
-                        {/* Image upload for image-to-image and image-to-video modes */}
-                        {requiresImageInput(activeTab) && currentSelectedModel && (
-                            <ImageUploadZone
-                                uploadedImages={uploadedImages}
-                                imagePreviews={imagePreviews}
-                                onImagesChange={setUploadedImages}
-                                maxImages={activeTab === 'image-to-video' ? 1 : getImageInputConfig(currentSelectedModel.endpointId).maxImages}
-                                disabled={isGenerating}
-                            />
-                        )}
-
-                        {/* Video upload for video-to-video and video-to-audio modes */}
-                        {requiresVideoInput(activeTab) && currentSelectedModel && (
-                            <VideoUploadZone
-                                uploadedFile={uploadedVideoFile}
-                                onFileChange={setUploadedVideoFile}
-                                disabled={isGenerating}
-                            />
-                        )}
-
-                        {/* Audio upload for audio-to-audio mode */}
-                        {requiresAudioInput(activeTab) && currentSelectedModel && (
-                            <AudioUploadZone
-                                uploadedFile={uploadedAudioFile}
-                                onFileChange={setUploadedAudioFile}
-                                disabled={isGenerating}
-                            />
-                        )}
-
-                        <ModelConfigPanel
-                            selectedModel={currentSelectedModel}
-                            activeTab={activeTab}
-                        />
-
-                        <PromptOptimizer
-                            originalPrompt={promptText}
-                            onPromptOptimized={(optimized) => setPromptText(optimized)}
-                        />
-
-                        <label htmlFor="prompt-input">
-                            {isAudioMode(activeTab) && (activeTab === 'text-to-speech' || activeTab === 'audio-to-audio')
-                                ? 'Enter your text:'
-                                : 'Enter your prompt:'}
-                        </label>
-                        <TextareaAutosize
-                            id="prompt-input"
-                            value={promptText}
-                            onChange={(e) => setPromptText(e.target.value)}
-                            placeholder={
-                                activeTab === 'text-to-image' ? 'A surreal photo of...' :
-                                activeTab === 'image-to-image' ? 'Transform the image into...' :
-                                activeTab === 'text-to-video' ? 'A cinematic scene of...' :
-                                activeTab === 'image-to-video' ? 'Animate this image with...' :
-                                activeTab === 'video-to-video' ? 'Transform this video into...' :
-                                activeTab === 'text-to-speech' ? 'Hello, welcome to the presentation...' :
-                                activeTab === 'text-to-audio' ? 'Upbeat electronic music with drums...' :
-                                activeTab === 'audio-to-audio' ? 'Text for the cloned voice to speak...' :
-                                'Describe the sounds for this video...'
-                            }
-                            minRows={3}
-                            maxRows={10}
-                            className="prompt-textarea"
-                            disabled={isGenerating}
-                        />
-
-                        <button
-                            type="button"
-                            className="generate-btn"
-                            onClick={handleGenerate}
-                            disabled={!currentSelectedModel || modelsLoading || isGenerating}
-                        >
-                            {isGenerating
-                                ? 'Generating...'
-                                : modelsLoading
-                                ? 'Loading models...'
-                                : isAudioMode(activeTab)
-                                ? 'Generate Audio'
-                                : isVideoMode(activeTab)
-                                ? 'Generate Video'
-                                : 'Generate Image'}
-                        </button>
-                    </div>
-
-                    <div className="output-section">
-                        {/* Audio output */}
-                        {audioUrl && (
-                            <AudioPlayer src={audioUrl} title="Generated Audio" />
-                        )}
-
-                        {/* Video output */}
-                        {videoUrl && !audioUrl && (
-                            <div className="video-container">
-                                <h3>Generated Video</h3>
-                                <VideoPlayer src={videoUrl} />
-                            </div>
-                        )}
-
-                        {/* Single image output */}
-                        {imageUrls.length === 1 && !videoUrl && !audioUrl && (
-                            <div className="image-container">
-                                <div className="image-header">
-                                    <h3>Generated Image</h3>
-                                    <DownloadButton url={imageUrls[0]} />
-                                </div>
-                                <img src={imageUrls[0]} alt="Generated result" className="generated-image" />
-                            </div>
-                        )}
-
-                        {/* Multiple images (layers) output */}
-                        {imageUrls.length > 1 && !videoUrl && !audioUrl && (
-                            <div className="image-container">
-                                <h3>Generated Layers ({imageUrls.length})</h3>
-                                <div className="layer-gallery">
-                                    {imageUrls.map((url, idx) => (
-                                        <div key={url} className="layer-item">
-                                            <div className="layer-header">
-                                                <span className="layer-label">Layer {idx + 1}</span>
-                                                <DownloadButton url={url} />
-                                            </div>
-                                            <img src={url} alt={`Layer ${idx + 1}`} className="layer-image" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <p className={`status-message ${statusType}`}>{statusMessage}</p>
-                    </div>
+                    <OutputSection
+                        audioUrl={audioUrl}
+                        videoUrl={videoUrl}
+                        imageUrls={imageUrls}
+                        statusMessage={statusMessage}
+                        statusType={statusType}
+                    />
                 </main>
             </div>
         </div>

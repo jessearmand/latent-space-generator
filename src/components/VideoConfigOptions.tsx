@@ -10,10 +10,12 @@ import type { ModelConfig } from '../types/models';
 
 interface VideoConfigOptionsProps {
     selectedModel: ModelConfig;
+    isVideoToVideo?: boolean;  // Indicates V2V mode for additional controls
 }
 
 export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     selectedModel,
+    isVideoToVideo = false,
 }) => {
     const config = useConfig();
     const modelId = selectedModel.endpointId.toLowerCase();
@@ -28,6 +30,20 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     const supportsAudio = isVeoModel || isLtxModel;
     // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, and kling don't
     const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+
+    // V2V model detection
+    const isMMAudioModel = modelId.includes('mmaudio');
+    const isBriaBgRemoval = modelId.includes('bria') && modelId.includes('background-removal');
+    const isLightXRelight = modelId.includes('lightx') && modelId.includes('relight');
+    const isLightXRecamera = modelId.includes('lightx') && modelId.includes('recamera');
+    const isWanV2V = modelId.includes('wan') && modelId.includes('video-to-video');
+    const isHunyuanV2V = modelId.includes('hunyuan') && modelId.includes('video-to-video');
+    const isAnimateDiffV2V = modelId.includes('animatediff') && modelId.includes('video-to-video');
+    const isLtx19bV2V = isLtx19bModel && modelId.includes('video-to-video');
+
+    // V2V models that support strength/preprocessor
+    const supportsV2VStrength = isVideoToVideo && (isLtx19bV2V || isWanV2V || isHunyuanV2V || isAnimateDiffV2V);
+    const supportsPreprocessor = isLtx19bV2V;
 
     // Different models support different durations
     const getDurationOptions = (): string[] => {
@@ -384,6 +400,145 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                     className="negative-prompt-textarea"
                 />
             </div>
+
+            {/* V2V Strength - for transformation intensity */}
+            {supportsV2VStrength && (
+                <div className="form-group">
+                    <label htmlFor="video-strength">
+                        Transformation Strength:{' '}
+                        <span className="range-value">{config.videoStrength.toFixed(2)}</span>
+                    </label>
+                    <input
+                        id="video-strength"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.videoStrength}
+                        onChange={(e) => config.setVideoStrength(parseFloat(e.target.value))}
+                    />
+                    <span className="hint"> (0 = preserve original, 1 = full transformation)</span>
+                </div>
+            )}
+
+            {/* Preprocessor for LTX-2 19B V2V */}
+            {supportsPreprocessor && (
+                <div className="form-group">
+                    <label htmlFor="video-preprocessor">Preprocessor:</label>
+                    <select
+                        id="video-preprocessor"
+                        value={config.videoPreprocessor}
+                        onChange={(e) => config.setVideoPreprocessor(e.target.value)}
+                    >
+                        <option value="none">None</option>
+                        <option value="depth">Depth</option>
+                        <option value="canny">Canny Edge</option>
+                        <option value="pose">Pose</option>
+                    </select>
+                    <span className="hint"> (extract structure from input video)</span>
+                </div>
+            )}
+
+            {/* MMAudio V2 Settings */}
+            {isMMAudioModel && (
+                <>
+                    <div className="form-group-divider">
+                        <span>MMAudio V2 Settings</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="mmaudio-cfg-strength">
+                            CFG Strength:{' '}
+                            <span className="range-value">{config.mmAudioCfgStrength.toFixed(1)}</span>
+                        </label>
+                        <input
+                            id="mmaudio-cfg-strength"
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="0.5"
+                            value={config.mmAudioCfgStrength}
+                            onChange={(e) => config.setMmAudioCfgStrength(parseFloat(e.target.value))}
+                        />
+                        <span className="hint"> (how closely to follow the prompt)</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="mmaudio-num-steps">Inference Steps:</label>
+                        <input
+                            id="mmaudio-num-steps"
+                            type="number"
+                            min="10"
+                            max="50"
+                            value={config.mmAudioNumSteps}
+                            onChange={(e) =>
+                                config.setMmAudioNumSteps(
+                                    Math.max(10, Math.min(50, parseInt(e.target.value, 10) || 25))
+                                )
+                            }
+                        />
+                        <span className="hint"> (10-50, more = better quality)</span>
+                    </div>
+                </>
+            )}
+
+            {/* Bria Background Removal Settings */}
+            {isBriaBgRemoval && (
+                <>
+                    <div className="form-group-divider">
+                        <span>Background Removal Settings</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="bria-bg-color">Background Color:</label>
+                        <select
+                            id="bria-bg-color"
+                            value={config.briaBgColor}
+                            onChange={(e) => config.setBriaBgColor(e.target.value)}
+                        >
+                            <option value="transparent">Transparent</option>
+                            <option value="black">Black</option>
+                            <option value="white">White</option>
+                            <option value="green">Green Screen</option>
+                            <option value="blue">Blue Screen</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="bria-output-codec">Output Format:</label>
+                        <select
+                            id="bria-output-codec"
+                            value={config.briaOutputCodec}
+                            onChange={(e) => config.setBriaOutputCodec(e.target.value)}
+                        >
+                            <option value="mp4_h265">MP4 (H.265)</option>
+                            <option value="mp4_h264">MP4 (H.264)</option>
+                            <option value="webm_vp9">WebM (VP9)</option>
+                            <option value="mov_prores">MOV (ProRes)</option>
+                        </select>
+                    </div>
+                </>
+            )}
+
+            {/* LightX Relight info */}
+            {isLightXRelight && (
+                <div className="form-group">
+                    <p className="config-hint">
+                        Upload a video to relight it with different lighting conditions.
+                        Use the prompt to describe the desired lighting (e.g., "sunset", "studio lighting").
+                    </p>
+                </div>
+            )}
+
+            {/* LightX Recamera info */}
+            {isLightXRecamera && (
+                <div className="form-group">
+                    <p className="config-hint">
+                        Upload a video to change camera angles and movements.
+                        Use the prompt to describe the desired camera motion.
+                    </p>
+                </div>
+            )}
         </>
     );
 };

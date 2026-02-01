@@ -4,11 +4,13 @@ import type { GenerationMode } from '../components/GenerationTabs';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
+import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
 
 export interface UseVideoGenerationParams {
     activeTab: GenerationMode;
     uploadedImages: File[];
+    uploadedVideoFile: File | null;
     config: ConfigState;
     setStatus: (message: string, type?: StatusType) => void;
 }
@@ -27,6 +29,7 @@ export interface UseVideoGenerationReturn {
 export function useVideoGeneration({
     activeTab,
     uploadedImages,
+    uploadedVideoFile,
     config,
     setStatus,
 }: UseVideoGenerationParams): UseVideoGenerationReturn {
@@ -43,10 +46,17 @@ export function useVideoGeneration({
         const modelId = model.endpointId;
         const modelName = model.displayName;
         const isImageToVideo = activeTab === 'image-to-video';
+        const isVideoToVideo = activeTab === 'video-to-video';
 
         // For image-to-video mode, require an uploaded image
         if (isImageToVideo && uploadedImages.length === 0) {
             setStatus('Please upload an image for image-to-video generation.', 'error');
+            return;
+        }
+
+        // For video-to-video mode, require an uploaded video
+        if (isVideoToVideo && !uploadedVideoFile) {
+            setStatus('Please upload a video for video-to-video generation.', 'error');
             return;
         }
 
@@ -58,6 +68,7 @@ export function useVideoGeneration({
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
         let uploadedImageUrl: string | undefined;
+        let uploadedVideoUrl: string | undefined;
 
         // For image-to-video, upload the image first
         if (isImageToVideo && uploadedImages.length > 0) {
@@ -75,6 +86,22 @@ export function useVideoGeneration({
             }
         }
 
+        // For video-to-video, upload the video first
+        if (isVideoToVideo && uploadedVideoFile) {
+            try {
+                setStatus(`Uploading video for ${modelName}...`);
+                uploadedVideoUrl = await fal.storage.upload(uploadedVideoFile);
+                console.log('Video uploaded successfully:', uploadedVideoUrl);
+                setStatus(`Video uploaded. Submitting request for ${modelName}...`);
+            } catch (uploadError: unknown) {
+                const errorMsg = `Error uploading video: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                setStatus(errorMsg, 'error');
+                console.error(errorMsg);
+                setIsGenerating(false);
+                return;
+            }
+        }
+
         // Build video generation input parameters
         const input: Record<string, unknown> = {
             prompt,
@@ -83,6 +110,11 @@ export function useVideoGeneration({
         // Add image_url for image-to-video models
         if (isImageToVideo && uploadedImageUrl) {
             input.image_url = uploadedImageUrl;
+        }
+
+        // Add video_url for video-to-video models
+        if (isVideoToVideo && uploadedVideoUrl) {
+            input.video_url = uploadedVideoUrl;
         }
 
         // Add duration (parse to number if model expects seconds)
@@ -110,6 +142,15 @@ export function useVideoGeneration({
         const isLtxModel = modelIdLower.includes('ltx-2');
         const supportsAudio = isVeoModel || isLtxModel;
         const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+
+        // V2V model detection
+        const isVideoToVideoMode = activeTab === 'video-to-video';
+        const isMMAudioModel = modelIdLower.includes('mmaudio');
+        const isBriaBgRemoval = modelIdLower.includes('bria') && modelIdLower.includes('background-removal');
+        const isLtx19bV2V = isLtx19bModel && modelIdLower.includes('video-to-video');
+        const isWanV2V = modelIdLower.includes('wan') && modelIdLower.includes('video-to-video');
+        const isHunyuanV2V = modelIdLower.includes('hunyuan') && modelIdLower.includes('video-to-video');
+        const isAnimateDiffV2V = modelIdLower.includes('animatediff') && modelIdLower.includes('video-to-video');
 
         // Add CFG scale for Kling models (0-1 range)
         if (isKlingModel) {
@@ -161,6 +202,31 @@ export function useVideoGeneration({
             input.negative_prompt = config.videoNegativePrompt;
         }
 
+        // V2V model-specific parameters
+
+        // Video strength for V2V transformation
+        if (isVideoToVideoMode && (isLtx19bV2V || isWanV2V || isHunyuanV2V || isAnimateDiffV2V)) {
+            input.strength = config.videoStrength;
+        }
+
+        // Preprocessor for LTX-2 19B V2V
+        if (isLtx19bV2V && config.videoPreprocessor !== 'none') {
+            input.preprocessor = config.videoPreprocessor;
+        }
+
+        // MMAudio V2 parameters
+        if (isMMAudioModel) {
+            input.cfg_strength = config.mmAudioCfgStrength;
+            input.num_steps = config.mmAudioNumSteps;
+            // Duration is handled separately above
+        }
+
+        // Bria Background Removal parameters
+        if (isBriaBgRemoval) {
+            input.background_color = config.briaBgColor;
+            input.output_container_and_codec = config.briaOutputCodec;
+        }
+
         try {
             console.log(`Input sent to API for model ${modelName}:`, input);
 
@@ -181,7 +247,7 @@ export function useVideoGeneration({
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
                     setStatus(`Request is ${statusResult.status}: ${latestLog}`);
                     console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 3000)); // Longer poll interval for video
@@ -238,7 +304,7 @@ export function useVideoGeneration({
         } finally {
             setIsGenerating(false);
         }
-    }, [activeTab, uploadedImages, config, setStatus]);
+    }, [activeTab, uploadedImages, uploadedVideoFile, config, setStatus]);
 
     const clearVideo = useCallback(() => {
         setVideoUrl(null);

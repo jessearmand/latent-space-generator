@@ -6,6 +6,7 @@ import type { ConfigState } from '../config';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from '../services/openai';
 import { parseFalError } from '../services/errors';
 import { getImageInputConfig } from '../services/modelParams';
+import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
 
 export interface UseImageGenerationParams {
@@ -206,7 +207,7 @@ export function useImageGeneration({
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
                     setStatus(`Request is ${statusResult.status}: ${latestLog}`);
                     console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 2000));
