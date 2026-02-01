@@ -242,12 +242,13 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
                     <div className="form-group">
                         <label htmlFor="beatoven-negative-prompt">Negative Prompt:</label>
-                        <input
-                            type="text"
+                        <textarea
                             id="beatoven-negative-prompt"
                             value={config.beatovenNegativePrompt}
                             onChange={(e) => config.setBeatovenNegativePrompt(e.target.value)}
                             placeholder="Content to avoid..."
+                            rows={2}
+                            className="negative-prompt-textarea"
                         />
                     </div>
                 </>
