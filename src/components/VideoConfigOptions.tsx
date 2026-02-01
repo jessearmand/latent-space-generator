@@ -27,9 +27,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     const isLtxProFastModel = modelId.includes('ltx-2') && !modelId.includes('ltx-2-19b');  // Pro/Fast versions
     const isLtxModel = modelId.includes('ltx-2');  // Any LTX-2 model
     const isLtxFastModel = modelId.includes('ltx-2') && modelId.includes('fast') && !modelId.includes('ltx-2-19b');
+    const isGrokVideoModel = modelId.includes('grok-imagine-video');
+    const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
     const supportsAudio = isVeoModel || isLtxModel;
-    // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, and kling don't
-    const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+    // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, kling, and grok don't
+    const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -47,6 +49,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different durations
     const getDurationOptions = (): string[] => {
+        // Grok Imagine Video supports 1-15s continuous
+        if (isGrokVideoModel) {
+            return ['1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', '10s', '11s', '12s', '13s', '14s', '15s'];
+        }
+
         // Kling models support 5s and 10s
         if (isKlingModel) {
             return ['5s', '10s'];
@@ -73,6 +80,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different aspect ratios
     const getAspectRatioOptions = (): string[] => {
+        // Grok Imagine Video supports these aspect ratios
+        if (isGrokVideoModel) {
+            return ['16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16'];
+        }
+
         // Kling models support 16:9, 9:16, 1:1
         if (isKlingModel) {
             return ['16:9', '9:16', '1:1'];
@@ -99,6 +111,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different resolutions
     const getResolutionOptions = (): string[] => {
+        // Grok Imagine Video supports 480p and 720p
+        if (isGrokVideoModel) {
+            return ['480p', '720p'];
+        }
+
         // Veo models support 720p and 1080p
         if (isVeoModel) {
             return ['720p', '1080p'];
@@ -536,6 +553,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                     <p className="config-hint">
                         Upload a video to change camera angles and movements.
                         Use the prompt to describe the desired camera motion.
+                    </p>
+                </div>
+            )}
+
+            {/* Grok Imagine Video Edit info */}
+            {isGrokVideoEdit && (
+                <div className="form-group">
+                    <p className="config-hint">
+                        Upload a video to edit with Grok Imagine.
+                        Input video will be resized to max 854x480 and truncated to 8 seconds.
                     </p>
                 </div>
             )}
