@@ -5,7 +5,7 @@
 
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
-import type { ModelConfig, VideoModelCategory, AudioModelCategory } from '../types/models';
+import type { ModelConfig, ImageModelCategory, VideoModelCategory, AudioModelCategory } from '../types/models';
 import {
     fetchImageGenerationModels,
     fetchVideoGenerationModels,
@@ -26,11 +26,23 @@ import {
     getCuratedAudioModels,
     filterAudioModelsByQuery,
 } from '../services/audioModels';
+import {
+    getCuratedImageModels,
+    filterImageModelsByQuery,
+} from '../services/imageModels';
 
 interface ModelsContextType {
-    // Image models (existing)
+    // Image models
     models: ModelConfig[];
+    allImageModels: ModelConfig[];
+    showAllImageModels: boolean;
+    setShowAllImageModels: (show: boolean) => void;
+    imageSearchQuery: string;
+    setImageSearchQuery: (query: string) => void;
     isLoading: boolean;
+    isLoadingAllImageModels: boolean;
+    loadAllImageModels: () => Promise<void>;
+    getFilteredImageModels: (category?: ImageModelCategory) => ModelConfig[];
     error: string | null;
     selectedModel: ModelConfig | null;
     setSelectedModel: (model: ModelConfig | null) => void;
@@ -81,9 +93,13 @@ const SELECTED_VIDEO_MODEL_KEY = 'fal_selected_video_model';
 const SELECTED_AUDIO_MODEL_KEY = 'fal_selected_audio_model';
 
 export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
-    // Image models state (existing)
-    const [models, setModels] = useState<ModelConfig[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Image models state - allImageModels holds API-fetched models
+    const [allImageModels, setAllImageModels] = useState<ModelConfig[]>([]);
+    const [showAllImageModels, setShowAllImageModels] = useState(false);
+    const [imageSearchQuery, setImageSearchQuery] = useState('');
+    const [isLoadingAllImageModels, setIsLoadingAllImageModels] = useState(false);
+    // isLoading is now an alias for isLoadingAllImageModels (curated models load instantly)
+    const isLoading = isLoadingAllImageModels;
     const [error, setError] = useState<string | null>(null);
     const [selectedModel, setSelectedModelState] = useState<ModelConfig | null>(null);
 
@@ -100,6 +116,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const [audioSearchQuery, setAudioSearchQuery] = useState('');
     const [isLoadingAllAudioModels, setIsLoadingAllAudioModels] = useState(false);
     const [selectedAudioModel, setSelectedAudioModelState] = useState<ModelConfig | null>(null);
+
+    // Curated image models (static, no API call needed)
+    const curatedImageModels = useMemo(() => getCuratedImageModels(), []);
 
     // Curated video models (static, no API call needed)
     const curatedVideoModels = useMemo(() => getCuratedVideoModels(), []);
@@ -194,9 +213,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         }
     }, []);
 
-    // Fetch models from API or cache
+    // Fetch all image models from API or cache (used by refreshModels)
     const loadModels = useCallback(async (forceRefresh = false) => {
-        setIsLoading(true);
+        setIsLoadingAllImageModels(true);
         setError(null);
 
         try {
@@ -204,9 +223,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             if (!forceRefresh) {
                 const cached = getCachedModels();
                 if (cached && cached.length > 0) {
-                    setModels(cached);
+                    setAllImageModels(cached);
                     restoreSelectedModel(cached);
-                    setIsLoading(false);
+                    setIsLoadingAllImageModels(false);
                     return;
                 }
             }
@@ -220,9 +239,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             const fetchedModels = await fetchImageGenerationModels();
 
             if (fetchedModels.length === 0) {
-                setError('No models available');
+                setError('No models available from API');
             } else {
-                setModels(fetchedModels);
+                setAllImageModels(fetchedModels);
                 cacheModels(fetchedModels);
                 restoreSelectedModel(fetchedModels);
             }
@@ -234,19 +253,17 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             // Try to use cached data as fallback
             const cached = getCachedModels();
             if (cached && cached.length > 0) {
-                setModels(cached);
+                setAllImageModels(cached);
                 restoreSelectedModel(cached);
                 setError(`${message} (using cached data)`);
             }
         } finally {
-            setIsLoading(false);
+            setIsLoadingAllImageModels(false);
         }
     }, [restoreSelectedModel]);
 
-    // Initial load on mount
-    useEffect(() => {
-        loadModels();
-    }, [loadModels]);
+    // Note: Initial image model load is no longer needed since we use curated models by default
+    // loadAllImageModels() is called when showAllImageModels is toggled on
 
     // Restore video model selection on mount (from curated models)
     useEffect(() => {
@@ -417,17 +434,123 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         return showAllAudioModels ? allAudioModels : curatedAudioModels;
     }, [showAllAudioModels, allAudioModels, curatedAudioModels]);
 
+    // Computed image models list (for convenience) - replaces old `models` state
+    const models = useMemo(() => {
+        return showAllImageModels ? allImageModels : curatedImageModels;
+    }, [showAllImageModels, allImageModels, curatedImageModels]);
+
+    // Load all image models from API (on demand)
+    const loadAllImageModels = useCallback(async () => {
+        // Skip if already loaded or loading
+        if (allImageModels.length > 0 || isLoadingAllImageModels) {
+            console.log('[ImageModels] Skipping load - already loaded or loading', {
+                loaded: allImageModels.length,
+                isLoading: isLoadingAllImageModels
+            });
+            return;
+        }
+
+        console.log('[ImageModels] Starting to load all image models...');
+        setIsLoadingAllImageModels(true);
+
+        try {
+            // Try cache first
+            const cached = getCachedModels();
+            if (cached && cached.length > 0) {
+                console.log('[ImageModels] Loaded from cache:', cached.length, 'models');
+                setAllImageModels(cached);
+                // Re-restore model selection in case it's in the full list but not curated
+                restoreSelectedModel(cached);
+                setIsLoadingAllImageModels(false);
+                return;
+            }
+
+            // Fetch from API
+            console.log('[ImageModels] Fetching from API...');
+            const fetchedModels = await fetchImageGenerationModels();
+            console.log('[ImageModels] Fetched from API:', fetchedModels.length, 'models');
+            setAllImageModels(fetchedModels);
+            cacheModels(fetchedModels);
+            // Re-restore model selection in case it's in the full list but not curated
+            restoreSelectedModel(fetchedModels);
+        } catch (err) {
+            console.error('[ImageModels] Failed to load all image models:', err);
+
+            // Try cached data as fallback
+            const cached = getCachedModels();
+            if (cached && cached.length > 0) {
+                console.log('[ImageModels] Using cached fallback:', cached.length, 'models');
+                setAllImageModels(cached);
+            } else {
+                console.error('[ImageModels] No cache available, models will be empty');
+            }
+        } finally {
+            setIsLoadingAllImageModels(false);
+        }
+    }, [allImageModels.length, isLoadingAllImageModels, restoreSelectedModel]);
+
+    // Get filtered image models based on current settings
+    const getFilteredImageModels = useCallback((category?: ImageModelCategory): ModelConfig[] => {
+        const sourceModels = showAllImageModels ? allImageModels : curatedImageModels;
+
+        console.log('[ImageModels] getFilteredImageModels called:', {
+            showAllImageModels,
+            sourceCount: sourceModels.length,
+            category,
+            searchQuery: imageSearchQuery
+        });
+
+        // Filter by category if specified
+        let filtered = category
+            ? sourceModels.filter(m => m.category === category)
+            : sourceModels;
+
+        // Apply search filter if showing all models
+        if (showAllImageModels && imageSearchQuery) {
+            filtered = filterImageModelsByQuery(filtered, imageSearchQuery);
+        }
+
+        console.log('[ImageModels] Returning', filtered.length, 'models');
+        return filtered;
+    }, [showAllImageModels, allImageModels, curatedImageModels, imageSearchQuery]);
+
     // Restore audio model selection on mount (from curated models)
     useEffect(() => {
         restoreSelectedAudioModel([], curatedAudioModels);
     }, [curatedAudioModels, restoreSelectedAudioModel]);
+
+    // Restore image model selection on mount (from curated models)
+    useEffect(() => {
+        // Use curated models as default, restore from localStorage if available
+        const savedEndpointId = localStorage.getItem(SELECTED_MODEL_KEY);
+        if (savedEndpointId) {
+            // Check curated models first
+            const saved = curatedImageModels.find(m => m.endpointId === savedEndpointId);
+            if (saved) {
+                setSelectedModelState(saved);
+                return;
+            }
+        }
+        // Default to first curated model
+        if (curatedImageModels.length > 0) {
+            setSelectedModelState(curatedImageModels[0]);
+        }
+    }, [curatedImageModels]);
 
     return (
         <ModelsContext.Provider
             value={{
                 // Image models
                 models,
+                allImageModels,
+                showAllImageModels,
+                setShowAllImageModels,
+                imageSearchQuery,
+                setImageSearchQuery,
                 isLoading,
+                isLoadingAllImageModels,
+                loadAllImageModels,
+                getFilteredImageModels,
                 error,
                 selectedModel,
                 setSelectedModel,

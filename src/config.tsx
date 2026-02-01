@@ -13,6 +13,9 @@ export interface ConfigState {
   gptNumImages: number;
   gptQuality: string;
   gptBackground: string;
+  // Grok Imagine model settings
+  grokNumImages: number;  // 1-4, number of images to generate
+  grokOutputFormat: string;  // 'jpeg' | 'png' | 'webp'
   // Qwen model specific settings
   numLayers: number;  // Number of layers to generate (1-10) - qwen-image-layered only
   acceleration: string;  // Acceleration level: "none" | "regular" | "high" - all Qwen models
@@ -80,6 +83,9 @@ interface ConfigContextType extends ConfigState {
   setGptNumImages: (value: number) => void;
   setGptQuality: (value: string) => void;
   setGptBackground: (value: string) => void;
+  // Grok Imagine model setters
+  setGrokNumImages: (value: number) => void;
+  setGrokOutputFormat: (value: string) => void;
   // Qwen model setters
   setNumLayers: (value: number) => void;
   setAcceleration: (value: string) => void;
@@ -149,6 +155,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [gptNumImages, setGptNumImages] = useState<number>(parseInt(localStorage.getItem('GPT_NUM_IMAGES') || '1', 10) || 1);
   const [gptQuality, setGptQuality] = useState<string>(localStorage.getItem('GPT_QUALITY') || 'auto');
   const [gptBackground, setGptBackground] = useState<string>(localStorage.getItem('GPT_BACKGROUND') || 'auto');
+  // Grok Imagine model settings
+  const [grokNumImages, setGrokNumImages] = useState<number>(parseInt(localStorage.getItem('GROK_NUM_IMAGES') || '1', 10));
+  const [grokOutputFormat, setGrokOutputFormat] = useState<string>(localStorage.getItem('GROK_OUTPUT_FORMAT') || 'jpeg');
   // Qwen model settings
   const [numLayers, setNumLayers] = useState<number>(parseInt(localStorage.getItem('NUM_LAYERS') || '4', 10));
   const [acceleration, setAcceleration] = useState<string>(localStorage.getItem('ACCELERATION') || 'regular');
@@ -215,6 +224,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('GPT_NUM_IMAGES', gptNumImages.toString());
     localStorage.setItem('GPT_QUALITY', gptQuality);
     localStorage.setItem('GPT_BACKGROUND', gptBackground);
+    // Grok Imagine model persistence
+    localStorage.setItem('GROK_NUM_IMAGES', grokNumImages.toString());
+    localStorage.setItem('GROK_OUTPUT_FORMAT', grokOutputFormat);
     // Qwen model persistence
     localStorage.setItem('NUM_LAYERS', numLayers.toString());
     localStorage.setItem('ACCELERATION', acceleration);
@@ -267,7 +279,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('BRIA_OUTPUT_CODEC', briaOutputCodec);
     // Video preprocessor persistence
     localStorage.setItem('VIDEO_PREPROCESSOR', videoPreprocessor);
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor]);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor]);
 
   return (
     <ConfigContext.Provider value={{
@@ -283,6 +295,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       gptNumImages, setGptNumImages,
       gptQuality, setGptQuality,
       gptBackground, setGptBackground,
+      grokNumImages, setGrokNumImages,
+      grokOutputFormat, setGrokOutputFormat,
       numLayers, setNumLayers,
       acceleration, setAcceleration,
       // Video generation

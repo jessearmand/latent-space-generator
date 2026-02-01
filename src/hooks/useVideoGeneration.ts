@@ -140,8 +140,10 @@ export function useVideoGeneration({
         const isLtx19bModel = modelIdLower.includes('ltx-2-19b');
         const isLtxProFastModel = modelIdLower.includes('ltx-2') && !modelIdLower.includes('ltx-2-19b');
         const isLtxModel = modelIdLower.includes('ltx-2');
+        const isGrokVideoModel = modelIdLower.includes('grok-imagine-video');
+        const isGrokVideoEdit = modelIdLower.includes('grok-imagine-video') && modelIdLower.includes('edit-video');
         const supportsAudio = isVeoModel || isLtxModel;
-        const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel);
+        const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
 
         // V2V model detection
         const isVideoToVideoMode = activeTab === 'video-to-video';
@@ -170,6 +172,30 @@ export function useVideoGeneration({
         // Add fps for LTX-2 Pro/Fast models
         if (isLtxProFastModel) {
             input.fps = parseInt(config.videoFps, 10);
+        }
+
+        // Grok Imagine Video specific parameters
+        if (isGrokVideoModel) {
+            // Grok uses continuous duration (1-15s), parse from config
+            if (config.videoDuration) {
+                const durationNum = parseInt(config.videoDuration.replace('s', ''), 10);
+                input.duration = Math.min(15, Math.max(1, durationNum));
+            }
+
+            // Grok video resolution (480p or 720p only, or 'auto' for edit-video)
+            if (config.videoResolution) {
+                const res = config.videoResolution;
+                if (isGrokVideoEdit) {
+                    // Edit video supports auto/480p/720p
+                    input.resolution = (res === '480p' || res === '720p') ? res : 'auto';
+                } else {
+                    // Text/image to video only supports 480p/720p
+                    input.resolution = (res === '480p' || res === '720p') ? res : '720p';
+                }
+            }
+
+            // Grok doesn't use guidance_scale, remove if accidentally set
+            delete input.guidance_scale;
         }
 
         // LTX-2 19B specific parameters
