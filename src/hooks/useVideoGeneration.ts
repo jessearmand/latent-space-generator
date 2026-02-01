@@ -9,6 +9,7 @@ import type { StatusType } from './useStatusMessage';
 export interface UseVideoGenerationParams {
     activeTab: GenerationMode;
     uploadedImages: File[];
+    uploadedVideoFile: File | null;
     config: ConfigState;
     setStatus: (message: string, type?: StatusType) => void;
 }
@@ -27,6 +28,7 @@ export interface UseVideoGenerationReturn {
 export function useVideoGeneration({
     activeTab,
     uploadedImages,
+    uploadedVideoFile,
     config,
     setStatus,
 }: UseVideoGenerationParams): UseVideoGenerationReturn {
@@ -43,10 +45,17 @@ export function useVideoGeneration({
         const modelId = model.endpointId;
         const modelName = model.displayName;
         const isImageToVideo = activeTab === 'image-to-video';
+        const isVideoToVideo = activeTab === 'video-to-video';
 
         // For image-to-video mode, require an uploaded image
         if (isImageToVideo && uploadedImages.length === 0) {
             setStatus('Please upload an image for image-to-video generation.', 'error');
+            return;
+        }
+
+        // For video-to-video mode, require an uploaded video
+        if (isVideoToVideo && !uploadedVideoFile) {
+            setStatus('Please upload a video for video-to-video generation.', 'error');
             return;
         }
 
@@ -58,6 +67,7 @@ export function useVideoGeneration({
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
         let uploadedImageUrl: string | undefined;
+        let uploadedVideoUrl: string | undefined;
 
         // For image-to-video, upload the image first
         if (isImageToVideo && uploadedImages.length > 0) {
@@ -75,6 +85,22 @@ export function useVideoGeneration({
             }
         }
 
+        // For video-to-video, upload the video first
+        if (isVideoToVideo && uploadedVideoFile) {
+            try {
+                setStatus(`Uploading video for ${modelName}...`);
+                uploadedVideoUrl = await fal.storage.upload(uploadedVideoFile);
+                console.log('Video uploaded successfully:', uploadedVideoUrl);
+                setStatus(`Video uploaded. Submitting request for ${modelName}...`);
+            } catch (uploadError: unknown) {
+                const errorMsg = `Error uploading video: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                setStatus(errorMsg, 'error');
+                console.error(errorMsg);
+                setIsGenerating(false);
+                return;
+            }
+        }
+
         // Build video generation input parameters
         const input: Record<string, unknown> = {
             prompt,
@@ -83,6 +109,11 @@ export function useVideoGeneration({
         // Add image_url for image-to-video models
         if (isImageToVideo && uploadedImageUrl) {
             input.image_url = uploadedImageUrl;
+        }
+
+        // Add video_url for video-to-video models
+        if (isVideoToVideo && uploadedVideoUrl) {
+            input.video_url = uploadedVideoUrl;
         }
 
         // Add duration (parse to number if model expects seconds)
@@ -272,7 +303,7 @@ export function useVideoGeneration({
         } finally {
             setIsGenerating(false);
         }
-    }, [activeTab, uploadedImages, config, setStatus]);
+    }, [activeTab, uploadedImages, uploadedVideoFile, config, setStatus]);
 
     const clearVideo = useCallback(() => {
         setVideoUrl(null);

@@ -74,6 +74,7 @@ const AppContent: React.FC = () => {
     } = useVideoGeneration({
         activeTab,
         uploadedImages,
+        uploadedVideoFile,
         config,
         setStatus,
     });
