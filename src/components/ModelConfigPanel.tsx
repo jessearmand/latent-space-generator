@@ -29,7 +29,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     }
 
     const isVideoModel = selectedModel.outputType === 'video';
-    const isAudioModel = selectedModel.outputType === 'audio';
+    const isAudioModel = selectedModel.outputType === 'audio' || selectedModel.category === 'audio-understanding';
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
     const isGrokImageModel = selectedModel.endpointId.includes('grok-imagine-image');

@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useState, useCallback } from 'react';
 import type { StatusType } from '../hooks/useStatusMessage';
 import { AudioPlayer } from './AudioPlayer';
 import { VideoPlayer } from './VideoPlayer';
@@ -6,6 +7,7 @@ import { DownloadButton } from './DownloadButton';
 
 export interface OutputSectionProps {
     audioUrl: string | null;
+    textOutput: string | null;
     videoUrl: string | null;
     imageUrls: string[];
     statusMessage: string;
@@ -14,13 +16,45 @@ export interface OutputSectionProps {
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
     audioUrl,
+    textOutput,
     videoUrl,
     imageUrls,
     statusMessage,
     statusType,
 }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = useCallback(async () => {
+        if (!textOutput) return;
+        try {
+            await navigator.clipboard.writeText(textOutput);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+        }
+    }, [textOutput]);
+
     return (
         <div className="output-section">
+            {/* Text output (audio understanding) */}
+            {textOutput && (
+                <div className="text-output-container">
+                    <div className="text-output-header">
+                        <h3>Analysis Result</h3>
+                        <button
+                            type="button"
+                            className="copy-btn"
+                            onClick={handleCopy}
+                            aria-label="Copy analysis text"
+                        >
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+                    <div className="text-output-content">{textOutput}</div>
+                </div>
+            )}
+
             {/* Audio output */}
             {audioUrl && <AudioPlayer src={audioUrl} title="Generated Audio" />}
 

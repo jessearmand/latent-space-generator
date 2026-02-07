@@ -14,7 +14,8 @@ export type AudioModelCategory =
     | 'text-to-speech'
     | 'text-to-audio'
     | 'audio-to-audio'
-    | 'video-to-audio';
+    | 'video-to-audio'
+    | 'audio-understanding';
 
 /** All generation categories (used for navigation and filtering) */
 export type GenerationCategory = ImageModelCategory | VideoModelCategory | AudioModelCategory;
@@ -23,7 +24,7 @@ export type GenerationCategory = ImageModelCategory | VideoModelCategory | Audio
 export type ModelCategory = GenerationCategory | string;
 
 /** Output type for generation results */
-export type OutputType = 'image' | 'video' | 'audio';
+export type OutputType = 'image' | 'video' | 'audio' | 'text';
 
 /** Model status from API */
 export type ModelStatus = 'active' | 'deprecated';
@@ -103,6 +104,9 @@ function getOutputType(category: ModelCategory): OutputType {
     ) {
         return 'video';
     }
+    if (category === 'audio-understanding') {
+        return 'text';
+    }
     if (
         category === 'text-to-speech' ||
         category === 'text-to-audio' ||
@@ -126,7 +130,7 @@ export function getSupportsVideoInput(category: ModelCategory): boolean {
 
 /** Determine if model supports audio input based on category */
 export function getSupportsAudioInput(category: ModelCategory): boolean {
-    return category === 'audio-to-audio';
+    return category === 'audio-to-audio' || category === 'audio-understanding';
 }
 
 /** Convert API model to internal ModelConfig */

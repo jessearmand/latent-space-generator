@@ -101,12 +101,27 @@ export const CURATED_VIDEO_TO_AUDIO_MODELS: ModelConfig[] = [
     },
 ];
 
+/**
+ * Curated list of audio understanding models
+ */
+export const CURATED_AUDIO_UNDERSTANDING_MODELS: ModelConfig[] = [
+    {
+        endpointId: 'fal-ai/audio-understanding',
+        displayName: 'Audio Understanding',
+        category: 'audio-understanding',
+        description: 'Analyze audio content with natural language questions',
+        supportsImageInput: false,
+        outputType: 'text',
+    },
+];
+
 /** All curated audio models */
 export const CURATED_AUDIO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_SPEECH_MODELS,
     ...CURATED_TEXT_TO_AUDIO_MODELS,
     ...CURATED_AUDIO_TO_AUDIO_MODELS,
     ...CURATED_VIDEO_TO_AUDIO_MODELS,
+    ...CURATED_AUDIO_UNDERSTANDING_MODELS,
 ];
 
 /**
@@ -126,6 +141,8 @@ export function getCuratedAudioModels(category?: AudioModelCategory): ModelConfi
             return CURATED_AUDIO_TO_AUDIO_MODELS;
         case 'video-to-audio':
             return CURATED_VIDEO_TO_AUDIO_MODELS;
+        case 'audio-understanding':
+            return CURATED_AUDIO_UNDERSTANDING_MODELS;
         default:
             return [];
     }
@@ -182,11 +199,19 @@ export function isSFXModel(endpointId: string): boolean {
 }
 
 /**
+ * Check if a model is an audio understanding model
+ */
+export function isAudioUnderstandingModel(endpointId: string): boolean {
+    const lowerEndpoint = endpointId.toLowerCase();
+    return lowerEndpoint.includes('audio-understanding');
+}
+
+/**
  * Check if a model requires audio input
  */
 export function requiresAudioInputForModel(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
-    return lowerEndpoint.includes('voice-clone') || lowerEndpoint.includes('audio-to-audio');
+    return lowerEndpoint.includes('voice-clone') || lowerEndpoint.includes('audio-to-audio') || lowerEndpoint.includes('audio-understanding');
 }
 
 /**

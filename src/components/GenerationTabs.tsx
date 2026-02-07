@@ -16,7 +16,8 @@ export type GenerationMode =
     | 'text-to-speech'
     | 'text-to-audio'
     | 'audio-to-audio'
-    | 'video-to-audio';
+    | 'video-to-audio'
+    | 'audio-understanding';
 
 interface GenerationTabsProps {
     activeTab: GenerationMode;
@@ -42,7 +43,8 @@ export function isAudioMode(mode: GenerationMode): boolean {
         mode === 'text-to-speech' ||
         mode === 'text-to-audio' ||
         mode === 'audio-to-audio' ||
-        mode === 'video-to-audio'
+        mode === 'video-to-audio' ||
+        mode === 'audio-understanding'
     );
 }
 
@@ -58,7 +60,7 @@ export function requiresVideoInput(mode: GenerationMode): boolean {
 
 /** Helper to check if a mode requires audio input */
 export function requiresAudioInput(mode: GenerationMode): boolean {
-    return mode === 'audio-to-audio';
+    return mode === 'audio-to-audio' || mode === 'audio-understanding';
 }
 
 /** Helper to validate if a string is a valid generation mode */
@@ -72,7 +74,8 @@ export function isValidGenerationMode(value: string): value is GenerationMode {
         value === 'text-to-speech' ||
         value === 'text-to-audio' ||
         value === 'audio-to-audio' ||
-        value === 'video-to-audio'
+        value === 'video-to-audio' ||
+        value === 'audio-understanding'
     );
 }
 

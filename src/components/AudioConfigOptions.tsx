@@ -7,7 +7,7 @@ import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
 import { MINIMAX_VOICES, MINIMAX_EMOTIONS } from '../types/audio';
-import { isMusicModel, isSFXModel, isBeatovenModel } from '../services/audioModels';
+import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel } from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -26,6 +26,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
     const isBeatoven = isBeatovenModel(selectedModel.endpointId);
     const isBeatovenMusic = isBeatoven && modelId.includes('music');
     const isBeatovenSFX = isBeatoven && modelId.includes('sound-effect');
+    const isAudioUnderstanding = isAudioUnderstandingModel(selectedModel.endpointId);
 
     return (
         <div className="audio-config-options">
@@ -254,37 +255,63 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                 </>
             )}
 
-            {/* Output Format (for all models) */}
-            <div className="form-group">
-                <label htmlFor="audio-format">Output Format:</label>
-                <select
-                    id="audio-format"
-                    value={config.audioOutputFormat}
-                    onChange={(e) => config.setAudioOutputFormat(e.target.value)}
-                >
-                    <option value="mp3">MP3</option>
-                    <option value="wav">WAV</option>
-                    <option value="flac">FLAC</option>
-                    <option value="ogg">OGG</option>
-                </select>
-            </div>
+            {/* Audio Understanding settings */}
+            {isAudioUnderstanding && (
+                <>
+                    <div className="form-group">
+                        <p className="config-hint">
+                            Upload an audio file and ask a question about its content.
+                        </p>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="audio-detailed-analysis">
+                            <input
+                                id="audio-detailed-analysis"
+                                type="checkbox"
+                                checked={config.audioDetailedAnalysis}
+                                onChange={(e) => config.setAudioDetailedAnalysis(e.target.checked)}
+                            />
+                            {' '}Detailed Analysis
+                        </label>
+                    </div>
+                </>
+            )}
 
-            {/* Seed (for reproducibility) */}
-            <div className="form-group">
-                <label htmlFor="audio-seed">
-                    Seed <span className="hint">(optional, for reproducibility)</span>:
-                </label>
-                <input
-                    type="number"
-                    id="audio-seed"
-                    value={config.audioSeed ?? ''}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        config.setAudioSeed(val === '' ? null : parseInt(val, 10));
-                    }}
-                    placeholder="Random"
-                />
-            </div>
+            {/* Output Format (not applicable to audio-understanding) */}
+            {!isAudioUnderstanding && (
+                <div className="form-group">
+                    <label htmlFor="audio-format">Output Format:</label>
+                    <select
+                        id="audio-format"
+                        value={config.audioOutputFormat}
+                        onChange={(e) => config.setAudioOutputFormat(e.target.value)}
+                    >
+                        <option value="mp3">MP3</option>
+                        <option value="wav">WAV</option>
+                        <option value="flac">FLAC</option>
+                        <option value="ogg">OGG</option>
+                    </select>
+                </div>
+            )}
+
+            {/* Seed (not applicable to audio-understanding) */}
+            {!isAudioUnderstanding && (
+                <div className="form-group">
+                    <label htmlFor="audio-seed">
+                        Seed <span className="hint">(optional, for reproducibility)</span>:
+                    </label>
+                    <input
+                        type="number"
+                        id="audio-seed"
+                        value={config.audioSeed ?? ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            config.setAudioSeed(val === '' ? null : parseInt(val, 10));
+                        }}
+                        placeholder="Random"
+                    />
+                </div>
+            )}
         </div>
     );
 };

@@ -64,6 +64,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 return 'Text for the cloned voice to speak...';
             case 'video-to-audio':
                 return 'Describe the sounds for this video...';
+            case 'audio-understanding':
+                return 'What topics are discussed in this audio?';
             default:
                 return 'Enter your prompt...';
         }
@@ -72,12 +74,16 @@ export const InputSection: React.FC<InputSectionProps> = ({
     const getGenerateButtonText = (): string => {
         if (isGenerating) return 'Generating...';
         if (modelsLoading) return 'Loading models...';
+        if (activeTab === 'audio-understanding') return 'Analyze Audio';
         if (isAudioMode(activeTab)) return 'Generate Audio';
         if (isVideoMode(activeTab)) return 'Generate Video';
         return 'Generate Image';
     };
 
     const getInputLabel = (): string => {
+        if (activeTab === 'audio-understanding') {
+            return 'Enter your question about the audio:';
+        }
         if (isAudioMode(activeTab) && (activeTab === 'text-to-speech' || activeTab === 'audio-to-audio')) {
             return 'Enter your text:';
         }

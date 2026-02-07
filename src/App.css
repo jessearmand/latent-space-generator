@@ -560,6 +560,51 @@ label {
   margin-bottom: 15px;
 }
 
+/* Text output (audio understanding) */
+.text-output-container {
+  margin-bottom: 20px;
+}
+
+.text-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.text-output-header h3 {
+  margin: 0;
+}
+
+.copy-btn {
+  padding: 6px 14px;
+  font-size: 0.85em;
+  background-color: #45475a;
+  color: #cdd6f4;
+  border: 1px solid #585b70;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #585b70;
+}
+
+.text-output-content {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 0.95em;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .app-layout {
