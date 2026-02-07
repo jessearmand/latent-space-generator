@@ -10,6 +10,15 @@ import type { ModelConfig, VideoModelCategory } from '../types/models';
  * Ordered by trending/popularity from fal.ai
  */
 export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/text-to-video',
+        displayName: 'Grok Imagine Video',
+        category: 'text-to-video',
+        description: 'xAI Grok video generation with audio, up to 15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
     {
         endpointId: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
         displayName: 'Kling 2.5 Turbo Pro',
@@ -97,6 +106,15 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
  * Ordered by trending/popularity from fal.ai
  */
 export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/image-to-video',
+        displayName: 'Grok Imagine I2V',
+        category: 'image-to-video',
+        description: 'xAI Grok image-to-video with audio',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
     {
         endpointId: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
         displayName: 'Kling 2.5 Turbo Pro I2V',
@@ -171,10 +189,115 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
     },
 ];
 
+/**
+ * Curated list of video-to-video models (Updated Jan 2026)
+ * For style transfer, frame interpolation, and video enhancement
+ */
+export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/edit-video',
+        displayName: 'Grok Imagine Video Edit',
+        category: 'video-to-video',
+        description: 'xAI Grok video editing (max 8s input, 854x480)',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2-19b/video-to-video',
+        displayName: 'LTX-2 19B V2V',
+        category: 'video-to-video',
+        description: 'Transform videos with camera controls and preprocessing',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/wan/v2.2-a14b/video-to-video',
+        displayName: 'Wan 2.2 V2V',
+        category: 'video-to-video',
+        description: 'Transform videos with strength control, supports up to 480 frames',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/hunyuan-video/video-to-video',
+        displayName: 'Hunyuan V2V',
+        category: 'video-to-video',
+        description: 'Style transfer on video with high visual quality',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/fast-animatediff/video-to-video',
+        displayName: 'AnimateDiff V2V',
+        category: 'video-to-video',
+        description: 'Fast style transfer on video clips',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/mmaudio-v2',
+        displayName: 'MMAudio V2',
+        category: 'video-to-video',
+        description: 'Generate synchronized audio from text prompts for videos',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bria/video/background-removal',
+        displayName: 'Bria BG Removal',
+        category: 'video-to-video',
+        description: 'Remove video backgrounds without green screen',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/lightx/relight',
+        displayName: 'LightX Relight',
+        category: 'video-to-video',
+        description: 'Relight videos with different lighting conditions',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/lightx/recamera',
+        displayName: 'LightX Recamera',
+        category: 'video-to-video',
+        description: 'Change camera angles and movements',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'mirelo-ai/sfx-v1/video-to-video',
+        displayName: 'Mirelo SFX V2V',
+        category: 'video-to-video',
+        description: 'Add synced sounds to video and return video with new audio',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/rife/video',
+        displayName: 'RIFE Frame Interpolation',
+        category: 'video-to-video',
+        description: 'Increase video frame rate with AI interpolation',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/luma-dream-machine/ray-2/reframe',
+        displayName: 'Luma Ray 2 Reframe',
+        category: 'video-to-video',
+        description: 'Reframe video to different aspect ratios',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+];
+
 /** All curated video models */
 export const CURATED_VIDEO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_VIDEO_MODELS,
     ...CURATED_IMAGE_TO_VIDEO_MODELS,
+    ...CURATED_VIDEO_TO_VIDEO_MODELS,
 ];
 
 /**
@@ -191,6 +314,10 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
 
     if (category === 'image-to-video') {
         return CURATED_IMAGE_TO_VIDEO_MODELS;
+    }
+
+    if (category === 'video-to-video') {
+        return CURATED_VIDEO_TO_VIDEO_MODELS;
     }
 
     return [];

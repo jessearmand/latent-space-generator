@@ -78,6 +78,17 @@ export function parseFalError(error: unknown): string {
             return `Invalid parameters:\n${messages.map(m => `• ${m}`).join('\n')}`;
         }
 
+        // Check for simple error object format: {"error": "message"} or {"detail": "message"}
+        if (typeof body === 'object' && body !== null) {
+            const bodyObj = body as Record<string, unknown>;
+            if (typeof bodyObj.error === 'string') {
+                return bodyObj.error;
+            }
+            if (typeof bodyObj.detail === 'string') {
+                return bodyObj.detail;
+            }
+        }
+
         // Handle string body (might be JSON string)
         if (typeof body === 'string') {
             try {
@@ -88,6 +99,15 @@ export function parseFalError(error: unknown): string {
                         return `Invalid parameter - ${messages[0]}`;
                     }
                     return `Invalid parameters:\n${messages.map(m => `• ${m}`).join('\n')}`;
+                }
+                // Check for simple error format in parsed JSON string
+                if (typeof parsed === 'object' && parsed !== null) {
+                    if (typeof parsed.error === 'string') {
+                        return parsed.error;
+                    }
+                    if (typeof parsed.detail === 'string') {
+                        return parsed.detail;
+                    }
                 }
             } catch {
                 // Not JSON, use as-is

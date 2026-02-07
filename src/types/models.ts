@@ -7,16 +7,24 @@
 export type ImageModelCategory = 'text-to-image' | 'image-to-image';
 
 /** Model categories for video generation */
-export type VideoModelCategory = 'text-to-video' | 'image-to-video';
+export type VideoModelCategory = 'text-to-video' | 'image-to-video' | 'video-to-video';
 
-/** All generation categories (used for tabs and filtering) */
-export type GenerationCategory = ImageModelCategory | VideoModelCategory;
+/** Model categories for audio generation */
+export type AudioModelCategory =
+    | 'text-to-speech'
+    | 'text-to-audio'
+    | 'audio-to-audio'
+    | 'video-to-audio'
+    | 'audio-understanding';
 
-/** All supported model categories (includes future categories) */
-export type ModelCategory = GenerationCategory | 'video-to-video' | string;
+/** All generation categories (used for navigation and filtering) */
+export type GenerationCategory = ImageModelCategory | VideoModelCategory | AudioModelCategory;
+
+/** All supported model categories */
+export type ModelCategory = GenerationCategory | string;
 
 /** Output type for generation results */
-export type OutputType = 'image' | 'video';
+export type OutputType = 'image' | 'video' | 'audio' | 'text';
 
 /** Model status from API */
 export type ModelStatus = 'active' | 'deprecated';
@@ -89,8 +97,23 @@ function formatDisplayName(endpointId: string): string {
 
 /** Determine output type based on category */
 function getOutputType(category: ModelCategory): OutputType {
-    if (category === 'text-to-video' || category === 'image-to-video') {
+    if (
+        category === 'text-to-video' ||
+        category === 'image-to-video' ||
+        category === 'video-to-video'
+    ) {
         return 'video';
+    }
+    if (category === 'audio-understanding') {
+        return 'text';
+    }
+    if (
+        category === 'text-to-speech' ||
+        category === 'text-to-audio' ||
+        category === 'audio-to-audio' ||
+        category === 'video-to-audio'
+    ) {
+        return 'audio';
     }
     return 'image';
 }
@@ -98,6 +121,16 @@ function getOutputType(category: ModelCategory): OutputType {
 /** Determine if model supports image input based on category */
 function getSupportsImageInput(category: ModelCategory): boolean {
     return category === 'image-to-image' || category === 'image-to-video';
+}
+
+/** Determine if model supports video input based on category */
+export function getSupportsVideoInput(category: ModelCategory): boolean {
+    return category === 'video-to-video' || category === 'video-to-audio';
+}
+
+/** Determine if model supports audio input based on category */
+export function getSupportsAudioInput(category: ModelCategory): boolean {
+    return category === 'audio-to-audio' || category === 'audio-understanding';
 }
 
 /** Convert API model to internal ModelConfig */
