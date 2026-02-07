@@ -10,6 +10,15 @@ import type { ModelConfig, VideoModelCategory } from '../types/models';
  * Ordered by trending/popularity from fal.ai
  */
 export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/text-to-video',
+        displayName: 'Grok Imagine Video',
+        category: 'text-to-video',
+        description: 'xAI Grok video generation with audio, up to 15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
     {
         endpointId: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
         displayName: 'Kling 2.5 Turbo Pro',
@@ -97,6 +106,15 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
  * Ordered by trending/popularity from fal.ai
  */
 export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/image-to-video',
+        displayName: 'Grok Imagine I2V',
+        category: 'image-to-video',
+        description: 'xAI Grok image-to-video with audio',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
     {
         endpointId: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
         displayName: 'Kling 2.5 Turbo Pro I2V',
@@ -176,6 +194,15 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
  * For style transfer, frame interpolation, and video enhancement
  */
 export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
+    // Grok Imagine - Featured
+    {
+        endpointId: 'xai/grok-imagine-video/edit-video',
+        displayName: 'Grok Imagine Video Edit',
+        category: 'video-to-video',
+        description: 'xAI Grok video editing (max 8s input, 854x480)',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
     {
         endpointId: 'fal-ai/ltx-2-19b/video-to-video',
         displayName: 'LTX-2 19B V2V',
