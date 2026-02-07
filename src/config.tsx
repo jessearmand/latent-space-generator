@@ -68,6 +68,8 @@ export interface ConfigState {
   briaOutputCodec: string;  // mp4_h265, mp4_h264, webm_vp9, mov_prores
   // Video-to-video preprocessor
   videoPreprocessor: string;  // none, depth, canny, pose
+  // Audio understanding settings
+  audioDetailedAnalysis: boolean;  // Enable detailed analysis for audio understanding
 }
 
 interface ConfigContextType extends ConfigState {
@@ -138,6 +140,8 @@ interface ConfigContextType extends ConfigState {
   setBriaOutputCodec: (value: string) => void;
   // Video preprocessor setter
   setVideoPreprocessor: (value: string) => void;
+  // Audio understanding setter
+  setAudioDetailedAnalysis: (value: boolean) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -210,6 +214,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [briaOutputCodec, setBriaOutputCodec] = useState<string>(localStorage.getItem('BRIA_OUTPUT_CODEC') || 'mp4_h265');
   // Video-to-video preprocessor
   const [videoPreprocessor, setVideoPreprocessor] = useState<string>(localStorage.getItem('VIDEO_PREPROCESSOR') || 'none');
+  // Audio understanding settings
+  const [audioDetailedAnalysis, setAudioDetailedAnalysis] = useState<boolean>(localStorage.getItem('AUDIO_DETAILED_ANALYSIS') === 'true');
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -279,7 +285,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('BRIA_OUTPUT_CODEC', briaOutputCodec);
     // Video preprocessor persistence
     localStorage.setItem('VIDEO_PREPROCESSOR', videoPreprocessor);
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor]);
+    // Audio understanding persistence
+    localStorage.setItem('AUDIO_DETAILED_ANALYSIS', audioDetailedAnalysis.toString());
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis]);
 
   return (
     <ConfigContext.Provider value={{
@@ -347,7 +355,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       briaBgColor, setBriaBgColor,
       briaOutputCodec, setBriaOutputCodec,
       // Video preprocessor
-      videoPreprocessor, setVideoPreprocessor
+      videoPreprocessor, setVideoPreprocessor,
+      // Audio understanding
+      audioDetailedAnalysis, setAudioDetailedAnalysis
     }}>
       {children}
     </ConfigContext.Provider>

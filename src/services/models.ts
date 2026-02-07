@@ -147,18 +147,19 @@ export async function fetchVideoGenerationModels(): Promise<ModelConfig[]> {
     return normalized;
 }
 
-/** Fetch all audio generation models (TTS, music, SFX, voice cloning) */
+/** Fetch all audio generation models (TTS, music, SFX, voice cloning, understanding) */
 export async function fetchAudioGenerationModels(): Promise<ModelConfig[]> {
     // Fetch all audio categories in parallel
-    const [textToSpeech, textToAudio, audioToAudio, videoToAudio] = await Promise.all([
+    const [textToSpeech, textToAudio, audioToAudio, videoToAudio, audioUnderstanding] = await Promise.all([
         fetchAllModelsForCategory('text-to-speech'),
         fetchAllModelsForCategory('text-to-audio'),
         fetchAllModelsForCategory('audio-to-audio'),
         fetchAllModelsForCategory('video-to-audio'),
+        fetchAllModelsForCategory('audio-understanding'),
     ]);
 
     // Combine and normalize
-    const allModels = [...textToSpeech, ...textToAudio, ...audioToAudio, ...videoToAudio];
+    const allModels = [...textToSpeech, ...textToAudio, ...audioToAudio, ...videoToAudio, ...audioUnderstanding];
 
     // Sort by display name
     const normalized = allModels.map(normalizeModel);

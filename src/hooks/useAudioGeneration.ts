@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -18,6 +18,7 @@ export interface UseAudioGenerationParams {
 
 export interface UseAudioGenerationReturn {
     audioUrl: string | null;
+    textOutput: string | null;
     isGenerating: boolean;
     generateAudio: (promptOrText: string, model: ModelConfig) => Promise<void>;
     clearAudio: () => void;
@@ -35,6 +36,7 @@ export function useAudioGeneration({
     setStatus,
 }: UseAudioGenerationParams): UseAudioGenerationReturn {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [textOutput, setTextOutput] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
     const generateAudio = useCallback(
@@ -49,10 +51,16 @@ export function useAudioGeneration({
             const modelName = model.displayName;
             const isAudioToAudio = activeTab === 'audio-to-audio';
             const isVideoToAudio = activeTab === 'video-to-audio';
+            const isAudioUnderstanding = activeTab === 'audio-understanding' || isAudioUnderstandingModel(modelId);
 
-            // For audio-to-audio mode, require an uploaded audio file
-            if (isAudioToAudio && !uploadedAudioFile) {
-                setStatus('Please upload an audio file for audio-to-audio generation.', 'error');
+            // For audio-to-audio or audio-understanding mode, require an uploaded audio file
+            if ((isAudioToAudio || isAudioUnderstanding) && !uploadedAudioFile) {
+                setStatus(
+                    isAudioUnderstanding
+                        ? 'Please upload an audio file to analyze.'
+                        : 'Please upload an audio file for audio-to-audio generation.',
+                    'error'
+                );
                 return;
             }
 
@@ -64,6 +72,7 @@ export function useAudioGeneration({
 
             setIsGenerating(true);
             setAudioUrl(null); // Clear previous audio
+            setTextOutput(null); // Clear previous text output
             console.log(`Generating audio with model: ${modelName}`);
 
             setStatus(`Submitting request for audio generation using ${modelName}...`);
@@ -71,8 +80,8 @@ export function useAudioGeneration({
             let uploadedAudioUrl: string | undefined;
             let uploadedVideoUrl: string | undefined;
 
-            // Upload audio file for audio-to-audio
-            if (isAudioToAudio && uploadedAudioFile) {
+            // Upload audio file for audio-to-audio or audio-understanding
+            if ((isAudioToAudio || isAudioUnderstanding) && uploadedAudioFile) {
                 try {
                     setStatus(`Uploading audio file for ${modelName}...`);
                     uploadedAudioUrl = await fal.storage.upload(uploadedAudioFile);
@@ -196,13 +205,23 @@ export function useAudioGeneration({
                 }
             }
 
-            // Audio output format
-            if (config.audioOutputFormat && config.audioOutputFormat !== 'mp3') {
+            // Audio understanding specific parameters
+            if (isAudioUnderstanding && uploadedAudioUrl) {
+                // Override: audio-understanding uses audio_url + prompt, no seed/output_format
+                input.audio_url = uploadedAudioUrl;
+                input.prompt = promptOrText;
+                if (config.audioDetailedAnalysis) {
+                    input.detailed_analysis = true;
+                }
+            }
+
+            // Audio output format (not applicable to audio-understanding)
+            if (!isAudioUnderstanding && config.audioOutputFormat && config.audioOutputFormat !== 'mp3') {
                 input.output_format = config.audioOutputFormat;
             }
 
-            // Seed for reproducibility
-            if (config.audioSeed !== null) {
+            // Seed for reproducibility (not applicable to audio-understanding)
+            if (!isAudioUnderstanding && config.audioSeed !== null) {
                 input.seed = config.audioSeed;
             }
 
@@ -233,8 +252,17 @@ export function useAudioGeneration({
                         const result = await fal.queue.result(modelId, { requestId });
                         console.log(`Request completed. Full result:`, result);
 
-                        // Audio response can have different structures
+                        // Response can have different structures
                         const data = result.data as Record<string, unknown>;
+
+                        // Audio understanding returns text output
+                        if (isAudioUnderstanding && typeof data.output === 'string') {
+                            console.log('Audio analysis completed:', data.output);
+                            setTextOutput(data.output);
+                            setStatus(`Audio analysis completed using ${modelName}!`, 'success');
+                            break;
+                        }
+
                         let audioResultUrl: string | undefined;
 
                         // Check common audio response fields
@@ -295,10 +323,12 @@ export function useAudioGeneration({
 
     const clearAudio = useCallback(() => {
         setAudioUrl(null);
+        setTextOutput(null);
     }, []);
 
     return {
         audioUrl,
+        textOutput,
         isGenerating,
         generateAudio,
         clearAudio,

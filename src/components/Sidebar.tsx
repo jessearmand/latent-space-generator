@@ -59,6 +59,7 @@ const sections: SectionConfig[] = [
             { id: 'text-to-audio', label: 'Text to Audio' },
             { id: 'audio-to-audio', label: 'Audio to Audio' },
             { id: 'video-to-audio', label: 'Video to Audio' },
+            { id: 'audio-understanding', label: 'Audio Understanding' },
         ],
     },
 ];

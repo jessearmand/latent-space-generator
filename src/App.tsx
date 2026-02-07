@@ -73,6 +73,7 @@ const AppContent: React.FC = () => {
     // Audio generation hook
     const {
         audioUrl,
+        textOutput,
         isGenerating: isGeneratingAudio,
         generateAudio,
     } = useAudioGeneration({
@@ -182,6 +183,7 @@ const AppContent: React.FC = () => {
                         {activeTab === 'text-to-audio' && 'Enter a prompt to generate music or sound effects.'}
                         {activeTab === 'audio-to-audio' && 'Upload an audio file and enter text for voice cloning.'}
                         {activeTab === 'video-to-audio' && 'Upload a video to generate synced audio.'}
+                        {activeTab === 'audio-understanding' && 'Upload an audio file and ask questions about its content.'}
                     </p>
 
                     <InputSection
@@ -203,6 +205,7 @@ const AppContent: React.FC = () => {
 
                     <OutputSection
                         audioUrl={audioUrl}
+                        textOutput={textOutput}
                         videoUrl={videoUrl}
                         imageUrls={imageUrls}
                         statusMessage={statusMessage}
