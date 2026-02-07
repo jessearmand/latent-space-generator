@@ -6,6 +6,7 @@ import type { ConfigState } from '../config';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from '../services/openai';
 import { parseFalError } from '../services/errors';
 import { getImageInputConfig } from '../services/modelParams';
+import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
 
 export interface UseImageGenerationParams {
@@ -47,6 +48,7 @@ export function useImageGeneration({
         const modelId = model.endpointId;
         const modelName = model.displayName;
         const isGptModel = modelId.includes('gpt-image');
+        const isGrokModel = modelId.includes('grok-imagine-image');
         const supportsImageInput = model.supportsImageInput;
 
         // For image-to-image mode, require at least one uploaded image
@@ -60,6 +62,96 @@ export function useImageGeneration({
 
         setStatus(`Submitting request for image generation using ${modelName}...`);
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
+
+        // Grok Imagine models use fal.ai queue with specific parameters
+        if (isGrokModel) {
+            setStatus(`Generating image with ${modelName}...`);
+
+            // Build Grok-specific input
+            const grokInput: Record<string, unknown> = {
+                prompt,
+                num_images: config.grokNumImages,
+                output_format: config.grokOutputFormat,
+            };
+
+            // Add aspect ratio (Grok has unique options)
+            if (config.aspectRatio) {
+                grokInput.aspect_ratio = config.aspectRatio;
+            }
+
+            // For image editing mode, add image_url
+            if (activeTab === 'image-to-image' && supportsImageInput && uploadedImages.length > 0) {
+                try {
+                    setStatus(`Uploading image for ${modelName}...`);
+                    const uploadedUrl = await fal.storage.upload(uploadedImages[0]);
+                    grokInput.image_url = uploadedUrl;
+                    console.log('Image uploaded for Grok:', uploadedUrl);
+                    setStatus(`Image uploaded. Submitting request for ${modelName}...`);
+                } catch (uploadError: unknown) {
+                    const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                    setStatus(errorMsg, 'error');
+                    console.error(errorMsg);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+
+            try {
+                console.log(`Grok input sent to API:`, grokInput);
+
+                const submitResult = await fal.queue.submit(modelId, {
+                    input: grokInput,
+                });
+                const requestId = submitResult.request_id;
+                console.log(`Grok request submitted. Request ID: ${requestId}`);
+                setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
+
+                // Poll until complete
+                while (true) {
+                    const statusResult = await fal.queue.status(modelId, {
+                        requestId,
+                        logs: true,
+                    });
+                    console.log(`Grok status update for request ID ${requestId}:`, statusResult.status);
+                    if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
+                        const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
+                        const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
+                        setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    } else if (statusResult.status === "COMPLETED") {
+                        const result = await fal.queue.result(modelId, { requestId });
+                        console.log(`Grok request completed. Full result:`, result);
+                        if (result.data.images?.length > 0) {
+                            const urls = result.data.images.map((img: { url: string }) => img.url);
+                            console.log(`${urls.length} Grok image(s) received:`, urls);
+                            setImageUrls(urls);
+                            setStatus(`Image generated successfully using ${modelName}!`, 'success');
+                        } else {
+                            setStatus('Image generation failed. No image URL found in result.', 'error');
+                            console.error('No image URL in Grok result:', result);
+                        }
+                        break;
+                    } else {
+                        const status = (statusResult as { status: string }).status;
+                        setStatus(`Request failed with status: ${status}`, 'error');
+                        console.error(`Grok request failed with status ${status}:`, statusResult);
+                        break;
+                    }
+                }
+            } catch (error: unknown) {
+                console.error('Grok image generation error:', error);
+                const parsedError = parseFalError(error);
+                const rawMessage = error instanceof Error ? error.message : String(error);
+                if (rawMessage.includes("401") || rawMessage.includes("Unauthorized")) {
+                    setStatus('Authentication failed. Please check your API key.', 'error');
+                } else {
+                    setStatus(parsedError, 'error');
+                }
+            } finally {
+                setIsGenerating(false);
+            }
+            return; // Exit early for Grok models
+        }
 
         // GPT models use direct OpenAI API calls (not through fal.ai)
         if (isGptModel) {
@@ -206,7 +298,7 @@ export function useImageGeneration({
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const latestLog = logs?.length ? logs[logs.length - 1].message : 'Processing...';
+                    const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
                     setStatus(`Request is ${statusResult.status}: ${latestLog}`);
                     console.log(`Status logs:`, logs?.map((log) => log.message));
                     await new Promise(resolve => setTimeout(resolve, 2000));

@@ -128,16 +128,38 @@ export async function fetchImageGenerationModels(): Promise<ModelConfig[]> {
     return normalized;
 }
 
-/** Fetch all video generation models (text-to-video and image-to-video) */
+/** Fetch all video generation models (text-to-video, image-to-video, video-to-video) */
 export async function fetchVideoGenerationModels(): Promise<ModelConfig[]> {
-    // Fetch both categories in parallel
-    const [textToVideo, imageToVideo] = await Promise.all([
+    // Fetch all video categories in parallel
+    const [textToVideo, imageToVideo, videoToVideo] = await Promise.all([
         fetchAllModelsForCategory('text-to-video'),
         fetchAllModelsForCategory('image-to-video'),
+        fetchAllModelsForCategory('video-to-video'),
     ]);
 
     // Combine and normalize
-    const allModels = [...textToVideo, ...imageToVideo];
+    const allModels = [...textToVideo, ...imageToVideo, ...videoToVideo];
+
+    // Sort by display name
+    const normalized = allModels.map(normalizeModel);
+    normalized.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    return normalized;
+}
+
+/** Fetch all audio generation models (TTS, music, SFX, voice cloning, understanding) */
+export async function fetchAudioGenerationModels(): Promise<ModelConfig[]> {
+    // Fetch all audio categories in parallel
+    const [textToSpeech, textToAudio, audioToAudio, videoToAudio, audioUnderstanding] = await Promise.all([
+        fetchAllModelsForCategory('text-to-speech'),
+        fetchAllModelsForCategory('text-to-audio'),
+        fetchAllModelsForCategory('audio-to-audio'),
+        fetchAllModelsForCategory('video-to-audio'),
+        fetchAllModelsForCategory('audio-understanding'),
+    ]);
+
+    // Combine and normalize
+    const allModels = [...textToSpeech, ...textToAudio, ...audioToAudio, ...videoToAudio, ...audioUnderstanding];
 
     // Sort by display name
     const normalized = allModels.map(normalizeModel);
@@ -149,6 +171,7 @@ export async function fetchVideoGenerationModels(): Promise<ModelConfig[]> {
 /** Cache keys for localStorage */
 const IMAGE_CACHE_KEY = 'fal_models_cache';
 const VIDEO_CACHE_KEY = 'fal_video_models_cache';
+const AUDIO_CACHE_KEY = 'fal_audio_models_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheEntry {
@@ -217,4 +240,19 @@ export function cacheVideoModels(models: ModelConfig[]): void {
 /** Clear the video models cache */
 export function clearVideoModelsCache(): void {
     localStorage.removeItem(VIDEO_CACHE_KEY);
+}
+
+/** Get cached audio models if available and not expired */
+export function getCachedAudioModels(): ModelConfig[] | null {
+    return getCachedModelsFromKey(AUDIO_CACHE_KEY);
+}
+
+/** Cache audio models in localStorage */
+export function cacheAudioModels(models: ModelConfig[]): void {
+    cacheModelsToKey(AUDIO_CACHE_KEY, models);
+}
+
+/** Clear the audio models cache */
+export function clearAudioModelsCache(): void {
+    localStorage.removeItem(AUDIO_CACHE_KEY);
 }

@@ -9,6 +9,7 @@ import type { ModelConfig } from '../types/models';
 import { useConfig } from '../config';
 import { getImageInputConfig } from '../services/modelParams';
 import { VideoConfigOptions } from './VideoConfigOptions';
+import { AudioConfigOptions } from './AudioConfigOptions';
 import type { GenerationMode } from './GenerationTabs';
 
 interface ModelConfigPanelProps {
@@ -28,8 +29,10 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     }
 
     const isVideoModel = selectedModel.outputType === 'video';
+    const isAudioModel = selectedModel.outputType === 'audio' || selectedModel.category === 'audio-understanding';
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image');
+    const isGrokImageModel = selectedModel.endpointId.includes('grok-imagine-image');
     const isQwenModel = selectedModel.endpointId.includes('qwen-image');
     const isQwenLayeredModel = selectedModel.endpointId.includes('qwen-image-layered');
 
@@ -48,10 +51,14 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
 
             {isExpanded && (
                 <div className="config-options">
-                    {isVideoModel ? (
+                    {isAudioModel ? (
+                        <AudioConfigOptions selectedModel={selectedModel} />
+                    ) : isVideoModel ? (
                         <VideoConfigOptions selectedModel={selectedModel} />
                     ) : isGptModel ? (
                         <GptConfigOptions config={config} />
+                    ) : isGrokImageModel ? (
+                        <GrokImageConfigOptions config={config} />
                     ) : (
                         <>
                             <FluxConfigOptions
@@ -355,6 +362,65 @@ const QwenConfigOptions: React.FC<QwenConfigOptionsProps> = ({ config, showNumLa
                     <option value="none">None (highest quality)</option>
                     <option value="regular">Regular (balanced)</option>
                     <option value="high">High (fastest)</option>
+                </select>
+            </div>
+        </>
+    );
+};
+
+interface GrokImageConfigOptionsProps {
+    config: ReturnType<typeof useConfig>;
+}
+
+/**
+ * Config options for Grok Imagine image models
+ * - num_images: Number of images to generate (1-4)
+ * - aspect_ratio: Grok's unique aspect ratios
+ * - output_format: jpeg, png, or webp
+ */
+const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config }) => {
+    // Grok's unique aspect ratios
+    const grokAspectRatios = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '20:9', '19.5:9', '9:19.5', '9:20', '1:2'];
+
+    return (
+        <>
+            <div className="form-group">
+                <label htmlFor="grok-num-images">Number of Images:</label>
+                <select
+                    id="grok-num-images"
+                    value={config.grokNumImages}
+                    onChange={(e) => config.setGrokNumImages(parseInt(e.target.value, 10))}
+                >
+                    {[1, 2, 3, 4].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                    ))}
+                </select>
+                <span className="hint"> (1-4 images per generation)</span>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="grok-aspect-ratio">Aspect Ratio:</label>
+                <select
+                    id="grok-aspect-ratio"
+                    value={config.aspectRatio}
+                    onChange={(e) => config.setAspectRatio(e.target.value)}
+                >
+                    {grokAspectRatios.map((ratio) => (
+                        <option key={ratio} value={ratio}>{ratio}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="grok-output-format">Output Format:</label>
+                <select
+                    id="grok-output-format"
+                    value={config.grokOutputFormat}
+                    onChange={(e) => config.setGrokOutputFormat(e.target.value)}
+                >
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WebP</option>
                 </select>
             </div>
         </>
