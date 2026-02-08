@@ -8,7 +8,8 @@ Latent Space Generator — React single-page application for AI media generation
 - **fal.ai image models**: Flux, SDXL, Flux 2 [klein], and other image generation models via `@fal-ai/client`
 - **fal.ai video models**: Kling, Veo, LTX-2, MiniMax Hailuo, Hunyuan, and more
 - **fal.ai audio models**: MiniMax TTS, Chatterbox, Beatoven, ElevenLabs SFX, and more
-- **OpenAI models**: GPT Image models (gpt-image-1, gpt-image-1.5) via direct API calls
+- **OpenAI models**: GPT Image models (gpt-image-1.5, gpt-image-1-mini) via direct API calls, fal.ai, or OpenRouter
+- **Gemini image models**: Gemini 2.5 Flash Image, Gemini 3 Pro Image via fal.ai (OpenRouter fallback)
 
 Uses Vite for development, Vitest for testing, and Biome for linting.
 
@@ -30,15 +31,21 @@ bun run lint:fix      # Fix linting issues automatically
 
 ### Provider Hierarchy
 
-The app uses nested React Context providers in `index.tsx`:
+The app uses nested React Context providers across `index.tsx` and `App.tsx`:
 
 ```
-ConfigProvider (config.tsx)
-  └── ModelsProvider (contexts/ModelsContext.tsx)
-        └── App (App.tsx)
+ServerKeysProvider (contexts/ServerKeysContext.tsx)
+  └── ConfigProvider (config.tsx)
+        └── OpenRouterAuthProvider (contexts/OpenRouterAuthContext.tsx)
+              └── OpenRouterProvider (contexts/OpenRouterContext.tsx)
+                    └── App (App.tsx)
+                          └── ModelsProvider (contexts/ModelsContext.tsx)
 ```
 
+- **ServerKeysProvider**: Fetches `/health` on mount to determine which API keys are configured server-side (fal, openai, openrouter)
 - **ConfigProvider**: Persists generation parameters (safety tolerance, aspect ratio, guidance scale, GPT-specific options, video settings, audio settings) to localStorage
+- **OpenRouterAuthProvider**: Manages OpenRouter OAuth PKCE authentication state (user API key, login/logout)
+- **OpenRouterProvider**: Manages OpenRouter model list, filtering, and caching for prompt optimization
 - **ModelsProvider**: Fetches and caches available models from fal.ai API, manages model selection for image, video, and audio modes
 
 ### Proxy Server
@@ -48,9 +55,11 @@ The Bun-based proxy server (`server/index.ts`) handles API communication:
 | Endpoint | Purpose |
 |----------|---------|
 | `/api/fal/proxy` | Proxies fal.ai API calls (image, video, audio), injects `FAL_API_KEY` server-side |
-| `/api/openai/images` | Proxies OpenAI image generation, accepts API key in request body |
-| `/api/openrouter/completion` | Proxies OpenRouter API for prompt optimization |
-| `/health` | Health check endpoint |
+| `/api/openai/images` | Proxies OpenAI image generation, injects `OPENAI_API_KEY` server-side |
+| `/api/openrouter/models` | Fetches OpenRouter model list for prompt optimizer |
+| `/api/openrouter/completion` | Proxies OpenRouter completion (uses user OAuth key if available, else server key) |
+| `/api/openrouter/images` | Proxies OpenRouter image generation (Gemini, GPT via OpenRouter fallback) |
+| `/api/health` | Health check with key availability: `{ keys: { fal, openai, openrouter } }` |
 
 Security: Only allows requests to whitelisted fal.ai domains (`api.fal.ai`, `queue.fal.run`, `fal.run`, `storage.fal.ai`, `gateway.fal.ai`).
 
@@ -60,7 +69,7 @@ Generation logic is extracted into reusable hooks in `src/hooks/`:
 
 | Hook | Purpose |
 |------|---------|
-| `useImageGeneration` | Image generation with fal.ai and OpenAI, queue polling |
+| `useImageGeneration` | Image generation with multi-backend routing (OpenAI → fal.ai → OpenRouter) |
 | `useVideoGeneration` | Video generation with model-specific parameter routing |
 | `useAudioGeneration` | Audio generation (TTS, music, SFX, voice cloning, video-to-audio) |
 | `useGenerationMode` | Manages active generation tab and mode switching |
@@ -69,11 +78,12 @@ Generation logic is extracted into reusable hooks in `src/hooks/`:
 
 ### Dynamic Model Loading
 
-Models are fetched directly from `https://api.fal.ai/v1/models` rather than using a hardcoded list:
+All modes (image, video, audio) start with curated model lists for instant load. A "Show all models" toggle lazy-loads the full catalog from `https://api.fal.ai/v1/models`. Search filtering is available when showing all models.
 
-1. **`services/models.ts`**: API client with pagination support, fetches both `text-to-image` and `image-to-image` categories
-2. **`types/models.ts`**: TypeScript interfaces matching API response shape, plus `normalizeModel()` converter
-3. **`contexts/ModelsContext.tsx`**: React Context with caching (24h TTL in localStorage), loading states, and error fallback to cache
+1. **`services/imageModels.ts`**, **`videoModels.ts`**, **`audioModels.ts`**: Curated model definitions with category helpers
+2. **`services/models.ts`**: API client with pagination support, fetches full catalogs for all categories on demand
+3. **`types/models.ts`**: TypeScript interfaces matching API response shape, plus `normalizeModel()` converter
+4. **`contexts/ModelsContext.tsx`**: React Context with curated defaults, lazy-loading, caching (24h TTL in localStorage), and error fallback to cache
 
 ### Key Files
 
@@ -82,6 +92,9 @@ Models are fetched directly from `https://api.fal.ai/v1/models` rather than usin
 | `src/App.tsx` | Main UI, orchestrates generation hooks and components |
 | `src/config.tsx` | ConfigContext for generation parameters (image, video, audio) |
 | `src/contexts/ModelsContext.tsx` | Model fetching, caching, selection state |
+| `src/contexts/ServerKeysContext.tsx` | Server API key availability (fal, openai, openrouter) |
+| `src/contexts/OpenRouterAuthContext.tsx` | OpenRouter auth state (user API key, login/logout) |
+| `src/contexts/OpenRouterContext.tsx` | OpenRouter model selection, filtering, caching |
 | **Hooks** | |
 | `src/hooks/useImageGeneration.ts` | Image generation logic with queue polling |
 | `src/hooks/useVideoGeneration.ts` | Video generation with model-specific parameters |
@@ -89,14 +102,18 @@ Models are fetched directly from `https://api.fal.ai/v1/models` rather than usin
 | `src/hooks/useGenerationMode.ts` | Generation mode/tab state management |
 | **Services** | |
 | `src/services/models.ts` | Direct HTTP fetch to fal.ai Models API |
+| `src/services/imageModels.ts` | Curated image model definitions and helpers |
 | `src/services/videoModels.ts` | Curated video model definitions and helpers |
 | `src/services/audioModels.ts` | Curated audio model definitions and helpers |
 | `src/services/openai.ts` | OpenAI Images API client for GPT models |
+| `src/services/openrouterImage.ts` | OpenRouter image generation client (Gemini, GPT fallback) |
 | `src/services/openrouter.ts` | OpenRouter API client for prompt optimization |
+| `src/services/openrouterAuth.ts` | OpenRouter OAuth PKCE authentication |
 | `src/services/errors.ts` | Error parsing utilities for user-friendly messages |
 | **Types** | |
 | `src/types/models.ts` | TypeScript types for model data |
 | `src/types/audio.ts` | Audio-specific types (voices, emotions) |
+| `src/types/openrouter.ts` | OpenRouter model types and filter utilities |
 | **Components** | |
 | `src/components/Sidebar.tsx` | Navigation sidebar for generation modes |
 | `src/components/ModelSelector.tsx` | Dropdown with refresh capability |
@@ -137,27 +154,38 @@ while (true) {
 
 Note: Type assertions (`as any`) are needed when accessing `logs` from status results due to @fal-ai/client type limitations.
 
-### OpenAI Direct Calls
+### GPT Image Model Routing
 
-GPT Image models bypass fal.ai and call OpenAI directly via the proxy:
+GPT Image models use cascading fallback routing based on available server keys:
 
-```typescript
-const response = await fetch('/api/openai/images', {
-    method: 'POST',
-    body: JSON.stringify({
-        openai_api_key: apiKey,  // Passed in body, not header
-        model: 'gpt-image-1.5',
-        prompt: '...',
-        size: '1024x1024',
-        quality: 'high',
-    }),
-});
-```
+| Priority | Backend | Model ID Format | When Used |
+|----------|---------|-----------------|-----------|
+| 1 | OpenAI direct | `gpt-image-1.5` | `OPENAI_API_KEY` configured |
+| 2 | fal.ai queue | `fal-ai/gpt-image-1.5` | `FAL_API_KEY` configured |
+| 3 | OpenRouter | `openai/gpt-5-image` | `OPENROUTER_API_KEY` or user OAuth |
+
+Helper functions in `services/imageModels.ts`:
+- `mapToOpenAIModelName()`: Maps fal.ai endpoint ID → OpenAI API model name
+- `mapToOpenRouterModelId()`: Maps OpenAI model name → OpenRouter model ID
+
+### Gemini Image Model Routing
+
+Gemini image models use cascading fallback routing, similar to GPT models:
+
+| Priority | Backend | Model ID Format | When Used |
+|----------|---------|-----------------|-----------|
+| 1 | fal.ai queue | `fal-ai/gemini-25-flash-image` | `FAL_API_KEY` configured |
+| 2 | OpenRouter | `google/gemini-2.5-flash-image` | `OPENROUTER_API_KEY` or user OAuth |
+
+Helper functions in `services/imageModels.ts`:
+- `isGeminiImageModel()`: Detects Gemini image models (fal.ai or OpenRouter format)
+- `mapGeminiToOpenRouterModelId()`: Maps fal.ai endpoint ID → OpenRouter model ID for fallback
 
 ### Model-Specific Config
 
 The `ModelConfigPanel` component renders different settings based on model type:
 - **GPT models** (`endpointId.includes('gpt-image')`): image size, quality, background options
+- **Gemini image models** (`gemini...image`): aspect ratio only
 - **Flux/other models**: safety tolerance, aspect ratio, guidance scale, seed, image-to-image settings
 
 ### Generation Modes
@@ -232,12 +260,15 @@ Audio generation is handled by `useAudioGeneration` hook with model-specific par
 
 ## API Keys
 
-**Server-side (environment variable)**:
-- `FAL_API_KEY`: Required for proxy server, injected into all fal.ai image, video, and audio requests
+**Server-side (environment variables)**:
+- `FAL_API_KEY`: Required for fal.ai models (Flux, video, audio), also fallback for GPT image models
+- `OPENAI_API_KEY`: Preferred for GPT Image models (direct, no queue), injected server-side by proxy
+- `OPENROUTER_API_KEY`: Fallback for Gemini image models, fallback for GPT models, fallback for prompt optimization
 
-**Client-side (localStorage via Settings modal)**:
-- `OPENAI_API_KEY`: Required only for GPT Image models (passed through proxy in request body)
-- `OPENROUTER_API_KEY`: Optional, enables the Prompt Optimizer feature
+**Client-side (OAuth)**:
+- **OpenRouter**: Users can authenticate via OAuth PKCE in Settings to use their own credits for prompt optimization and OpenRouter image generation. Falls back to the server's shared key.
+
+**Key availability** is reported by `/health` and consumed by `ServerKeysContext` to route GPT image models to the best available backend.
 
 The fal client uses proxy configuration: `fal.config({ proxyUrl: 'http://localhost:3001/api/fal/proxy' })`.
 

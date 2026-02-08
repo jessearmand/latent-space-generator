@@ -33,6 +33,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     const isImageToImage = selectedModel.supportsImageInput;
     const isGptModel = selectedModel.endpointId.includes('gpt-image') || selectedModel.endpointId.includes('gpt-5-image');
     const isGrokImageModel = selectedModel.endpointId.includes('grok-imagine-image');
+    const isGeminiImageModel = selectedModel.endpointId.includes('gemini') && selectedModel.endpointId.includes('image');
     const isQwenModel = selectedModel.endpointId.includes('qwen-image');
     const isQwenLayeredModel = selectedModel.endpointId.includes('qwen-image-layered');
 
@@ -55,6 +56,8 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                         <AudioConfigOptions selectedModel={selectedModel} />
                     ) : isVideoModel ? (
                         <VideoConfigOptions selectedModel={selectedModel} />
+                    ) : isGeminiImageModel ? (
+                        <GeminiImageConfigOptions config={config} selectedModel={selectedModel} />
                     ) : isGptModel ? (
                         <GptConfigOptions config={config} />
                     ) : isGrokImageModel ? (
@@ -378,6 +381,122 @@ interface GrokImageConfigOptionsProps {
  * - aspect_ratio: Grok's unique aspect ratios
  * - output_format: jpeg, png, or webp
  */
+interface GeminiImageConfigOptionsProps {
+    config: ReturnType<typeof useConfig>;
+    selectedModel: ModelConfig;
+}
+
+/**
+ * Config options for Gemini image models (fal.ai)
+ * Gemini 2.5 Flash: aspect_ratio, num_images, output_format
+ * Gemini 3 Pro: all of the above + safety_tolerance, seed, resolution, enable_web_search
+ */
+const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ config, selectedModel }) => {
+    const isGemini3Pro = selectedModel.endpointId.includes('gemini-3-pro');
+
+    const aspectRatios = isGemini3Pro
+        ? ['auto', '1:1', '21:9', '16:9', '3:2', '4:3', '5:4', '4:5', '3:4', '2:3', '9:16']
+        : ['1:1', '21:9', '16:9', '3:2', '4:3', '5:4', '4:5', '3:4', '2:3', '9:16'];
+
+    return (
+        <>
+            <div className="form-group">
+                <label htmlFor="gemini-aspect-ratio">Aspect Ratio:</label>
+                <select
+                    id="gemini-aspect-ratio"
+                    value={config.aspectRatio}
+                    onChange={(e) => config.setAspectRatio(e.target.value)}
+                >
+                    {aspectRatios.map((ratio) => (
+                        <option key={ratio} value={ratio}>{ratio}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="gemini-num-images">Number of Images:</label>
+                <select
+                    id="gemini-num-images"
+                    value={config.geminiNumImages}
+                    onChange={(e) => config.setGeminiNumImages(parseInt(e.target.value, 10))}
+                >
+                    {[1, 2, 3, 4].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                    ))}
+                </select>
+                <span className="hint"> (1-4 images per generation)</span>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="gemini-output-format">Output Format:</label>
+                <select
+                    id="gemini-output-format"
+                    value={config.geminiOutputFormat}
+                    onChange={(e) => config.setGeminiOutputFormat(e.target.value)}
+                >
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WebP</option>
+                </select>
+            </div>
+
+            {isGemini3Pro && (
+                <>
+                    <div className="form-group-divider">
+                        <span>Gemini 3 Pro Settings</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="gemini-safety-tolerance">Safety Tolerance:</label>
+                        <select
+                            id="gemini-safety-tolerance"
+                            value={config.safetyTolerance}
+                            onChange={(e) => config.setSafetyTolerance(e.target.value)}
+                        >
+                            {['1', '2', '3', '4', '5', '6'].map((val) => (
+                                <option key={val} value={val}>{val}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="gemini-seed">Seed (leave blank for random):</label>
+                        <input
+                            id="gemini-seed"
+                            type="number"
+                            value={config.seed !== null ? config.seed : ''}
+                            onChange={(e) => config.setSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="gemini-resolution">Resolution:</label>
+                        <select
+                            id="gemini-resolution"
+                            value={config.geminiResolution}
+                            onChange={(e) => config.setGeminiResolution(e.target.value)}
+                        >
+                            <option value="1K">1K</option>
+                            <option value="2K">2K</option>
+                            <option value="4K">4K</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="gemini-web-search">Enable Web Search:</label>
+                        <input
+                            id="gemini-web-search"
+                            type="checkbox"
+                            checked={config.geminiEnableWebSearch}
+                            onChange={(e) => config.setGeminiEnableWebSearch(e.target.checked)}
+                        />
+                    </div>
+                </>
+            )}
+        </>
+    );
+};
+
 const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config }) => {
     // Grok's unique aspect ratios
     const grokAspectRatios = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '20:9', '19.5:9', '9:19.5', '9:20', '1:2'];

@@ -318,8 +318,8 @@ label {
   font-style: italic;
 }
 
-/* Video model controls */
-.video-model-controls {
+/* Model controls (show all toggle and search) */
+.model-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;

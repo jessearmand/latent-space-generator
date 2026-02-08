@@ -13,6 +13,11 @@ export interface ConfigState {
   gptNumImages: number;
   gptQuality: string;
   gptBackground: string;
+  // Gemini image model settings
+  geminiNumImages: number;  // 1-4, number of images to generate
+  geminiOutputFormat: string;  // 'jpeg' | 'png' | 'webp'
+  geminiResolution: string;  // '1K' | '2K' | '4K' (Gemini 3 Pro only)
+  geminiEnableWebSearch: boolean;  // Enable web search (Gemini 3 Pro only)
   // Grok Imagine model settings
   grokNumImages: number;  // 1-4, number of images to generate
   grokOutputFormat: string;  // 'jpeg' | 'png' | 'webp'
@@ -85,6 +90,11 @@ interface ConfigContextType extends ConfigState {
   setGptNumImages: (value: number) => void;
   setGptQuality: (value: string) => void;
   setGptBackground: (value: string) => void;
+  // Gemini image model setters
+  setGeminiNumImages: (value: number) => void;
+  setGeminiOutputFormat: (value: string) => void;
+  setGeminiResolution: (value: string) => void;
+  setGeminiEnableWebSearch: (value: boolean) => void;
   // Grok Imagine model setters
   setGrokNumImages: (value: number) => void;
   setGrokOutputFormat: (value: string) => void;
@@ -159,6 +169,11 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [gptNumImages, setGptNumImages] = useState<number>(parseInt(localStorage.getItem('GPT_NUM_IMAGES') || '1', 10) || 1);
   const [gptQuality, setGptQuality] = useState<string>(localStorage.getItem('GPT_QUALITY') || 'auto');
   const [gptBackground, setGptBackground] = useState<string>(localStorage.getItem('GPT_BACKGROUND') || 'auto');
+  // Gemini image model settings
+  const [geminiNumImages, setGeminiNumImages] = useState<number>(parseInt(localStorage.getItem('GEMINI_NUM_IMAGES') || '1', 10));
+  const [geminiOutputFormat, setGeminiOutputFormat] = useState<string>(localStorage.getItem('GEMINI_OUTPUT_FORMAT') || 'png');
+  const [geminiResolution, setGeminiResolution] = useState<string>(localStorage.getItem('GEMINI_RESOLUTION') || '1K');
+  const [geminiEnableWebSearch, setGeminiEnableWebSearch] = useState<boolean>(localStorage.getItem('GEMINI_ENABLE_WEB_SEARCH') === 'true');
   // Grok Imagine model settings
   const [grokNumImages, setGrokNumImages] = useState<number>(parseInt(localStorage.getItem('GROK_NUM_IMAGES') || '1', 10));
   const [grokOutputFormat, setGrokOutputFormat] = useState<string>(localStorage.getItem('GROK_OUTPUT_FORMAT') || 'jpeg');
@@ -230,6 +245,11 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('GPT_NUM_IMAGES', gptNumImages.toString());
     localStorage.setItem('GPT_QUALITY', gptQuality);
     localStorage.setItem('GPT_BACKGROUND', gptBackground);
+    // Gemini image model persistence
+    localStorage.setItem('GEMINI_NUM_IMAGES', geminiNumImages.toString());
+    localStorage.setItem('GEMINI_OUTPUT_FORMAT', geminiOutputFormat);
+    localStorage.setItem('GEMINI_RESOLUTION', geminiResolution);
+    localStorage.setItem('GEMINI_ENABLE_WEB_SEARCH', geminiEnableWebSearch.toString());
     // Grok Imagine model persistence
     localStorage.setItem('GROK_NUM_IMAGES', grokNumImages.toString());
     localStorage.setItem('GROK_OUTPUT_FORMAT', grokOutputFormat);
@@ -287,7 +307,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('VIDEO_PREPROCESSOR', videoPreprocessor);
     // Audio understanding persistence
     localStorage.setItem('AUDIO_DETAILED_ANALYSIS', audioDetailedAnalysis.toString());
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis]);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, geminiNumImages, geminiOutputFormat, geminiResolution, geminiEnableWebSearch, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis]);
 
   return (
     <ConfigContext.Provider value={{
@@ -303,6 +323,10 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       gptNumImages, setGptNumImages,
       gptQuality, setGptQuality,
       gptBackground, setGptBackground,
+      geminiNumImages, setGeminiNumImages,
+      geminiOutputFormat, setGeminiOutputFormat,
+      geminiResolution, setGeminiResolution,
+      geminiEnableWebSearch, setGeminiEnableWebSearch,
       grokNumImages, setGrokNumImages,
       grokOutputFormat, setGrokOutputFormat,
       numLayers, setNumLayers,

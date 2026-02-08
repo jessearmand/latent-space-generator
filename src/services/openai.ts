@@ -7,7 +7,7 @@ const OPENAI_PROXY_URL = 'http://localhost:3001/api/openai/images';
 
 export interface OpenAIImageParams {
     prompt: string;
-    model?: 'gpt-5-image' | 'gpt-5-image-mini' | 'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
+    model?: 'gpt-image-1.5' | 'gpt-image-1' | 'gpt-image-1-mini';
     size?: '1024x1024' | '1536x1024' | '1024x1536' | 'auto';
     quality?: 'low' | 'medium' | 'high' | 'auto';
     background?: 'transparent' | 'opaque' | 'auto';
@@ -48,7 +48,7 @@ export async function generateOpenAIImage(
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model: params.model || 'gpt-5-image',
+            model: params.model || 'gpt-image-1.5',
             prompt: params.prompt,
             size: params.size || 'auto',
             quality: params.quality || 'auto',
