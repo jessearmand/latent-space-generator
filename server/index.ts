@@ -8,6 +8,7 @@ import { streamText } from "ai";
 
 const FAL_API_KEY = process.env.FAL_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PORT = 3001;
 
 // Base system prompt for image generation prompt optimization
@@ -191,15 +192,14 @@ Bun.serve({
             }
 
             try {
-                const body = await req.json();
-                const { openai_api_key, ...imageParams } = body;
-
-                if (!openai_api_key) {
+                if (!OPENAI_API_KEY) {
                     return new Response(
-                        JSON.stringify({ error: "Missing openai_api_key in request body" }),
-                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        JSON.stringify({ error: "OPENAI_API_KEY environment variable not set on server" }),
+                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                     );
                 }
+
+                const imageParams = await req.json();
 
                 console.log(`[OpenAI] Generating image with model: ${imageParams.model}`);
 
@@ -207,7 +207,7 @@ Bun.serve({
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${openai_api_key}`,
+                        "Authorization": `Bearer ${OPENAI_API_KEY}`,
                     },
                     body: JSON.stringify(imageParams),
                 });
@@ -288,16 +288,19 @@ Bun.serve({
                 );
             }
 
-            if (!OPENROUTER_API_KEY) {
-                return new Response(
-                    JSON.stringify({ error: "OPENROUTER_API_KEY environment variable not set on server" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
-            }
-
             try {
                 const body = await req.json();
-                const { prompt, model, format = "plain" } = body;
+                const { prompt, model, format = "plain", openrouter_user_key } = body;
+
+                // Use user's OAuth key if provided, otherwise fall back to server key
+                const apiKey = openrouter_user_key || OPENROUTER_API_KEY;
+
+                if (!apiKey) {
+                    return new Response(
+                        JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
+                        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
 
                 if (!prompt) {
                     return new Response(
@@ -320,7 +323,7 @@ Bun.serve({
                 console.log(`[OpenRouter] Streaming completion with model: ${model}, format: ${validFormat}`);
 
                 const openrouter = createOpenRouter({
-                    apiKey: OPENROUTER_API_KEY,
+                    apiKey,
                     headers: {
                         "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
                         "X-Title": "latent-space-generator",
@@ -369,3 +372,4 @@ Bun.serve({
 console.log(`Proxy server running on http://localhost:${PORT}`);
 console.log(`FAL_API_KEY configured: ${FAL_API_KEY ? "Yes" : "No"}`);
 console.log(`OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? "Yes" : "No"}`);
+console.log(`OPENAI_API_KEY configured: ${OPENAI_API_KEY ? "Yes" : "No"}`);

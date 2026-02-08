@@ -10,7 +10,6 @@ import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
 
 export interface UseImageGenerationParams {
-    openaiApiKey: string;
     activeTab: GenerationMode;
     uploadedImages: File[];
     config: ConfigState;
@@ -29,7 +28,6 @@ export interface UseImageGenerationReturn {
  * Handles queue submission, polling, and result extraction.
  */
 export function useImageGeneration({
-    openaiApiKey,
     activeTab,
     uploadedImages,
     config,
@@ -47,7 +45,7 @@ export function useImageGeneration({
 
         const modelId = model.endpointId;
         const modelName = model.displayName;
-        const isGptModel = modelId.includes('gpt-image');
+        const isGptModel = modelId.includes('gpt-image') || modelId.includes('gpt-5-image');
         const isGrokModel = modelId.includes('grok-imagine-image');
         const supportsImageInput = model.supportsImageInput;
 
@@ -154,23 +152,19 @@ export function useImageGeneration({
         }
 
         // GPT models use direct OpenAI API calls (not through fal.ai)
+        // API key is injected server-side by the proxy
         if (isGptModel) {
-            if (!openaiApiKey) {
-                setStatus('OPENAI_API_KEY is required for GPT Image models.', 'error');
-                console.error('OPENAI_API_KEY is missing for GPT Image model.');
-                setIsGenerating(false);
-                return;
-            }
-
             try {
                 setStatus(`Generating image with OpenAI ${modelName}...`);
 
                 // Map model endpoint to OpenAI model name
-                let openaiModel: OpenAIImageParams['model'] = 'gpt-image-1.5';
-                if (modelId.includes('gpt-image-1-mini')) {
-                    openaiModel = 'gpt-image-1-mini';
+                let openaiModel: OpenAIImageParams['model'] = 'gpt-5-image';
+                if (modelId.includes('gpt-5-image-mini') || modelId.includes('gpt-image-1-mini')) {
+                    openaiModel = 'gpt-5-image-mini';
+                } else if (modelId.includes('gpt-image-1.5')) {
+                    openaiModel = 'gpt-5-image';  // Map old 1.5 to new 5
                 } else if (modelId.includes('gpt-image-1') && !modelId.includes('gpt-image-1.5')) {
-                    openaiModel = 'gpt-image-1';
+                    openaiModel = 'gpt-5-image-mini';  // Map old 1 to mini
                 }
 
                 const params: OpenAIImageParams = {
@@ -185,7 +179,7 @@ export function useImageGeneration({
 
                 console.log(`Calling OpenAI directly with params:`, params);
 
-                const response = await generateOpenAIImage(openaiApiKey, params);
+                const response = await generateOpenAIImage(params);
 
                 if (response.data?.[0]?.b64_json) {
                     const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
@@ -344,7 +338,7 @@ export function useImageGeneration({
         } finally {
             setIsGenerating(false);
         }
-    }, [openaiApiKey, activeTab, uploadedImages, config, setStatus]);
+    }, [activeTab, uploadedImages, config, setStatus]);
 
     const clearImages = useCallback(() => {
         setImageUrls([]);
