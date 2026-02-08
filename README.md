@@ -1,4 +1,4 @@
-# fal.ai Generator
+# Latent Space Generator
 
 A React single-page application for AI media generation using multiple providers including fal.ai and OpenAI.
 
