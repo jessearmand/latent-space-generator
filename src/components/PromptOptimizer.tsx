@@ -7,6 +7,7 @@ import type React from "react";
 import { useState, useCallback, useRef } from "react";
 import { useCompletion } from "@ai-sdk/react";
 import { useOpenRouter } from "../contexts/OpenRouterContext";
+import { useOpenRouterAuth } from "../contexts/OpenRouterAuthContext";
 import type { OpenRouterModel } from "../types/openrouter";
 import { getProviderFromId } from "../types/openrouter";
 import "./PromptOptimizer.css";
@@ -41,10 +42,14 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         refreshModels,
     } = useOpenRouter();
 
-    // Use ref to track current model for the custom fetch function
+    const { userApiKey } = useOpenRouterAuth();
+
+    // Use refs to track current values for the custom fetch function
     // This avoids stale closure issues with useCompletion's body option
     const selectedModelRef = useRef<OpenRouterModel | null>(selectedModel);
     selectedModelRef.current = selectedModel;
+    const userApiKeyRef = useRef<string | null>(userApiKey);
+    userApiKeyRef.current = userApiKey;
 
     // Vercel AI SDK useCompletion hook with custom fetch to inject current model
     const {
@@ -57,12 +62,16 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         api: "/api/openrouter/completion",
         // Use streamProtocol: 'text' to match server's toTextStreamResponse()
         streamProtocol: "text",
-        // Custom fetch to inject the current model at request time (backup for ref)
+        // Custom fetch to inject the current model and user key at request time
         fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
             const body = JSON.parse((init?.body as string) || "{}");
             // Use ref as fallback if model not already in body
             if (!body.model) {
                 body.model = selectedModelRef.current?.id;
+            }
+            // Inject user's OAuth key if available
+            if (userApiKeyRef.current) {
+                body.openrouter_user_key = userApiKeyRef.current;
             }
             return fetch(url, {
                 ...init,
