@@ -5,6 +5,7 @@ import { fal } from '@fal-ai/client';
 import './App.css';
 import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
+import { useServerKeys } from './contexts/ServerKeysContext';
 import { useOpenRouterAuth } from './contexts/OpenRouterAuthContext';
 import { Sidebar } from './components/Sidebar';
 import { isVideoMode, isAudioMode } from './components/GenerationTabs';
@@ -69,6 +70,8 @@ const AppContent: React.FC = () => {
     const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
 
     const config = useConfig();
+    const { serverKeys, isLoaded: serverKeysLoaded } = useServerKeys();
+    const { userApiKey: openRouterUserKey } = useOpenRouterAuth();
     const { selectedModel, selectedVideoModel, selectedAudioModel, isLoading: modelsLoading } = useModels();
 
     // Custom hooks for separated concerns
@@ -93,6 +96,9 @@ const AppContent: React.FC = () => {
         uploadedImages,
         config,
         setStatus,
+        serverKeys,
+        serverKeysLoaded,
+        openRouterUserKey,
     });
 
     // Video generation hook
