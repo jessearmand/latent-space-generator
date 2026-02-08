@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-React single-page application for AI media generation. Supports multiple providers and generation modes:
+Latent Space Generator — React single-page application for AI media generation. Supports multiple providers and generation modes:
 - **fal.ai image models**: Flux, SDXL, Flux 2 [klein], and other image generation models via `@fal-ai/client`
 - **fal.ai video models**: Kling, Veo, LTX-2, MiniMax Hailuo, Hunyuan, and more
 - **fal.ai audio models**: MiniMax TTS, Chatterbox, Beatoven, ElevenLabs SFX, and more

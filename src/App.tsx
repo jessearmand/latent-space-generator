@@ -113,7 +113,7 @@ const AppContent: React.FC = () => {
     return (
         <div className="app-container">
             <header className="app-header">
-                <h1>fal.ai Generator</h1>
+                <h1>Latent Space Generator</h1>
                 <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
             </header>
 

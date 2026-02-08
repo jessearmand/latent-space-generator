@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Shutdown script for fal-generator-ts
+# Shutdown script for latent-space-generator
 # Terminates any processes running on ports 3000 (Vite) and 3001 (proxy server)
 
 PORTS=(3000 3001)
