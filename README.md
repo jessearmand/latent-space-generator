@@ -5,7 +5,7 @@ A React single-page application for AI media generation using multiple providers
 ## Features
 
 ### Image Generation
-- **Multiple AI Providers**: Generate images using fal.ai models (Flux, SDXL, etc.) or OpenAI GPT Image models
+- **Multiple AI Providers**: Generate images using fal.ai models (Flux, SDXL, Gemini, etc.), OpenAI GPT Image models, or OpenRouter (fallback)
 - **Dynamic Model Discovery**: Automatically fetches available models from the fal.ai API
 - **Image-to-Image**: Upload reference images for supported models (up to 8 images for Flux edit models)
 - **Clipboard Paste**: Paste images directly from clipboard for image-to-image mode
@@ -35,7 +35,8 @@ A React single-page application for AI media generation using multiple providers
 
 - [Bun](https://bun.sh/) runtime
 - A [fal.ai](https://fal.ai/) API key
-- (Optional) An [OpenAI](https://platform.openai.com/) API key for GPT Image models
+- An [OpenAI](https://platform.openai.com/) API key for GPT Image models (server-side env var)
+- (Optional) An [OpenRouter](https://openrouter.ai/) API key for prompt optimization fallback (server-side env var)
 
 ## Installation
 
@@ -45,15 +46,19 @@ bun install
 
 ## Configuration
 
-Create a `.env` file or set the environment variable:
+Create a `.env` file or set the environment variables:
 
 ```bash
 export FAL_API_KEY=your_fal_api_key_here
+export OPENAI_API_KEY=your_openai_api_key_here
+export OPENROUTER_API_KEY=your_openrouter_api_key_here  # Optional fallback
 ```
 
-Additional API keys can be configured in the Settings modal within the app:
-- **OpenAI API Key**: Required for GPT Image models
-- **OpenRouter API Key**: Optional, enables the Prompt Optimizer feature
+- `FAL_API_KEY` — Required for fal.ai image/video/audio generation, also fallback for GPT models
+- `OPENAI_API_KEY` — Preferred for GPT Image models (direct, no queue)
+- `OPENROUTER_API_KEY` — Fallback for Gemini image models, fallback for GPT models, fallback for prompt optimization
+
+OpenRouter authentication can also be configured in Settings via OAuth login.
 
 ## Usage
 
@@ -120,17 +125,21 @@ bun run build         # Production build
 │  (localhost:3000)│     │  (localhost:3001) │     │ (image/video/   │
 └──────────────────┘     └───────────────────┘     │     audio)      │
                                   │                └─────────────────┘
-                                  ▼
-                          ┌─────────────────┐
-                          │   OpenAI API    │
-                          │  (GPT Image)    │
-                          └─────────────────┘
+                                  ├───────────────▶┌─────────────────┐
+                                  │                │   OpenAI API    │
+                                  │                │  (GPT Image)    │
+                                  │                └─────────────────┘
+                                  └───────────────▶┌─────────────────┐
+                                                   │ OpenRouter API  │
+                                                   │(Prompt Optimize)│
+                                                   └─────────────────┘
 ```
 
 - **React Client**: User interface with sidebar navigation, model selection, and media display
 - **Bun Proxy Server**: Handles API key injection and CORS for browser requests
 - **fal.ai API**: Queue-based generation for images, videos, and audio
 - **OpenAI API**: Direct image generation for GPT Image models
+- **OpenRouter API**: AI-powered prompt optimization with streaming, Gemini/GPT image generation fallback
 
 ## Supported Models
 
@@ -141,10 +150,13 @@ bun run build         # Production build
 - Qwen Image Layered
 - And many more (dynamically loaded from API)
 
-### Image Models (OpenAI)
-- GPT Image 1
-- GPT Image 1 Mini
-- GPT Image 1.5
+### Image Models (OpenAI / fal.ai / OpenRouter)
+- GPT Image 1.5 (routes: OpenAI direct → fal.ai → OpenRouter)
+- GPT Image 1 Mini (routes: OpenAI direct → fal.ai → OpenRouter)
+
+### Image Models (fal.ai / OpenRouter)
+- Gemini 2.5 Flash Image (routes: fal.ai → OpenRouter)
+- Gemini 3 Pro Image (routes: fal.ai → OpenRouter)
 
 ### Video Models (fal.ai)
 - **Kling**: 2.5 Turbo Pro, 2.0 Master, 1.6 Pro (text-to-video and image-to-video)
@@ -182,7 +194,10 @@ src/
 │   ├── PromptOptimizer.tsx        # OpenRouter-powered prompt enhancement
 │   └── DownloadButton.tsx         # Download button for results
 ├── contexts/
-│   └── ModelsContext.tsx          # Model state management
+│   ├── ModelsContext.tsx          # Model state management
+│   ├── ServerKeysContext.tsx      # Server API key availability
+│   ├── OpenRouterAuthContext.tsx  # OpenRouter OAuth PKCE auth state
+│   └── OpenRouterContext.tsx      # OpenRouter model selection & caching
 ├── hooks/
 │   ├── useImageGeneration.ts      # Image generation logic
 │   ├── useVideoGeneration.ts      # Video generation logic
@@ -192,14 +207,18 @@ src/
 │   └── useStatusMessage.ts        # Status message state
 ├── services/
 │   ├── models.ts                  # fal.ai Models API client
+│   ├── imageModels.ts             # Curated image model definitions
 │   ├── videoModels.ts             # Video model definitions
 │   ├── audioModels.ts             # Audio model definitions
 │   ├── openai.ts                  # OpenAI Images API client
+│   ├── openrouterImage.ts         # OpenRouter image generation client
 │   ├── openrouter.ts              # OpenRouter API for prompt optimization
+│   ├── openrouterAuth.ts          # OpenRouter OAuth PKCE authentication
 │   └── errors.ts                  # Error parsing utilities
 └── types/
     ├── models.ts                  # TypeScript type definitions
-    └── audio.ts                   # Audio-specific types
+    ├── audio.ts                   # Audio-specific types
+    └── openrouter.ts              # OpenRouter model types
 
 server/
 └── index.ts                       # Bun proxy server

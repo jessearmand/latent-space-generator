@@ -3,18 +3,26 @@ import { fal } from '@fal-ai/client';
 import type { GenerationMode } from '../components/GenerationTabs';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
-import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from '../services/openai';
+import type { ServerKeys } from '../contexts/ServerKeysContext';
+import { isGptImageModel, isGeminiImageModel } from '../services/imageModels';
 import { parseFalError } from '../services/errors';
-import { getImageInputConfig } from '../services/modelParams';
-import { sanitizeLogMessage } from '../utils/logSanitizer';
+import { submitAndPollFalQueue } from '../services/falQueue';
+import {
+    buildGrokImageInput,
+    buildGenericImageInput,
+    buildImageInputParams,
+} from '../services/imageInputBuilders';
+import { routeGeminiImage, routeGptImage } from '../services/imageRouting';
 import type { StatusType } from './useStatusMessage';
 
 export interface UseImageGenerationParams {
-    openaiApiKey: string;
     activeTab: GenerationMode;
     uploadedImages: File[];
     config: ConfigState;
     setStatus: (message: string, type?: StatusType) => void;
+    serverKeys: ServerKeys;
+    serverKeysLoaded: boolean;
+    openRouterUserKey: string | null;
 }
 
 export interface UseImageGenerationReturn {
@@ -24,16 +32,32 @@ export interface UseImageGenerationReturn {
     clearImages: () => void;
 }
 
+async function uploadImages(
+    files: File[],
+    modelName: string,
+    setStatus: (message: string, type?: StatusType) => void,
+): Promise<string[]> {
+    const imageCount = files.length;
+    setStatus(`Uploading ${imageCount} image${imageCount > 1 ? 's' : ''} for ${modelName}...`);
+    const uploadPromises = files.map(file => fal.storage.upload(file));
+    const uploadResults = await Promise.all(uploadPromises);
+    console.log(`${imageCount} image(s) uploaded successfully:`, uploadResults);
+    setStatus(`Image${imageCount > 1 ? 's' : ''} uploaded. Submitting request for ${modelName}...`);
+    return uploadResults;
+}
+
 /**
  * Hook for image generation using fal.ai and OpenAI APIs.
  * Handles queue submission, polling, and result extraction.
  */
 export function useImageGeneration({
-    openaiApiKey,
     activeTab,
     uploadedImages,
     config,
     setStatus,
+    serverKeys,
+    serverKeysLoaded,
+    openRouterUserKey,
 }: UseImageGenerationParams): UseImageGenerationReturn {
     const [imageUrls, setImageUrls] = useState<string[]>([]);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -45,13 +69,19 @@ export function useImageGeneration({
             return;
         }
 
+        if (!serverKeysLoaded) {
+            setStatus('Waiting for server configuration...', 'error');
+            console.warn('generateImage called before server keys loaded');
+            return;
+        }
+
         const modelId = model.endpointId;
         const modelName = model.displayName;
-        const isGptModel = modelId.includes('gpt-image');
+        const isGptModel = isGptImageModel(modelId);
         const isGrokModel = modelId.includes('grok-imagine-image');
+        const isGeminiModel = isGeminiImageModel(modelId);
         const supportsImageInput = model.supportsImageInput;
 
-        // For image-to-image mode, require at least one uploaded image
         if (activeTab === 'image-to-image' && supportsImageInput && uploadedImages.length === 0) {
             setStatus('Please upload an image for image-to-image generation.', 'error');
             return;
@@ -59,33 +89,20 @@ export function useImageGeneration({
 
         setIsGenerating(true);
         console.log(`Generating image with model: ${modelName}`);
-
         setStatus(`Submitting request for image generation using ${modelName}...`);
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
-        // Grok Imagine models use fal.ai queue with specific parameters
+        // Grok Imagine models — fal.ai queue only
         if (isGrokModel) {
             setStatus(`Generating image with ${modelName}...`);
 
-            // Build Grok-specific input
-            const grokInput: Record<string, unknown> = {
-                prompt,
-                num_images: config.grokNumImages,
-                output_format: config.grokOutputFormat,
-            };
-
-            // Add aspect ratio (Grok has unique options)
-            if (config.aspectRatio) {
-                grokInput.aspect_ratio = config.aspectRatio;
-            }
-
-            // For image editing mode, add image_url
+            // Upload image for edit mode
+            let imageUrl: string | undefined;
             if (activeTab === 'image-to-image' && supportsImageInput && uploadedImages.length > 0) {
                 try {
                     setStatus(`Uploading image for ${modelName}...`);
-                    const uploadedUrl = await fal.storage.upload(uploadedImages[0]);
-                    grokInput.image_url = uploadedUrl;
-                    console.log('Image uploaded for Grok:', uploadedUrl);
+                    imageUrl = await fal.storage.upload(uploadedImages[0]);
+                    console.log('Image uploaded for Grok:', imageUrl);
                     setStatus(`Image uploaded. Submitting request for ${modelName}...`);
                 } catch (uploadError: unknown) {
                     const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
@@ -97,46 +114,24 @@ export function useImageGeneration({
             }
 
             try {
+                const grokInput = buildGrokImageInput(prompt, config, imageUrl);
                 console.log(`Grok input sent to API:`, grokInput);
 
-                const submitResult = await fal.queue.submit(modelId, {
+                const result = await submitAndPollFalQueue({
+                    modelId,
                     input: grokInput,
+                    onStatus: (msg) => setStatus(msg),
                 });
-                const requestId = submitResult.request_id;
-                console.log(`Grok request submitted. Request ID: ${requestId}`);
-                setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
-                // Poll until complete
-                while (true) {
-                    const statusResult = await fal.queue.status(modelId, {
-                        requestId,
-                        logs: true,
-                    });
-                    console.log(`Grok status update for request ID ${requestId}:`, statusResult.status);
-                    if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
-                        const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                        const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
-                        setStatus(`Request is ${statusResult.status}: ${latestLog}`);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    } else if (statusResult.status === "COMPLETED") {
-                        const result = await fal.queue.result(modelId, { requestId });
-                        console.log(`Grok request completed. Full result:`, result);
-                        if (result.data.images?.length > 0) {
-                            const urls = result.data.images.map((img: { url: string }) => img.url);
-                            console.log(`${urls.length} Grok image(s) received:`, urls);
-                            setImageUrls(urls);
-                            setStatus(`Image generated successfully using ${modelName}!`, 'success');
-                        } else {
-                            setStatus('Image generation failed. No image URL found in result.', 'error');
-                            console.error('No image URL in Grok result:', result);
-                        }
-                        break;
-                    } else {
-                        const status = (statusResult as { status: string }).status;
-                        setStatus(`Request failed with status: ${status}`, 'error');
-                        console.error(`Grok request failed with status ${status}:`, statusResult);
-                        break;
-                    }
+                const images = result.data.images as Array<{ url: string }> | undefined;
+                if (images && images.length > 0) {
+                    const urls = images.map((img) => img.url);
+                    console.log(`${urls.length} Grok image(s) received:`, urls);
+                    setImageUrls(urls);
+                    setStatus(`Image generated successfully using ${modelName}!`, 'success');
+                } else {
+                    setStatus('Image generation failed. No image URL found in result.', 'error');
+                    console.error('No image URL in Grok result:', result);
                 }
             } catch (error: unknown) {
                 console.error('Grok image generation error:', error);
@@ -150,84 +145,89 @@ export function useImageGeneration({
             } finally {
                 setIsGenerating(false);
             }
-            return; // Exit early for Grok models
+            return;
         }
 
-        // GPT models use direct OpenAI API calls (not through fal.ai)
-        if (isGptModel) {
-            if (!openaiApiKey) {
-                setStatus('OPENAI_API_KEY is required for GPT Image models.', 'error');
-                console.error('OPENAI_API_KEY is missing for GPT Image model.');
-                setIsGenerating(false);
-                return;
+        // Gemini image models — cascading routing: fal.ai -> OpenRouter
+        if (isGeminiModel) {
+            // Upload images for edit mode (only needed for fal.ai route)
+            let geminiImageUrls: string[] | undefined;
+            if (activeTab === 'image-to-image' && supportsImageInput && uploadedImages.length > 0 && serverKeys.fal) {
+                try {
+                    setStatus(`Uploading image for ${modelName}...`);
+                    const uploadPromises = uploadedImages.map(file => fal.storage.upload(file));
+                    geminiImageUrls = await Promise.all(uploadPromises);
+                    console.log('Images uploaded for Gemini edit:', geminiImageUrls);
+                    setStatus(`Image uploaded. Submitting request for ${modelName}...`);
+                } catch (uploadError: unknown) {
+                    const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                    setStatus(errorMsg, 'error');
+                    console.error(errorMsg);
+                    setIsGenerating(false);
+                    return;
+                }
             }
 
             try {
-                setStatus(`Generating image with OpenAI ${modelName}...`);
-
-                // Map model endpoint to OpenAI model name
-                let openaiModel: OpenAIImageParams['model'] = 'gpt-image-1.5';
-                if (modelId.includes('gpt-image-1-mini')) {
-                    openaiModel = 'gpt-image-1-mini';
-                } else if (modelId.includes('gpt-image-1') && !modelId.includes('gpt-image-1.5')) {
-                    openaiModel = 'gpt-image-1';
-                }
-
-                const params: OpenAIImageParams = {
+                const result = await routeGeminiImage(modelId, modelName, {
                     prompt,
-                    model: openaiModel,
-                    size: config.gptImageSize as OpenAIImageParams['size'],
-                    quality: config.gptQuality as OpenAIImageParams['quality'],
-                    background: config.gptBackground as OpenAIImageParams['background'],
-                    n: config.gptNumImages,
-                    output_format: 'png',
-                };
+                    config,
+                    serverKeys,
+                    openRouterUserKey,
+                    onStatus: (msg) => setStatus(msg),
+                }, geminiImageUrls);
 
-                console.log(`Calling OpenAI directly with params:`, params);
-
-                const response = await generateOpenAIImage(openaiApiKey, params);
-
-                if (response.data?.[0]?.b64_json) {
-                    const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
-                    console.log(`OpenAI image generated successfully`);
-                    setImageUrls([dataUrl]);
-                    setStatus(`Image generated successfully using ${modelName}!`, 'success');
-
-                    if (response.usage) {
-                        console.log(`Token usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}, Total: ${response.usage.total_tokens}`);
-                    }
-                } else {
-                    setStatus('OpenAI response missing image data', 'error');
-                    console.error('OpenAI response missing image data', response);
-                }
+                setImageUrls(result.urls);
+                setStatus(`Image generated successfully using ${modelName}!`, 'success');
             } catch (error: unknown) {
-                const errorMsg = `OpenAI error: ${error instanceof Error ? error.message : String(error)}`;
-                setStatus(errorMsg, 'error');
-                console.error(errorMsg, error);
+                console.error('Gemini image generation error:', error);
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                // Check if this is a fal.ai error for better formatting
+                if (errorMsg.includes('fal.ai') || errorMsg.includes('Request failed with status')) {
+                    setStatus(parseFalError(error), 'error');
+                } else {
+                    setStatus(errorMsg, 'error');
+                }
             } finally {
                 setIsGenerating(false);
             }
-
-            return; // Exit early for GPT models - don't use fal.ai queue
+            return;
         }
 
-        // Get image input configuration for this model
-        const imageConfig = getImageInputConfig(modelId);
+        // GPT models — cascading routing: OpenAI direct -> fal.ai -> OpenRouter
+        if (isGptModel) {
+            try {
+                const result = await routeGptImage(modelId, modelName, {
+                    prompt,
+                    config,
+                    serverKeys,
+                    openRouterUserKey,
+                    onStatus: (msg) => setStatus(msg),
+                });
+
+                setImageUrls(result.urls);
+                setStatus(`Image generated successfully using ${modelName}!`, 'success');
+            } catch (error: unknown) {
+                console.error('GPT image generation error:', error);
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                if (errorMsg.includes('fal.ai') || errorMsg.includes('Request failed with status')) {
+                    setStatus(parseFalError(error), 'error');
+                } else {
+                    setStatus(errorMsg, 'error');
+                }
+            } finally {
+                setIsGenerating(false);
+            }
+            return;
+        }
+
+        // Generic models (Flux, Qwen, etc.) — fal.ai queue
         const uploadedImageUrls: string[] = [];
 
-        // For other models (Flux, etc.), handle image upload if supported
         if (supportsImageInput && uploadedImages.length > 0) {
             try {
-                const imageCount = uploadedImages.length;
-                setStatus(`Uploading ${imageCount} image${imageCount > 1 ? 's' : ''} for ${modelName}...`);
-
-                // Upload all images in parallel
-                const uploadPromises = uploadedImages.map(file => fal.storage.upload(file));
-                const uploadResults = await Promise.all(uploadPromises);
-                uploadedImageUrls.push(...uploadResults);
-
-                console.log(`${imageCount} image(s) uploaded successfully:`, uploadedImageUrls);
-                setStatus(`Image${imageCount > 1 ? 's' : ''} uploaded. Submitting request for ${modelName}...`);
+                const urls = await uploadImages(uploadedImages, modelName, setStatus);
+                uploadedImageUrls.push(...urls);
             } catch (uploadError: unknown) {
                 const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
                 setStatus(errorMsg, 'error');
@@ -237,103 +237,35 @@ export function useImageGeneration({
             }
         }
 
-        // Build image input params based on model type
         const imageInputParams = supportsImageInput && uploadedImageUrls.length > 0
-            ? {
-                [imageConfig.paramName]: imageConfig.isArray
-                    ? uploadedImageUrls  // Pass all URLs as array
-                    : uploadedImageUrls[0],  // Pass first URL as string
-                ...(imageConfig.strengthParam
-                    ? { [imageConfig.strengthParam]: config.imagePromptStrength }
-                    : {}),
-            }
+            ? buildImageInputParams(modelId, config, uploadedImageUrls)
             : {};
 
-        // Build model-specific params
-        const isQwenLayered = modelId.includes('qwen-image-layered');
-        const isQwenModel = modelId.includes('qwen-image');
-
-        // Qwen Image Layered specific params
-        const layerParams = isQwenLayered ? {
-            num_layers: config.numLayers,
-        } : {};
-
-        // Acceleration is available for multiple Qwen models
-        const accelerationParams = isQwenModel ? {
-            acceleration: config.acceleration,
-        } : {};
-
-        const input = {
-            prompt,
-            safety_tolerance: config.safetyTolerance,
-            aspect_ratio: config.aspectRatio,
-            image_size: config.imageSize,
-            raw: config.raw,
-            enable_safety_checker: config.enableSafetyChecker,
-            seed: config.seed,
-            guidance_scale: config.guidanceScale,
-            ...imageInputParams,
-            ...layerParams,
-            ...accelerationParams,
-        };
+        const input = buildGenericImageInput(prompt, config, modelId, imageInputParams);
 
         try {
-            // Log the input being sent to the API for debugging
             console.log(`Input sent to API for model ${modelName}:`, input);
 
-            // Step 1: Submit the request and get request ID
-            const submitResult = await fal.queue.submit(modelId, {
-                input: input,
+            const result = await submitAndPollFalQueue({
+                modelId,
+                input,
+                onStatus: (msg) => setStatus(msg),
             });
-            const requestId = submitResult.request_id;
-            console.log(`Request submitted successfully. Request ID: ${requestId}`);
-            setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
-            // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
-            while (true) {
-                const statusResult = await fal.queue.status(modelId, {
-                    requestId,
-                    logs: true,
-                });
-                console.log(`Status update for request ID ${requestId}:`, statusResult.status);
-                if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
-                    const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
-                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
-                    console.log(`Status logs:`, logs?.map((log) => log.message));
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                } else if (statusResult.status === "COMPLETED") {
-                    const result = await fal.queue.result(modelId, {
-                        requestId,
-                    });
-                    console.log(`Request completed. Full result:`, result);
-                    if (result.data.images?.length > 0) {
-                        // Handle multi-image response (e.g., qwen-image-layered returns layers)
-                        const urls = result.data.images.map((img: { url: string }) => img.url);
-                        console.log(`${urls.length} image(s) received:`, urls);
-                        setImageUrls(urls);
-                        const layerMsg = urls.length > 1 ? ` (${urls.length} layers)` : '';
-                        setStatus(`Image generated successfully using ${modelName}!${layerMsg}`, 'success');
-                    } else {
-                        setStatus('Image generation failed. No image URL found in result.', 'error');
-                        console.error('No image URL in result:', result);
-                    }
-                    break;
-                } else {
-                    // Handle unexpected status (e.g., FAILED or unknown)
-                    const status = (statusResult as { status: string }).status;
-                    setStatus(`Request failed with status: ${status}`, 'error');
-                    console.error(`Request failed with status ${status}:`, statusResult);
-                    break;
-                }
+            const images = result.data.images as Array<{ url: string }> | undefined;
+            if (images && images.length > 0) {
+                const urls = images.map((img) => img.url);
+                console.log(`${urls.length} image(s) received:`, urls);
+                setImageUrls(urls);
+                const layerMsg = urls.length > 1 ? ` (${urls.length} layers)` : '';
+                setStatus(`Image generated successfully using ${modelName}!${layerMsg}`, 'success');
+            } else {
+                setStatus('Image generation failed. No image URL found in result.', 'error');
+                console.error('No image URL in result:', result);
             }
         } catch (error: unknown) {
             console.error('Image generation error:', error);
-
-            // Parse the error to get a user-friendly message
             const parsedError = parseFalError(error);
-
-            // Check for authentication errors
             const rawMessage = error instanceof Error ? error.message : String(error);
             if (rawMessage.includes("401") || rawMessage.includes("Unauthorized")) {
                 console.error("Authentication error detected. The API key may be invalid or not applied correctly.");
@@ -344,7 +276,7 @@ export function useImageGeneration({
         } finally {
             setIsGenerating(false);
         }
-    }, [openaiApiKey, activeTab, uploadedImages, config, setStatus]);
+    }, [activeTab, uploadedImages, config, setStatus, serverKeys, serverKeysLoaded, openRouterUserKey]);
 
     const clearImages = useCallback(() => {
         setImageUrls([]);

@@ -5,6 +5,8 @@ import { fal } from '@fal-ai/client';
 import './App.css';
 import { useConfig } from './config';
 import { ModelsProvider, useModels } from './contexts/ModelsContext';
+import { useServerKeys } from './contexts/ServerKeysContext';
+import { useOpenRouterAuth } from './contexts/OpenRouterAuthContext';
 import { Sidebar } from './components/Sidebar';
 import { isVideoMode, isAudioMode } from './components/GenerationTabs';
 import { InputSection } from './components/InputSection';
@@ -18,18 +20,58 @@ import {
     useAudioGeneration,
 } from './hooks';
 
+/** Settings modal with OpenRouter OAuth and server-side API key info */
+const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+    const { isAuthenticated, login, logout, isLoading: authLoading, error: authError } = useOpenRouterAuth();
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onRequestClose={onClose}
+            className="modal"
+            overlayClassName="overlay"
+        >
+            <div className="modal-header">
+                <h3>Settings</h3>
+                <button type="button" className="close-btn" onClick={onClose}>X</button>
+            </div>
+            <p>API keys for fal.ai and OpenAI are configured server-side.</p>
+
+            <div className="auth-settings">
+                <h4>OpenRouter (Prompt Optimizer)</h4>
+                <p>Sign in with your OpenRouter account to use your own credits for prompt optimization.</p>
+                {isAuthenticated ? (
+                    <div className="auth-status">
+                        <span className="auth-badge connected">Connected</span>
+                        <button type="button" className="logout-btn" onClick={logout}>Disconnect</button>
+                    </div>
+                ) : (
+                    <>
+                        <button type="button" className="login-btn" onClick={login} disabled={authLoading}>
+                            {authLoading ? 'Connecting...' : 'Login with OpenRouter'}
+                        </button>
+                        {authError && <p className="auth-error">{authError}</p>}
+                    </>
+                )}
+                <p className="auth-note">Without login, the server&apos;s shared API key is used.</p>
+            </div>
+
+            <button type="button" className="save-btn" onClick={onClose}>Close</button>
+        </Modal>
+    );
+};
+
 const AppContent: React.FC = () => {
-    // OpenAI API key for GPT models (passed as payload parameter, not for auth)
-    const [openaiApiKey, setOpenaiApiKey] = useState<string>(localStorage.getItem('OPENAI_API_KEY') || '');
     const [promptText, setPromptText] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    const [isOpenaiApiKeyVisible, setIsOpenaiApiKeyVisible] = useState<boolean>(false);
 
     // Audio/video file upload state
     const [uploadedAudioFile, setUploadedAudioFile] = useState<File | null>(null);
     const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
 
     const config = useConfig();
+    const { serverKeys, isLoaded: serverKeysLoaded } = useServerKeys();
+    const { userApiKey: openRouterUserKey } = useOpenRouterAuth();
     const { selectedModel, selectedVideoModel, selectedAudioModel, isLoading: modelsLoading } = useModels();
 
     // Custom hooks for separated concerns
@@ -50,11 +92,13 @@ const AppContent: React.FC = () => {
         isGenerating: isGeneratingImage,
         generateImage,
     } = useImageGeneration({
-        openaiApiKey,
         activeTab,
         uploadedImages,
         config,
         setStatus,
+        serverKeys,
+        serverKeysLoaded,
+        openRouterUserKey,
     });
 
     // Video generation hook
@@ -117,53 +161,7 @@ const AppContent: React.FC = () => {
                 <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
             </header>
 
-            <Modal
-                isOpen={isModalOpen}
-                onRequestClose={() => setIsModalOpen(false)}
-                className="modal"
-                overlayClassName="overlay"
-            >
-                <div className="modal-header">
-                    <h3>Settings</h3>
-                    <button type="button" className="close-btn" onClick={() => setIsModalOpen(false)}>X</button>
-                </div>
-                <p>
-                    The FAL API key is configured server-side. Only OpenAI key is needed for GPT models.
-                </p>
-                <div className="api-key-settings">
-                    <div className="form-group api-key-group">
-                        <label htmlFor="openai-api-key">OpenAI API Key (required for GPT models):</label>
-                        <div className="api-key-container">
-                            <input
-                                id="openai-api-key"
-                                type={isOpenaiApiKeyVisible ? 'text' : 'password'}
-                                value={openaiApiKey}
-                                onChange={(e) => setOpenaiApiKey(e.target.value)}
-                                placeholder="Enter your OPENAI_API_KEY"
-                                className="api-key-input"
-                            />
-                            <button
-                                type="button"
-                                className="visibility-toggle"
-                                onClick={() => setIsOpenaiApiKeyVisible(!isOpenaiApiKeyVisible)}
-                            >
-                                {isOpenaiApiKeyVisible ? 'Hide' : 'Show'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    className="save-btn"
-                    onClick={() => {
-                        localStorage.setItem('OPENAI_API_KEY', openaiApiKey);
-                        setStatus('Settings saved.', 'success');
-                        setIsModalOpen(false);
-                    }}
-                >
-                    Save and Close
-                </button>
-            </Modal>
+            <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
             <div className="app-layout">
                 <Sidebar

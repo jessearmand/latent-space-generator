@@ -8,6 +8,7 @@ import { streamText } from "ai";
 
 const FAL_API_KEY = process.env.FAL_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PORT = 3001;
 
 // Base system prompt for image generation prompt optimization
@@ -100,9 +101,16 @@ Bun.serve({
             });
         }
 
-        // Health check endpoint
-        if (url.pathname === "/health") {
-            return new Response(JSON.stringify({ status: "ok", hasApiKey: !!FAL_API_KEY }), {
+        // Health check endpoint (under /api/ so Vite proxy forwards it)
+        if (url.pathname === "/health" || url.pathname === "/api/health") {
+            return new Response(JSON.stringify({
+                status: "ok",
+                keys: {
+                    fal: !!FAL_API_KEY,
+                    openai: !!OPENAI_API_KEY,
+                    openrouter: !!OPENROUTER_API_KEY,
+                },
+            }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
@@ -191,15 +199,14 @@ Bun.serve({
             }
 
             try {
-                const body = await req.json();
-                const { openai_api_key, ...imageParams } = body;
-
-                if (!openai_api_key) {
+                if (!OPENAI_API_KEY) {
                     return new Response(
-                        JSON.stringify({ error: "Missing openai_api_key in request body" }),
-                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        JSON.stringify({ error: "OPENAI_API_KEY environment variable not set on server" }),
+                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                     );
                 }
+
+                const imageParams = await req.json();
 
                 console.log(`[OpenAI] Generating image with model: ${imageParams.model}`);
 
@@ -207,7 +214,7 @@ Bun.serve({
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${openai_api_key}`,
+                        "Authorization": `Bearer ${OPENAI_API_KEY}`,
                     },
                     body: JSON.stringify(imageParams),
                 });
@@ -288,16 +295,19 @@ Bun.serve({
                 );
             }
 
-            if (!OPENROUTER_API_KEY) {
-                return new Response(
-                    JSON.stringify({ error: "OPENROUTER_API_KEY environment variable not set on server" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
-            }
-
             try {
                 const body = await req.json();
-                const { prompt, model, format = "plain" } = body;
+                const { prompt, model, format = "plain", openrouter_user_key } = body;
+
+                // Use user's OAuth key if provided, otherwise fall back to server key
+                const apiKey = openrouter_user_key || OPENROUTER_API_KEY;
+
+                if (!apiKey) {
+                    return new Response(
+                        JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
+                        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
 
                 if (!prompt) {
                     return new Response(
@@ -320,7 +330,7 @@ Bun.serve({
                 console.log(`[OpenRouter] Streaming completion with model: ${model}, format: ${validFormat}`);
 
                 const openrouter = createOpenRouter({
-                    apiKey: OPENROUTER_API_KEY,
+                    apiKey,
                     headers: {
                         "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
                         "X-Title": "latent-space-generator",
@@ -358,6 +368,140 @@ Bun.serve({
             }
         }
 
+        // OpenRouter Image Generation API endpoint
+        if (url.pathname === "/api/openrouter/images") {
+            if (req.method !== "POST") {
+                return new Response(
+                    JSON.stringify({ error: "Method not allowed" }),
+                    { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            try {
+                const body = await req.json();
+                const { model, prompt, openrouter_user_key, image_config } = body;
+
+                const apiKey = openrouter_user_key || OPENROUTER_API_KEY;
+
+                if (!apiKey) {
+                    return new Response(
+                        JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
+                        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                if (!prompt || !model) {
+                    return new Response(
+                        JSON.stringify({ error: "Missing prompt or model in request body" }),
+                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                console.log(`[OpenRouter Images] Generating image with model: ${model}`);
+
+                // Build request body for OpenRouter chat completions with image modality
+                // GPT models need plain string content; Gemini handles both formats
+                const requestBody: Record<string, unknown> = {
+                    model,
+                    modalities: ["image", "text"],
+                    messages: [
+                        { role: "user", content: prompt },
+                    ],
+                };
+
+                // Add image config for models that support it (e.g. Gemini)
+                if (image_config) {
+                    if (image_config.aspect_ratio) {
+                        requestBody.aspect_ratio = image_config.aspect_ratio;
+                    }
+                    if (image_config.image_size) {
+                        requestBody.image_size = image_config.image_size;
+                    }
+                }
+
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${apiKey}`,
+                        "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
+                        "X-Title": "latent-space-generator",
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                const responseData = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = responseData?.error?.message || `OpenRouter API error: ${response.status}`;
+                    return new Response(
+                        JSON.stringify({ error: errorMsg }),
+                        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                // Extract base64 image from OpenRouter response
+                // Response format: choices[0].message.images[].image_url.url
+                const choices = responseData?.choices;
+                if (!choices?.length) {
+                    return new Response(
+                        JSON.stringify({ error: "No choices in OpenRouter response" }),
+                        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                const message = choices[0]?.message;
+                let b64Json: string | null = null;
+
+                // Primary path: images are in message.images[]
+                if (Array.isArray(message?.images) && message.images.length > 0) {
+                    const imagePart = message.images[0];
+                    const dataUrl = imagePart?.image_url?.url;
+                    if (dataUrl) {
+                        // Strip data:image/...;base64, prefix if present
+                        const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+                        b64Json = base64Match ? base64Match[1] : dataUrl;
+                    }
+                }
+
+                // Fallback: check message.content array for image_url parts
+                if (!b64Json && Array.isArray(message?.content)) {
+                    const imagePart = message.content.find(
+                        (part: { type: string }) => part.type === "image_url"
+                    );
+                    if (imagePart?.image_url?.url) {
+                        const dataUrl = imagePart.image_url.url;
+                        const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+                        b64Json = base64Match ? base64Match[1] : dataUrl;
+                    }
+                }
+
+                if (!b64Json) {
+                    console.error("[OpenRouter Images] Could not extract image from response:", JSON.stringify(responseData).substring(0, 500));
+                    return new Response(
+                        JSON.stringify({ error: "No image data found in OpenRouter response" }),
+                        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                // Return normalized format matching OpenAI proxy response shape
+                return new Response(
+                    JSON.stringify({
+                        created: Math.floor(Date.now() / 1000),
+                        data: [{ b64_json: b64Json }],
+                    }),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            } catch (error) {
+                console.error("[OpenRouter Images] Error:", error);
+                const message = error instanceof Error ? error.message : "Unknown error";
+                return new Response(
+                    JSON.stringify({ error: `OpenRouter image generation error: ${message}` }),
+                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+        }
+
         // 404 for unknown routes
         return new Response(
             JSON.stringify({ error: "Not found" }),
@@ -369,3 +513,4 @@ Bun.serve({
 console.log(`Proxy server running on http://localhost:${PORT}`);
 console.log(`FAL_API_KEY configured: ${FAL_API_KEY ? "Yes" : "No"}`);
 console.log(`OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? "Yes" : "No"}`);
+console.log(`OPENAI_API_KEY configured: ${OPENAI_API_KEY ? "Yes" : "No"}`);

@@ -318,8 +318,8 @@ label {
   font-style: italic;
 }
 
-/* Video model controls */
-.video-model-controls {
+/* Model controls (show all toggle and search) */
+.model-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -603,6 +603,87 @@ label {
   word-wrap: break-word;
   max-height: 500px;
   overflow-y: auto;
+}
+
+/* Auth settings in Settings modal */
+.auth-settings {
+  margin-top: 15px;
+}
+
+.auth-settings h4 {
+  margin: 0 0 8px 0;
+}
+
+.auth-settings p {
+  margin: 0 0 12px 0;
+  font-size: 0.95em;
+  color: #555;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.auth-badge.connected {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.login-btn {
+  padding: 10px 16px;
+  background-color: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s;
+}
+
+.login-btn:hover:not(:disabled) {
+  background-color: #5a4bd1;
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logout-btn {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.auth-error {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-top: 8px;
+}
+
+.auth-note {
+  font-size: 0.85em;
+  color: #888;
+  font-style: italic;
 }
 
 /* Mobile responsive */
