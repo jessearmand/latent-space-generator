@@ -8,12 +8,17 @@ import type { OpenRouterModel, OpenRouterModelsResponse } from "../types/openrou
 const PROXY_URL = "http://localhost:3001/api/openrouter/models";
 
 /** Fetch models from OpenRouter API via proxy */
-export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
+export async function fetchOpenRouterModels(userApiKey?: string | null): Promise<OpenRouterModel[]> {
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (userApiKey) {
+        headers.Authorization = `Bearer ${userApiKey}`;
+    }
+
     const response = await fetch(PROXY_URL, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers,
     });
 
     if (!response.ok) {
@@ -76,7 +81,7 @@ export function clearOpenRouterModelsCache(): void {
  * Get models with caching
  * Tries cache first, then fetches from API
  */
-export async function getOpenRouterModels(forceRefresh = false): Promise<OpenRouterModel[]> {
+export async function getOpenRouterModels(forceRefresh = false, userApiKey?: string | null): Promise<OpenRouterModel[]> {
     // Try cache first unless forcing refresh
     if (!forceRefresh) {
         const cached = getCachedOpenRouterModels();
@@ -86,7 +91,7 @@ export async function getOpenRouterModels(forceRefresh = false): Promise<OpenRou
     }
 
     // Fetch from API
-    const models = await fetchOpenRouterModels();
+    const models = await fetchOpenRouterModels(userApiKey);
 
     // Cache the results
     cacheOpenRouterModels(models);

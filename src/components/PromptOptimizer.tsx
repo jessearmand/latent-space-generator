@@ -169,7 +169,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
     );
 
     const hasApiKeyError =
+        modelsError?.includes("API key") ||
         modelsError?.includes("OPENROUTER_API_KEY") ||
+        (completionError as Error | undefined)?.message?.includes("API key") ||
         (completionError as Error | undefined)?.message?.includes("OPENROUTER_API_KEY");
 
     return (
@@ -190,8 +192,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 <div className="prompt-optimizer-content">
                     {hasApiKeyError ? (
                         <div className="no-api-key-message">
-                            OpenRouter API key not configured. Set OPENROUTER_API_KEY
-                            environment variable on the server.
+                            OpenRouter API key not configured. Log in with OpenRouter
+                            in Settings, or set OPENROUTER_API_KEY environment variable
+                            on the server.
                         </div>
                     ) : (
                         <>
