@@ -21,7 +21,7 @@ bun start             # Start both client (port 3000) and proxy server (port 300
 bun run start:client  # Start Vite dev server only
 bun run start:server  # Start Bun proxy server only
 bun run build         # Production build (output to build/)
-bun test              # Run tests with Vitest
+bun run test          # Run tests with Vitest (not `bun test` which uses Bun's native runner)
 bun run typecheck     # TypeScript type checking
 bun run lint          # Run Biome linter
 bun run lint:fix      # Fix linting issues automatically

@@ -247,20 +247,25 @@ Bun.serve({
                 );
             }
 
-            if (!OPENROUTER_API_KEY) {
+            // Use client-provided OAuth key (via Authorization header) or fall back to server env var
+            const authHeader = req.headers.get("authorization");
+            const userKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+            const apiKey = userKey || OPENROUTER_API_KEY;
+
+            if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "OPENROUTER_API_KEY environment variable not set on server" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
+                    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
 
             try {
-                console.log("[OpenRouter] Fetching user models");
+                console.log(`[OpenRouter] Fetching user models (source: ${userKey ? "user OAuth" : "server key"})`);
 
                 const response = await fetch("https://openrouter.ai/api/v1/models/user", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                        "Authorization": `Bearer ${apiKey}`,
                         "Content-Type": "application/json",
                         "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
                         "X-Title": "latent-space-generator",

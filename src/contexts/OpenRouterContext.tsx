@@ -22,6 +22,7 @@ import {
     getOpenRouterModels,
     clearOpenRouterModelsCache,
 } from "../services/openrouter";
+import { useOpenRouterAuth } from "./OpenRouterAuthContext";
 
 interface OpenRouterContextType {
     /** All available models */
@@ -57,6 +58,7 @@ const SELECTED_MODEL_KEY = "openrouter_selected_model";
 const FILTERS_KEY = "openrouter_model_filters";
 
 export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children }) => {
+    const { userApiKey } = useOpenRouterAuth();
     const [models, setModels] = useState<OpenRouterModel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
                 }
 
                 // Fetch from API (with caching handled by service)
-                const fetchedModels = await getOpenRouterModels(forceRefresh);
+                const fetchedModels = await getOpenRouterModels(forceRefresh, userApiKey);
 
                 if (fetchedModels.length === 0) {
                     setError("No models available");
@@ -179,7 +181,7 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
                 setIsLoading(false);
             }
         },
-        [restoreSelectedModel]
+        [restoreSelectedModel, userApiKey]
     );
 
     // Initial load on mount
