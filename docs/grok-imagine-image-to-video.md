@@ -1,4 +1,3 @@
-````
 # Grok Imagine Video
 
 > Generate videos from images with audio using xAI's Grok Imagine Video model.
@@ -176,4 +175,3 @@ console.log(result.requestId);
 - [Platform Documentation](https://docs.fal.ai)
 - [Python Client](https://docs.fal.ai/clients/python)
 - [JavaScript Client](https://docs.fal.ai/clients/javascript)
-````
