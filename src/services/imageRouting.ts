@@ -105,14 +105,16 @@ export async function routeGptImage(
 
         const response = await generateOpenAIImage(params);
 
-        if (response.data?.[0]?.b64_json) {
-            const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
-            console.log(`OpenAI image generated successfully`);
+        if (response.data && response.data.length > 0) {
+            const urls = response.data
+                .filter((item) => item.b64_json)
+                .map((item) => base64ToDataUrl(item.b64_json, 'png'));
+            console.log(`${urls.length} OpenAI image(s) generated successfully`);
 
             if (response.usage) {
                 console.log(`Token usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}, Total: ${response.usage.total_tokens}`);
             }
-            return { urls: [dataUrl] };
+            return { urls };
         }
         throw new Error('OpenAI response missing image data');
     }
@@ -134,12 +136,12 @@ export async function routeGptImage(
         // fal.ai GPT returns images in result.data.images[] or result.data.data[]
         const images = (result.data.images || result.data.data) as Array<{ url?: string; b64_json?: string }> | undefined;
         if (images && images.length > 0) {
-            const firstImage = images[0];
-            if (firstImage.url) {
-                return { urls: [firstImage.url] };
-            }
-            if (firstImage.b64_json) {
-                return { urls: [base64ToDataUrl(firstImage.b64_json, 'png')] };
+            const urls = images
+                .map((img) => img.url ?? (img.b64_json ? base64ToDataUrl(img.b64_json, 'png') : null))
+                .filter((url): url is string => url !== null);
+            if (urls.length > 0) {
+                console.log(`${urls.length} fal.ai GPT image(s) received`);
+                return { urls };
             }
         }
         throw new Error('fal.ai GPT response missing image data');
