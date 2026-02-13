@@ -225,6 +225,8 @@ describe('Sidebar component', () => {
             imageHeader.focus();
             fireEvent.keyDown(imageHeader, { key: 'ArrowDown' });
 
+            // Focus should remain on the same element
+            expect(document.activeElement).toBe(imageHeader);
             // onModeChange should not have been called
             expect(defaultProps.onModeChange).not.toHaveBeenCalled();
         });

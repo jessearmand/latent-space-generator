@@ -459,7 +459,7 @@ Bun.serve({
                     );
                 }
 
-                // Extract base64 image from OpenRouter response
+                // Extract base64 images from OpenRouter response
                 // Response format: choices[0].message.images[].image_url.url
                 const choices = responseData?.choices;
                 if (!choices?.length) {
@@ -470,32 +470,34 @@ Bun.serve({
                 }
 
                 const message = choices[0]?.message;
-                let b64Json: string | null = null;
+                const extractedImages: { b64_json: string }[] = [];
+
+                // Helper: strip data URI prefix to get raw base64
+                const extractBase64 = (dataUrl: string): string => {
+                    const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+                    return base64Match ? base64Match[1] : dataUrl;
+                };
 
                 // Primary path: images are in message.images[]
                 if (Array.isArray(message?.images) && message.images.length > 0) {
-                    const imagePart = message.images[0];
-                    const dataUrl = imagePart?.image_url?.url;
-                    if (dataUrl) {
-                        // Strip data:image/...;base64, prefix if present
-                        const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
-                        b64Json = base64Match ? base64Match[1] : dataUrl;
+                    for (const imagePart of message.images) {
+                        const dataUrl = imagePart?.image_url?.url;
+                        if (dataUrl) {
+                            extractedImages.push({ b64_json: extractBase64(dataUrl) });
+                        }
                     }
                 }
 
                 // Fallback: check message.content array for image_url parts
-                if (!b64Json && Array.isArray(message?.content)) {
-                    const imagePart = message.content.find(
-                        (part: { type: string }) => part.type === "image_url"
-                    );
-                    if (imagePart?.image_url?.url) {
-                        const dataUrl = imagePart.image_url.url;
-                        const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
-                        b64Json = base64Match ? base64Match[1] : dataUrl;
+                if (extractedImages.length === 0 && Array.isArray(message?.content)) {
+                    for (const part of message.content) {
+                        if (part.type === "image_url" && part.image_url?.url) {
+                            extractedImages.push({ b64_json: extractBase64(part.image_url.url) });
+                        }
                     }
                 }
 
-                if (!b64Json) {
+                if (extractedImages.length === 0) {
                     console.error("[OpenRouter Images] Could not extract image from response:", JSON.stringify(responseData).substring(0, 500));
                     return new Response(
                         JSON.stringify({ error: "No image data found in OpenRouter response" }),
@@ -507,7 +509,7 @@ Bun.serve({
                 return new Response(
                     JSON.stringify({
                         created: Math.floor(Date.now() / 1000),
-                        data: [{ b64_json: b64Json }],
+                        data: extractedImages,
                     }),
                     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );

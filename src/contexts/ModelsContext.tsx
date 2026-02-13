@@ -137,18 +137,23 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     }, []);
 
     // Restore selected model from localStorage
-    const restoreSelectedModel = useCallback((modelList: ModelConfig[]) => {
+    // Searches modelList first, then falls back to curatedList (consistent with video/audio)
+    const restoreSelectedModel = useCallback((modelList: ModelConfig[], curatedList?: ModelConfig[]) => {
         const savedEndpointId = localStorage.getItem(SELECTED_MODEL_KEY);
         if (savedEndpointId) {
-            const saved = modelList.find(m => m.endpointId === savedEndpointId);
+            let saved = modelList.find(m => m.endpointId === savedEndpointId);
+            if (!saved && curatedList) {
+                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+            }
             if (saved) {
                 setSelectedModelState(saved);
                 return;
             }
         }
-        // Default to first model if no saved selection
-        if (modelList.length > 0) {
-            setSelectedModelState(modelList[0]);
+        // Default to first curated model if available, otherwise first in list
+        const fallback = curatedList && curatedList.length > 0 ? curatedList : modelList;
+        if (fallback.length > 0) {
+            setSelectedModelState(fallback[0]);
         }
     }, []);
 
@@ -224,7 +229,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
                 const cached = getCachedModels();
                 if (cached && cached.length > 0) {
                     setAllImageModels(cached);
-                    restoreSelectedModel(cached);
+                    restoreSelectedModel(cached, curatedImageModels);
                     setIsLoadingAllImageModels(false);
                     return;
                 }
@@ -243,7 +248,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             } else {
                 setAllImageModels(fetchedModels);
                 cacheModels(fetchedModels);
-                restoreSelectedModel(fetchedModels);
+                restoreSelectedModel(fetchedModels, curatedImageModels);
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load models';
@@ -254,13 +259,13 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             const cached = getCachedModels();
             if (cached && cached.length > 0) {
                 setAllImageModels(cached);
-                restoreSelectedModel(cached);
+                restoreSelectedModel(cached, curatedImageModels);
                 setError(`${message} (using cached data)`);
             }
         } finally {
             setIsLoadingAllImageModels(false);
         }
-    }, [restoreSelectedModel]);
+    }, [restoreSelectedModel, curatedImageModels]);
 
     // Note: Initial image model load is no longer needed since we use curated models by default
     // loadAllImageModels() is called when showAllImageModels is toggled on
@@ -327,27 +332,16 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
 
     // Get filtered video models based on current settings
     const getFilteredVideoModels = useCallback((category?: VideoModelCategory): ModelConfig[] => {
-        // Choose source: curated or all models
         const sourceModels = showAllVideoModels ? allVideoModels : curatedVideoModels;
 
-        console.log('[VideoModels] getFilteredVideoModels called:', {
-            showAllVideoModels,
-            sourceCount: sourceModels.length,
-            category,
-            searchQuery: videoSearchQuery
-        });
-
-        // Filter by category if specified
         let filtered = category
             ? sourceModels.filter(m => m.category === category)
             : sourceModels;
 
-        // Apply search filter if showing all models
         if (showAllVideoModels && videoSearchQuery) {
             filtered = filterModelsByQuery(filtered, videoSearchQuery);
         }
 
-        console.log('[VideoModels] Returning', filtered.length, 'models');
         return filtered;
     }, [showAllVideoModels, allVideoModels, curatedVideoModels, videoSearchQuery]);
 
@@ -403,24 +397,14 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const getFilteredAudioModels = useCallback((category?: AudioModelCategory): ModelConfig[] => {
         const sourceModels = showAllAudioModels ? allAudioModels : curatedAudioModels;
 
-        console.log('[AudioModels] getFilteredAudioModels called:', {
-            showAllAudioModels,
-            sourceCount: sourceModels.length,
-            category,
-            searchQuery: audioSearchQuery
-        });
-
-        // Filter by category if specified
         let filtered = category
             ? sourceModels.filter(m => m.category === category)
             : sourceModels;
 
-        // Apply search filter if showing all models
         if (showAllAudioModels && audioSearchQuery) {
             filtered = filterAudioModelsByQuery(filtered, audioSearchQuery);
         }
 
-        console.log('[AudioModels] Returning', filtered.length, 'models');
         return filtered;
     }, [showAllAudioModels, allAudioModels, curatedAudioModels, audioSearchQuery]);
 
@@ -460,7 +444,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
                 console.log('[ImageModels] Loaded from cache:', cached.length, 'models');
                 setAllImageModels(cached);
                 // Re-restore model selection in case it's in the full list but not curated
-                restoreSelectedModel(cached);
+                restoreSelectedModel(cached, curatedImageModels);
                 setIsLoadingAllImageModels(false);
                 return;
             }
@@ -472,7 +456,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             setAllImageModels(fetchedModels);
             cacheModels(fetchedModels);
             // Re-restore model selection in case it's in the full list but not curated
-            restoreSelectedModel(fetchedModels);
+            restoreSelectedModel(fetchedModels, curatedImageModels);
         } catch (err) {
             console.error('[ImageModels] Failed to load all image models:', err);
 
@@ -487,30 +471,20 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         } finally {
             setIsLoadingAllImageModels(false);
         }
-    }, [allImageModels.length, isLoadingAllImageModels, restoreSelectedModel]);
+    }, [allImageModels.length, isLoadingAllImageModels, restoreSelectedModel, curatedImageModels]);
 
     // Get filtered image models based on current settings
     const getFilteredImageModels = useCallback((category?: ImageModelCategory): ModelConfig[] => {
         const sourceModels = showAllImageModels ? allImageModels : curatedImageModels;
 
-        console.log('[ImageModels] getFilteredImageModels called:', {
-            showAllImageModels,
-            sourceCount: sourceModels.length,
-            category,
-            searchQuery: imageSearchQuery
-        });
-
-        // Filter by category if specified
         let filtered = category
             ? sourceModels.filter(m => m.category === category)
             : sourceModels;
 
-        // Apply search filter if showing all models
         if (showAllImageModels && imageSearchQuery) {
             filtered = filterImageModelsByQuery(filtered, imageSearchQuery);
         }
 
-        console.log('[ImageModels] Returning', filtered.length, 'models');
         return filtered;
     }, [showAllImageModels, allImageModels, curatedImageModels, imageSearchQuery]);
 
@@ -521,21 +495,8 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
 
     // Restore image model selection on mount (from curated models)
     useEffect(() => {
-        // Use curated models as default, restore from localStorage if available
-        const savedEndpointId = localStorage.getItem(SELECTED_MODEL_KEY);
-        if (savedEndpointId) {
-            // Check curated models first
-            const saved = curatedImageModels.find(m => m.endpointId === savedEndpointId);
-            if (saved) {
-                setSelectedModelState(saved);
-                return;
-            }
-        }
-        // Default to first curated model
-        if (curatedImageModels.length > 0) {
-            setSelectedModelState(curatedImageModels[0]);
-        }
-    }, [curatedImageModels]);
+        restoreSelectedModel(curatedImageModels);
+    }, [curatedImageModels, restoreSelectedModel]);
 
     return (
         <ModelsContext.Provider
