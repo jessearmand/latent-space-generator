@@ -69,10 +69,14 @@ export async function routeGeminiImage(
             openRouterUserKey,
         );
 
-        if (response.data?.[0]?.b64_json) {
-            const dataUrl = base64ToDataUrl(response.data[0].b64_json, 'png');
-            console.log(`OpenRouter Gemini image generated successfully`);
-            return { urls: [dataUrl] };
+        if (response.data && response.data.length > 0) {
+            const urls = response.data
+                .filter((item: { b64_json?: string }) => item.b64_json)
+                .map((item: { b64_json?: string }) => base64ToDataUrl(item.b64_json as string, 'png'));
+            if (urls.length > 0) {
+                console.log(`${urls.length} OpenRouter Gemini image(s) generated successfully`);
+                return { urls };
+            }
         }
         throw new Error('OpenRouter response missing image data');
     }

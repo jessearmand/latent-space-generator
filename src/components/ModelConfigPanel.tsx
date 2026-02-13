@@ -497,9 +497,10 @@ const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ con
     );
 };
 
+// Grok's unique aspect ratios (hoisted to avoid re-creation on each render)
+const grokAspectRatios = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '20:9', '19.5:9', '9:19.5', '9:20', '1:2'];
+
 const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config }) => {
-    // Grok's unique aspect ratios
-    const grokAspectRatios = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '20:9', '19.5:9', '9:19.5', '9:20', '1:2'];
 
     return (
         <>
