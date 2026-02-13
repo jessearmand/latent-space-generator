@@ -87,19 +87,24 @@ export function buildGenericImageInput(
         acceleration: config.acceleration,
     } : {};
 
-    return {
+    const input: Record<string, unknown> = {
         prompt,
         safety_tolerance: config.safetyTolerance,
         aspect_ratio: config.aspectRatio,
         image_size: config.imageSize,
         raw: config.raw,
         enable_safety_checker: config.enableSafetyChecker,
-        seed: config.seed,
         guidance_scale: config.guidanceScale,
         ...imageInputParams,
         ...layerParams,
         ...accelerationParams,
     };
+
+    if (config.seed !== null) {
+        input.seed = config.seed;
+    }
+
+    return input;
 }
 
 export function buildImageInputParams(

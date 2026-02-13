@@ -119,7 +119,7 @@ bun run build         # Production build
 
 ## Architecture
 
-```
+```text
 ┌──────────────────┐     ┌───────────────────┐     ┌─────────────────┐
 │   React Client   │────▶│  Bun Proxy Server │────▶│    fal.ai API   │
 │  (localhost:3000)│     │  (localhost:3001) │     │ (image/video/   │
@@ -175,7 +175,7 @@ bun run build         # Production build
 
 ## Project Structure
 
-```
+```text
 src/
 ├── App.tsx                        # Main application component
 ├── config.tsx                     # Configuration context provider

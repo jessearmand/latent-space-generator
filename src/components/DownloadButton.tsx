@@ -8,6 +8,8 @@ interface DownloadButtonProps {
     /** Optional override filename. If not provided, uses original filename from URL. */
     filename?: string;
     className?: string;
+    /** Label for the download button (used in title and aria-label). Defaults to "Download". */
+    label?: string;
 }
 
 /**
@@ -19,6 +21,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     url,
     filename,
     className = '',
+    label = 'Download',
 }) => {
     const [isDownloading, setIsDownloading] = useState(false);
 
@@ -42,8 +45,8 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
             className={`download-button ${className}`}
             onClick={handleDownload}
             disabled={isDownloading}
-            title="Download image"
-            aria-label="Download image"
+            title={label}
+            aria-label={label}
         >
             {isDownloading ? (
                 <svg
