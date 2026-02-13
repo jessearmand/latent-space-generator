@@ -170,12 +170,12 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [gptQuality, setGptQuality] = useState<string>(localStorage.getItem('GPT_QUALITY') || 'auto');
   const [gptBackground, setGptBackground] = useState<string>(localStorage.getItem('GPT_BACKGROUND') || 'auto');
   // Gemini image model settings
-  const [geminiNumImages, setGeminiNumImages] = useState<number>(parseInt(localStorage.getItem('GEMINI_NUM_IMAGES') || '1', 10));
+  const [geminiNumImages, setGeminiNumImages] = useState<number>(parseInt(localStorage.getItem('GEMINI_NUM_IMAGES') || '1', 10) || 1);
   const [geminiOutputFormat, setGeminiOutputFormat] = useState<string>(localStorage.getItem('GEMINI_OUTPUT_FORMAT') || 'png');
   const [geminiResolution, setGeminiResolution] = useState<string>(localStorage.getItem('GEMINI_RESOLUTION') || '1K');
   const [geminiEnableWebSearch, setGeminiEnableWebSearch] = useState<boolean>(localStorage.getItem('GEMINI_ENABLE_WEB_SEARCH') === 'true');
   // Grok Imagine model settings
-  const [grokNumImages, setGrokNumImages] = useState<number>(parseInt(localStorage.getItem('GROK_NUM_IMAGES') || '1', 10));
+  const [grokNumImages, setGrokNumImages] = useState<number>(parseInt(localStorage.getItem('GROK_NUM_IMAGES') || '1', 10) || 1);
   const [grokOutputFormat, setGrokOutputFormat] = useState<string>(localStorage.getItem('GROK_OUTPUT_FORMAT') || 'jpeg');
   // Qwen model settings
   const [numLayers, setNumLayers] = useState<number>(parseInt(localStorage.getItem('NUM_LAYERS') || '4', 10));

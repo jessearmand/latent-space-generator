@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './VideoUploadZone.css';
 
 interface VideoUploadZoneProps {
@@ -24,6 +24,21 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Sync preview URL when parent clears the file externally
+    useEffect(() => {
+        if (!uploadedFile && videoPreviewUrl) {
+            URL.revokeObjectURL(videoPreviewUrl);
+            setVideoPreviewUrl(null);
+        }
+    }, [uploadedFile, videoPreviewUrl]);
+
+    // Revoke object URL on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+        };
+    }, [videoPreviewUrl]);
 
     const handleFile = useCallback(
         (file: File) => {
@@ -120,7 +135,6 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={handleClick}
-                    onKeyDown={(e) => e.key === 'Enter' && handleClick()}
                     disabled={disabled}
                     aria-label="Upload video file"
                 >

@@ -26,7 +26,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, title = 'Generate
         if (isPlaying) {
             audio.pause();
         } else {
-            audio.play();
+            audio.play().catch(() => {
+                // Autoplay may be blocked by the browser; user interaction will retry
+            });
         }
     }, [isPlaying]);
 
@@ -70,7 +72,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, title = 'Generate
         <div className="audio-player">
             <div className="audio-player-header">
                 <h4 className="audio-player-title">{title}</h4>
-                <DownloadButton url={src} />
+                <DownloadButton url={src} label="Download audio" />
             </div>
 
             {/* biome-ignore lint/a11y/useMediaCaption: Generated audio, no captions available */}

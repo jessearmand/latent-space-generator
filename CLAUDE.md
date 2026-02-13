@@ -33,7 +33,7 @@ bun run lint:fix      # Fix linting issues automatically
 
 The app uses nested React Context providers across `index.tsx` and `App.tsx`:
 
-```
+```text
 ServerKeysProvider (contexts/ServerKeysContext.tsx)
   └── ConfigProvider (config.tsx)
         └── OpenRouterAuthProvider (contexts/OpenRouterAuthContext.tsx)
@@ -270,7 +270,7 @@ Audio generation is handled by `useAudioGeneration` hook with model-specific par
 
 **Key availability** is reported by `/health` and consumed by `ServerKeysContext` to route GPT image models to the best available backend.
 
-The fal client uses proxy configuration: `fal.config({ proxyUrl: 'http://localhost:3001/api/fal/proxy' })`.
+The fal client uses proxy configuration: `fal.config({ proxyUrl: '/api/fal/proxy' })` (relative path, resolved by Vite's dev proxy to port 3001).
 
 ## Adding a New Model Category
 

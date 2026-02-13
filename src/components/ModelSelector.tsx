@@ -131,26 +131,20 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
     const handleShowAllToggle = () => {
         if (isAudioTab) {
             const newValue = !showAllAudioModels;
-            console.log('[ModelSelector] Toggle show all audio:', newValue, 'current allAudioModels:', allAudioModels.length);
             setShowAllAudioModels(newValue);
             if (newValue && allAudioModels.length === 0) {
-                console.log('[ModelSelector] Triggering loadAllAudioModels');
                 loadAllAudioModels();
             }
         } else if (isVideoTab) {
             const newValue = !showAllVideoModels;
-            console.log('[ModelSelector] Toggle show all video:', newValue, 'current allVideoModels:', allVideoModels.length);
             setShowAllVideoModels(newValue);
             if (newValue && allVideoModels.length === 0) {
-                console.log('[ModelSelector] Triggering loadAllVideoModels');
                 loadAllVideoModels();
             }
         } else {
             const newValue = !showAllImageModels;
-            console.log('[ModelSelector] Toggle show all image:', newValue, 'current allImageModels:', allImageModels.length);
             setShowAllImageModels(newValue);
             if (newValue && allImageModels.length === 0) {
-                console.log('[ModelSelector] Triggering loadAllImageModels');
                 loadAllImageModels();
             }
         }

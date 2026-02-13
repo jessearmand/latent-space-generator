@@ -55,7 +55,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                     {isAudioModel ? (
                         <AudioConfigOptions selectedModel={selectedModel} />
                     ) : isVideoModel ? (
-                        <VideoConfigOptions selectedModel={selectedModel} />
+                        <VideoConfigOptions selectedModel={selectedModel} isVideoToVideo={activeTab === 'video-to-video'} />
                     ) : isGeminiImageModel ? (
                         <GeminiImageConfigOptions config={config} selectedModel={selectedModel} />
                     ) : isGptModel ? (

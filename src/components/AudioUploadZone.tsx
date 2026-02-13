@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './AudioUploadZone.css';
 
 interface AudioUploadZoneProps {
@@ -13,7 +13,7 @@ interface AudioUploadZoneProps {
     disabled?: boolean;
 }
 
-const ACCEPTED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac'];
+const ACCEPTED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
 const ACCEPTED_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
 
 export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
@@ -24,6 +24,13 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Revoke object URL on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+        };
+    }, [audioPreviewUrl]);
 
     const handleFile = useCallback(
         (file: File) => {
@@ -120,7 +127,6 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={handleClick}
-                    onKeyDown={(e) => e.key === 'Enter' && handleClick()}
                     disabled={disabled}
                     aria-label="Upload audio file"
                 >

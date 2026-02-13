@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { fal } from '@fal-ai/client';
 import type { GenerationMode } from '../components/GenerationTabs';
 import type { ModelConfig } from '../types/models';
@@ -35,8 +35,15 @@ export function useVideoGeneration({
 }: UseVideoGenerationParams): UseVideoGenerationReturn {
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const cancelledRef = useRef(false);
+
+    // Reset cancelled flag on unmount to prevent state updates after cleanup
+    useEffect(() => {
+        return () => { cancelledRef.current = true; };
+    }, []);
 
     const generateVideo = useCallback(async (prompt: string, model: ModelConfig) => {
+        cancelledRef.current = false;
         if (!prompt) {
             setStatus('Please enter a text prompt.', 'error');
             console.error('Prompt text is empty. Cannot generate video.');
@@ -265,11 +272,22 @@ export function useVideoGeneration({
             setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
             // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
-            while (true) {
+            const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+            const pollStart = Date.now();
+
+            while (!cancelledRef.current) {
+                if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+                    setStatus('Video generation timed out after 10 minutes.', 'error');
+                    console.error(`Polling timed out for request ${requestId}`);
+                    break;
+                }
+
                 const statusResult = await fal.queue.status(modelId, {
                     requestId,
                     logs: true,
                 });
+                if (cancelledRef.current) break;
+
                 console.log(`Status update for request ID ${requestId}:`, statusResult.status);
                 if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
                     const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
