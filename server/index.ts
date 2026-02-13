@@ -208,7 +208,21 @@ Bun.serve({
 
                 const imageParams = await req.json();
 
-                console.log(`[OpenAI] Generating image with model: ${imageParams.model}`);
+                // Whitelist only fields supported by the OpenAI Images API
+                const payload: Record<string, unknown> = {
+                    model: imageParams.model,
+                    prompt: imageParams.prompt,
+                };
+                if (imageParams.size) payload.size = imageParams.size;
+                if (imageParams.quality) payload.quality = imageParams.quality;
+                if (imageParams.background) payload.background = imageParams.background;
+                if (imageParams.n) payload.n = imageParams.n;
+                if (imageParams.output_format) payload.output_format = imageParams.output_format;
+                if (imageParams.style) payload.style = imageParams.style;
+                if (imageParams.response_format) payload.response_format = imageParams.response_format;
+                if (imageParams.user) payload.user = imageParams.user;
+
+                console.log(`[OpenAI] Generating image with model: ${payload.model}`);
 
                 const response = await fetch("https://api.openai.com/v1/images/generations", {
                     method: "POST",
@@ -216,7 +230,7 @@ Bun.serve({
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${OPENAI_API_KEY}`,
                     },
-                    body: JSON.stringify(imageParams),
+                    body: JSON.stringify(payload),
                 });
 
                 const responseBody = await response.text();
