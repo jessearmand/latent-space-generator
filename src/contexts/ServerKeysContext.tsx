@@ -1,6 +1,6 @@
 /**
  * React context for server-side API key availability
- * Fetches /health once on mount to determine which backends are configured
+ * Fetches /api/health once on mount to determine which backends are configured
  */
 
 import type React from 'react';

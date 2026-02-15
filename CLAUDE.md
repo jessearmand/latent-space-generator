@@ -42,7 +42,7 @@ ServerKeysProvider (contexts/ServerKeysContext.tsx)
                           └── ModelsProvider (contexts/ModelsContext.tsx)
 ```
 
-- **ServerKeysProvider**: Fetches `/health` on mount to determine which API keys are configured server-side (fal, openai, openrouter)
+- **ServerKeysProvider**: Fetches `/api/health` on mount to determine which API keys are configured server-side (fal, openai, openrouter)
 - **ConfigProvider**: Persists generation parameters (safety tolerance, aspect ratio, guidance scale, GPT-specific options, video settings, audio settings) to localStorage
 - **OpenRouterAuthProvider**: Manages OpenRouter OAuth PKCE authentication state (user API key, login/logout)
 - **OpenRouterProvider**: Manages OpenRouter model list, filtering, and caching for prompt optimization
@@ -270,7 +270,7 @@ Audio generation is handled by `useAudioGeneration` hook with model-specific par
 **Client-side (OAuth)**:
 - **OpenRouter**: Users can authenticate via OAuth PKCE in Settings to use their own credits for prompt optimization and OpenRouter image generation. Falls back to the server's shared key.
 
-**Key availability** is reported by `/health` and consumed by `ServerKeysContext` to route GPT image models to the best available backend.
+**Key availability** is reported by `/api/health` and consumed by `ServerKeysContext` to route GPT image models to the best available backend.
 
 The fal client uses proxy configuration: `fal.config({ proxyUrl: '/api/fal/proxy' })` (relative path, resolved by Vite's dev proxy to port 3001).
 
