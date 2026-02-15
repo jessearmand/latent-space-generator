@@ -134,7 +134,7 @@ All modes (image, video, audio) start with curated model lists for instant load.
 
 ```typescript
 // Submit request
-const { request_id } = await fal.queue.submit(modelId, { input });
+const { request_id: requestId } = await fal.queue.submit(modelId, { input });
 
 // Poll until complete
 while (true) {
