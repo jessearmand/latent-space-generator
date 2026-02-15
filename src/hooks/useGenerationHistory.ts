@@ -1,0 +1,57 @@
+import { useState, useCallback } from 'react';
+import type { OutputType } from '../types/models';
+import type { GenerationMode } from '../components/GenerationTabs';
+import {
+    type HistoryEntry,
+    MAX_HISTORY_ENTRIES,
+    generateHistoryId,
+} from '../types/history';
+
+export interface AddToHistoryParams {
+    type: OutputType;
+    urls: string[];
+    textContent?: string;
+    prompt: string;
+    modelName: string;
+    mode: GenerationMode;
+}
+
+export interface UseGenerationHistoryReturn {
+    history: HistoryEntry[];
+    addToHistory: (params: AddToHistoryParams) => void;
+    removeHistoryEntry: (id: string) => void;
+    clearHistory: () => void;
+}
+
+/**
+ * Session-only hook for generation history.
+ * Not persisted to localStorage because fal.ai CDN URLs expire.
+ * Entries are newest-first, capped at MAX_HISTORY_ENTRIES.
+ */
+export function useGenerationHistory(): UseGenerationHistoryReturn {
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+    const addToHistory = useCallback((params: AddToHistoryParams) => {
+        const entry: HistoryEntry = {
+            id: generateHistoryId(),
+            type: params.type,
+            urls: params.urls,
+            textContent: params.textContent,
+            prompt: params.prompt,
+            modelName: params.modelName,
+            mode: params.mode,
+            timestamp: Date.now(),
+        };
+        setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY_ENTRIES));
+    }, []);
+
+    const removeHistoryEntry = useCallback((id: string) => {
+        setHistory((prev) => prev.filter((entry) => entry.id !== id));
+    }, []);
+
+    const clearHistory = useCallback(() => {
+        setHistory([]);
+    }, []);
+
+    return { history, addToHistory, removeHistoryEntry, clearHistory };
+}

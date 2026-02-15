@@ -88,6 +88,7 @@ export function useImageGeneration({
         }
 
         setIsGenerating(true);
+        setImageUrls([]); // Clear previous images
         console.log(`Generating image with model: ${modelName}`);
         setStatus(`Submitting request for image generation using ${modelName}...`);
         console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);

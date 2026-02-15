@@ -9,3 +9,4 @@ export {
 export { useImageGeneration, type UseImageGenerationParams, type UseImageGenerationReturn } from './useImageGeneration';
 export { useVideoGeneration, type UseVideoGenerationParams, type UseVideoGenerationReturn } from './useVideoGeneration';
 export { useAudioGeneration, type UseAudioGenerationParams, type UseAudioGenerationReturn } from './useAudioGeneration';
+export { useGenerationHistory, type AddToHistoryParams, type UseGenerationHistoryReturn } from './useGenerationHistory';
