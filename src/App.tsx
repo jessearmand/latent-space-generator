@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Modal from 'react-modal';
 import { fal } from '@fal-ai/client';
 import './App.css';
@@ -8,7 +8,9 @@ import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { useServerKeys } from './contexts/ServerKeysContext';
 import { useOpenRouterAuth } from './contexts/OpenRouterAuthContext';
 import { Sidebar } from './components/Sidebar';
+import { GenerationHistory } from './components/GenerationHistory';
 import { isVideoMode, isAudioMode } from './components/GenerationTabs';
+import type { GenerationMode } from './components/GenerationTabs';
 import { InputSection } from './components/InputSection';
 import { OutputSection } from './components/OutputSection';
 import {
@@ -18,6 +20,7 @@ import {
     useImageGeneration,
     useVideoGeneration,
     useAudioGeneration,
+    useGenerationHistory,
 } from './hooks';
 
 /** Settings modal with OpenRouter OAuth and server-side API key info */
@@ -91,6 +94,7 @@ const AppContent: React.FC = () => {
         imageUrls,
         isGenerating: isGeneratingImage,
         generateImage,
+        clearImages,
     } = useImageGeneration({
         activeTab,
         uploadedImages,
@@ -106,6 +110,7 @@ const AppContent: React.FC = () => {
         videoUrl,
         isGenerating: isGeneratingVideo,
         generateVideo,
+        clearVideo,
     } = useVideoGeneration({
         activeTab,
         uploadedImages,
@@ -120,6 +125,7 @@ const AppContent: React.FC = () => {
         textOutput,
         isGenerating: isGeneratingAudio,
         generateAudio,
+        clearAudio,
     } = useAudioGeneration({
         activeTab,
         uploadedAudioFile,
@@ -128,7 +134,39 @@ const AppContent: React.FC = () => {
         setStatus,
     });
 
+    // Generation history (session-only, CDN URLs expire)
+    const { history, addToHistory, removeHistoryEntry, clearHistory } = useGenerationHistory();
+
+    // Refs to capture prompt/model/mode at generation time for accurate history entries
+    const lastPromptRef = useRef<string>('');
+    const lastModelNameRef = useRef<string>('');
+    const lastModeRef = useRef<GenerationMode>(activeTab);
+
     const isGenerating = isGeneratingImage || isGeneratingVideo || isGeneratingAudio;
+
+    /** Save current results to history and clear the active display */
+    const saveAndClearResults = useCallback(() => {
+        const prompt = lastPromptRef.current;
+        const modelName = lastModelNameRef.current;
+        const mode = lastModeRef.current;
+
+        if (imageUrls.length > 0) {
+            addToHistory({ type: 'image', urls: imageUrls, prompt, modelName, mode });
+        }
+        if (videoUrl) {
+            addToHistory({ type: 'video', urls: [videoUrl], prompt, modelName, mode });
+        }
+        if (audioUrl) {
+            addToHistory({ type: 'audio', urls: [audioUrl], prompt, modelName, mode });
+        }
+        if (textOutput) {
+            addToHistory({ type: 'text', urls: [], textContent: textOutput, prompt, modelName, mode });
+        }
+
+        clearImages();
+        clearVideo();
+        clearAudio();
+    }, [imageUrls, videoUrl, audioUrl, textOutput, addToHistory, clearImages, clearVideo, clearAudio]);
 
     // Configure fal client to use proxy (API key is server-side)
     useEffect(() => {
@@ -138,9 +176,22 @@ const AppContent: React.FC = () => {
         console.log('Fal client configured with proxy');
     }, []);
 
-    // Handler for the generate button - routes to image, video, or audio generation
-    const handleGenerate = () => {
+    // Wrap tab change: save results to history before switching modes
+    const wrappedTabChange = useCallback((mode: GenerationMode) => {
+        saveAndClearResults();
+        handleTabChange(mode);
+    }, [saveAndClearResults, handleTabChange]);
+
+    // Handler for the generate button - saves previous results then starts new generation
+    const handleGenerate = useCallback(() => {
         if (!currentSelectedModel) return;
+
+        saveAndClearResults();
+
+        // Capture current context for history when this generation completes
+        lastPromptRef.current = promptText;
+        lastModelNameRef.current = currentSelectedModel.displayName;
+        lastModeRef.current = activeTab;
 
         if (isAudioMode(activeTab)) {
             generateAudio(promptText, currentSelectedModel);
@@ -149,7 +200,7 @@ const AppContent: React.FC = () => {
         } else {
             generateImage(promptText, currentSelectedModel);
         }
-    };
+    }, [currentSelectedModel, saveAndClearResults, promptText, activeTab, generateAudio, generateVideo, generateImage]);
 
     // Set up Modal for accessibility
     Modal.setAppElement('#root');
@@ -164,11 +215,20 @@ const AppContent: React.FC = () => {
             <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
             <div className="app-layout">
-                <Sidebar
-                    activeMode={activeTab}
-                    onModeChange={handleTabChange}
-                    disabled={isGenerating}
-                />
+                <aside className="sidebar-column">
+                    <Sidebar
+                        activeMode={activeTab}
+                        onModeChange={wrappedTabChange}
+                        disabled={isGenerating}
+                    />
+                    {history.length > 0 && (
+                        <GenerationHistory
+                            history={history}
+                            onClearHistory={clearHistory}
+                            onRemoveEntry={removeHistoryEntry}
+                        />
+                    )}
+                </aside>
 
                 <main className="app-main">
                     <p className="app-description">
