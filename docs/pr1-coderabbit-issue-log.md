@@ -69,7 +69,7 @@ Track all CodeRabbit review items from PR #1 with an explicit validity assessmen
 | N02 | `src/types/models.ts` | Export `getSupportsImageInput` for API consistency | `Partially Valid` | Reasonable API cleanup, optional unless consumers need it. |
 | N03 | `src/components/AudioConfigOptions.tsx` | Cast `setTtsEmotion` value to stricter type | `Invalid` | Config setter currently accepts string; no real type mismatch in current API. |
 | N04 | `src/services/audioModels.ts` | Narrow `isSFXModel` match for Eleven endpoints | `Partially Valid` | Future-proofing suggestion; present behavior may still be acceptable. |
-| N05 | `docs/fal-ai-audio-models.md` | Add blank lines around markdown tables | `Valid` | Formatting/lint consistency. |
+| N05 | `docs/fal-ai-audio-models.md` | Add blank lines around Markdown tables | `Valid` | Formatting/lint consistency. |
 | N06 | `src/services/errors.ts` | Deduplicate simple error extraction logic | `Valid` | Improves maintainability and reduces repetition. |
 | N07 | `src/components/ModelConfigPanel.tsx` | Use shared `isGrokImageModel` helper | `Valid` | Better centralization of model detection logic. |
 | N08 | `src/components/ModelConfigPanel.tsx` | Hoist static `grokAspectRatios` constant | `Partially Valid` | Tiny perf/readability cleanup, low practical impact. |
@@ -116,12 +116,19 @@ This section reflects the current state after reading all PR #1 thread comments 
 
 ### New Items From Review `3801179269` (Commit `fc6334a`)
 
-- **D01 (Docs)** `CLAUDE.md`: document Gemini options as more than aspect ratio + add `audio-understanding` mode to table.
-- **D02 (Docs)** `README.md`: adjust capability/routing wording for model lists.
-- **D03 (Docs)** `README.md`: add explicit “do not commit `.env`” note.
-- **C01 (Code Nitpick)** `src/config.tsx`: add parse-int fallback consistency for additional numeric initializers.
-- **C02 (Code Nitpick)** `src/config.tsx`: large dependency array maintainability refactor suggestion.
-- **C03 (Code Nitpick)** `src/hooks/useVideoGeneration.ts`: extract model-detection block to helper.
+| ID | File | Issue Summary | Current Status | Reasoning |
+|---|---|---|---|---|
+| D01 | `CLAUDE.md` | Document Gemini options beyond aspect ratio and add `audio-understanding` mode. | `Resolved` | Current doc now lists Gemini controls (aspect ratio, number of images, output format, Gemini 3 Pro settings) and includes `audio-understanding` in Generation Modes. Confirmed in thread `2808794665`. |
+| D02 | `README.md` | Adjust capability/routing wording for model lists. | `Closed (Maintainer Decision)` | Maintainer clarified capability wording/routing intent in thread `2808794084`; thread is resolved in PR review threads. |
+| D03 | `README.md` | Add explicit “do not commit .env” note. | `Resolved` | README now includes `⚠️ Do not commit .env files to source control.` |
+| C01 | `src/config.tsx` | Add parse-int fallback consistency for additional numeric initializers. | `Partially Resolved` | `grokNumImages`/`geminiNumImages`/`gptNumImages` include `|| 1`; additional numeric initializers remain without default fallback. Nitpick-level maintainability concern, not currently breaking behavior. |
+| C02 | `src/config.tsx` | Refactor large dependency array for maintainability. | `Deferred (Nitpick)` | Suggestion is valid for maintainability, but no correctness defect. Kept as optional future refactor. |
+| C03 | `src/hooks/useVideoGeneration.ts` | Extract model-detection block to helper. | `Deferred (Nitpick)` | Current logic is correct and explicit; extraction would improve organization/testability but is non-blocking. |
+
+### Latest Review Follow-Up (`3803938016`, Commit `3ea1623`)
+
+- `docs/pr1-coderabbit-issue-log.md`: N05 capitalization (`Markdown`) updated in this commit.
+- `src/contexts/ServerKeysContext.tsx`: abort + HTTP-status handling suggestion is a new nitpick from latest review and remains optional unless we choose to apply it.
 
 ### Maintainer Thread References
 
