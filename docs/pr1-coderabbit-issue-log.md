@@ -121,14 +121,31 @@ This section reflects the current state after reading all PR #1 thread comments 
 | D01 | `CLAUDE.md` | Document Gemini options beyond aspect ratio and add `audio-understanding` mode. | `Resolved` | Current doc now lists Gemini controls (aspect ratio, number of images, output format, Gemini 3 Pro settings) and includes `audio-understanding` in Generation Modes. Confirmed in thread `2808794665`. |
 | D02 | `README.md` | Adjust capability/routing wording for model lists. | `Closed (Maintainer Decision)` | Maintainer clarified capability wording/routing intent in thread `2808794084`; thread is resolved in PR review threads. |
 | D03 | `README.md` | Add explicit “do not commit .env” note. | `Resolved` | README now includes `⚠️ Do not commit .env files to source control.` |
-| C01 | `src/config.tsx` | Add parse-int fallback consistency for additional numeric initializers. | `Partially Resolved` | `grokNumImages`/`geminiNumImages`/`gptNumImages` include `|| 1`; additional numeric initializers remain without default fallback. Nitpick-level maintainability concern, not currently breaking behavior. |
+| C01 | `src/config.tsx` | Add parse-int fallback consistency for additional numeric initializers. | `Partially Resolved` | `grokNumImages`/`geminiNumImages`/`gptNumImages` include `\|\| 1` fallback; additional numeric initializers remain without default fallback. Nitpick-level maintainability concern, not currently breaking behavior. |
 | C02 | `src/config.tsx` | Refactor large dependency array for maintainability. | `Deferred (Nitpick)` | Suggestion is valid for maintainability, but no correctness defect. Kept as optional future refactor. |
 | C03 | `src/hooks/useVideoGeneration.ts` | Extract model-detection block to helper. | `Deferred (Nitpick)` | Current logic is correct and explicit; extraction would improve organization/testability but is non-blocking. |
 
-### Latest Review Follow-Up (`3803938016`, Commit `3ea1623`)
+### Review Follow-Up (`3803826417`, Commit `63eba02`)
 
-- `docs/pr1-coderabbit-issue-log.md`: N05 capitalization (`Markdown`) updated in this commit.
-- `src/contexts/ServerKeysContext.tsx`: abort + HTTP-status handling suggestion is a new nitpick from latest review and remains optional unless we choose to apply it.
+| ID | File | Issue Summary | Assessment | Reasoning |
+|---|---|---|---|---|
+| E01 | `CLAUDE.md` | ServerKeysProvider doc says `/health`, client code uses `/api/health`. | `Resolved` | Fixed both CLAUDE.md references and ServerKeysContext.tsx JSDoc comment in `470f5f8`. |
+| E02 | `README.md` | Rename "Audio-to-Audio" to "Voice Cloning" in usage section. | `Closed (Maintainer Decision)` | Usage section mirrors UI tab labels (`Sidebar.tsx:60`); Audio Models section uses descriptive names. Different contexts, both correct. |
+| E03 | `server/index.ts` | CodeRabbit pushback: A24 reply was about fal proxy, but comment was about OpenAI key. | `Resolved` | Replied clarifying: OpenAI key removal is intentional server-side injection model (A22/A39). |
+
+### Review Follow-Up (`3803938016`, Commit `63eba02`)
+
+| ID | File | Issue Summary | Assessment | Reasoning |
+|---|---|---|---|---|
+| E04 | `CLAUDE.md` | Queue polling snippet: `request_id` destructured but `requestId` used without alias. | `Resolved` | Fixed: added `{ request_id: requestId }` destructuring alias in doc snippet. |
+| E05 | `docs/pr1-coderabbit-issue-log.md` | N05 capitalization ("markdown" → "Markdown"). | `Resolved` | Already fixed in issue log. |
+| E06 | `src/contexts/ServerKeysContext.tsx` | Add AbortController + HTTP status handling to health fetch. | `Deferred (Nitpick)` | Provider sits at root level, never unmounts. Current `.catch()` + `.finally()` handles errors gracefully. Low priority. |
+
+### Review Follow-Up (`3803997793`, Issue Log)
+
+| ID | File | Issue Summary | Assessment | Reasoning |
+|---|---|---|---|---|
+| E07 | `docs/pr1-coderabbit-issue-log.md` | Escape `\|\|` pipe chars in C01 table cell breaking table rendering. | `Resolved` | Pipes escaped in issue log. |
 
 ### Maintainer Thread References
 
