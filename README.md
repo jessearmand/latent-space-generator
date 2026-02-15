@@ -54,6 +54,8 @@ export OPENAI_API_KEY=your_openai_api_key_here
 export OPENROUTER_API_KEY=your_openrouter_api_key_here  # Optional fallback
 ```
 
+- `⚠️` Do not commit `.env` files to source control.
+
 - `FAL_API_KEY` — Required for fal.ai image/video/audio generation, also fallback for GPT models
 - `OPENAI_API_KEY` — Preferred for GPT Image models (direct, no queue)
 - `OPENROUTER_API_KEY` — Fallback for Gemini image models, fallback for GPT models, fallback for prompt optimization
@@ -151,8 +153,8 @@ bun run build         # Production build
 - And many more (dynamically loaded from API)
 
 ### Image Models (OpenAI / fal.ai / OpenRouter)
-- GPT Image 1.5 (routes: OpenAI direct → fal.ai → OpenRouter)
-- GPT Image 1 Mini (routes: OpenAI direct → fal.ai → OpenRouter)
+- GPT Image 1.5 (cascading route by key availability: OpenAI direct → fal.ai → OpenRouter)
+- GPT Image 1 Mini (cascading route by key availability: OpenAI direct → fal.ai → OpenRouter)
 
 ### Image Models (fal.ai / OpenRouter)
 - Gemini 2.5 Flash Image (routes: fal.ai → OpenRouter)

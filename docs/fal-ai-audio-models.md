@@ -234,11 +234,13 @@ const result = await fal.subscribe("mirelo-ai/sfx-v1/video-to-video", {
 ### Output Schema
 
 **Video-to-Audio**:
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `audio` | array | Array of audio files (WAV format) with `url`, `file_name`, `content_type` |
 
 **Video-to-Video**:
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `video` | array | Array of video files (MP4) with embedded sound effects |

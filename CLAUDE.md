@@ -185,7 +185,8 @@ Helper functions in `services/imageModels.ts`:
 
 The `ModelConfigPanel` component renders different settings based on model type:
 - **GPT models** (`endpointId.includes('gpt-image')`): image size, quality, background options
-- **Gemini image models** (`gemini...image`): aspect ratio only
+- **Gemini image models** (`gemini...image`): aspect ratio, number of images, output format
+  - Gemini 3 Pro additionally exposes safety tolerance, optional seed, resolution, and web search toggle
 - **Flux/other models**: safety tolerance, aspect ratio, guidance scale, seed, image-to-image settings
 
 ### Generation Modes
@@ -203,6 +204,7 @@ The app supports multiple generation modes, managed by `useGenerationMode` hook:
 | `text-to-audio` | Generate music and sound effects |
 | `audio-to-audio` | Voice cloning (Dia TTS) |
 | `video-to-audio` | Generate audio from video (Mirelo SFX) |
+| `audio-understanding` | Analyze uploaded audio with optional detailed analysis |
 
 ### Video Generation Architecture
 
