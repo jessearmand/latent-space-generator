@@ -28,6 +28,7 @@ describe('buildVisibleNodes', () => {
             { type: 'section', sectionId: 'image' },
             { type: 'section', sectionId: 'video' },
             { type: 'section', sectionId: 'audio' },
+            { type: 'section', sectionId: 'history' },
         ]);
     });
 
@@ -39,16 +40,18 @@ describe('buildVisibleNodes', () => {
             { type: 'mode', sectionId: 'image', modeId: 'image-to-image' },
             { type: 'section', sectionId: 'video' },
             { type: 'section', sectionId: 'audio' },
+            { type: 'section', sectionId: 'history' },
         ]);
     });
 
     it('includes all children when all sections expanded', () => {
-        const nodes = buildVisibleNodes(new Set(['image', 'video', 'audio']));
-        // 3 sections + 2 image modes + 3 video modes + 5 audio modes = 13
-        expect(nodes).toHaveLength(13);
+        const nodes = buildVisibleNodes(new Set(['image', 'video', 'audio', 'history']));
+        // 4 sections + 2 image + 3 video + 5 audio + 3 history = 17
+        expect(nodes).toHaveLength(17);
         expect(nodes[0]).toEqual({ type: 'section', sectionId: 'image' });
         expect(nodes[3]).toEqual({ type: 'section', sectionId: 'video' });
         expect(nodes[7]).toEqual({ type: 'section', sectionId: 'audio' });
+        expect(nodes[13]).toEqual({ type: 'section', sectionId: 'history' });
     });
 });
 
@@ -56,10 +59,13 @@ describe('Sidebar component', () => {
     const defaultProps = {
         activeMode: 'text-to-image' as const,
         onModeChange: vi.fn(),
+        activeView: { kind: 'generate' as const },
+        onViewChange: vi.fn(),
     };
 
     beforeEach(() => {
         defaultProps.onModeChange.mockClear();
+        defaultProps.onViewChange.mockClear();
     });
 
     it('renders with tree role and treeitem roles', () => {
@@ -90,6 +96,36 @@ describe('Sidebar component', () => {
         expect(modeItem.getAttribute('aria-level')).toBe('2');
     });
 
+    it('renders history section', () => {
+        render(<Sidebar {...defaultProps} />);
+        expect(screen.getByText('Generation History')).toBeTruthy();
+    });
+
+    it('calls onViewChange when clicking a history item', () => {
+        render(<Sidebar {...defaultProps} />);
+        // Expand history section
+        const historyHeader = getButton('Generation History');
+        fireEvent.click(historyHeader);
+        // Click Images history item
+        const imagesItem = screen.getByText('Images');
+        fireEvent.click(imagesItem);
+        expect(defaultProps.onViewChange).toHaveBeenCalledWith({ kind: 'history', filter: 'image' });
+    });
+
+    it('highlights history item when activeView is history', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                activeView={{ kind: 'history', filter: 'video' }}
+            />
+        );
+        // Expand history section
+        const historyHeader = getButton('Generation History');
+        fireEvent.click(historyHeader);
+        const videosItem = screen.getByText('Videos');
+        expect(videosItem.getAttribute('aria-selected')).toBe('true');
+    });
+
     describe('keyboard navigation', () => {
         it('ArrowDown moves focus to next visible node', () => {
             render(<Sidebar {...defaultProps} />);
@@ -113,12 +149,12 @@ describe('Sidebar component', () => {
 
         it('ArrowDown clamps at last visible node', () => {
             render(<Sidebar {...defaultProps} />);
-            const audioHeader = getButton('Generate Audio');
-            audioHeader.focus();
-            fireEvent.keyDown(audioHeader, { key: 'ArrowDown' });
+            // Last visible node is now the History section header (collapsed)
+            const historyHeader = getButton('Generation History');
+            historyHeader.focus();
+            fireEvent.keyDown(historyHeader, { key: 'ArrowDown' });
 
-            // Audio section is collapsed by default, so audio header is the last node
-            expect(document.activeElement).toBe(audioHeader);
+            expect(document.activeElement).toBe(historyHeader);
         });
 
         it('ArrowRight expands a collapsed section', () => {
@@ -185,8 +221,9 @@ describe('Sidebar component', () => {
             imageHeader.focus();
             fireEvent.keyDown(imageHeader, { key: 'End' });
 
-            const audioHeader = screen.getByText('Generate Audio').closest('button');
-            expect(document.activeElement).toBe(audioHeader);
+            // Last visible node is now History header (collapsed)
+            const historyHeader = screen.getByText('Generation History').closest('button');
+            expect(document.activeElement).toBe(historyHeader);
         });
 
         it('Enter on section header toggles expand', () => {
@@ -215,6 +252,19 @@ describe('Sidebar component', () => {
             fireEvent.keyDown(textToImage, { key: 'Enter' });
 
             expect(defaultProps.onModeChange).toHaveBeenCalledWith('text-to-image');
+        });
+
+        it('Enter on history mode item calls onViewChange', () => {
+            render(<Sidebar {...defaultProps} />);
+            // Expand history section
+            const historyHeader = getButton('Generation History');
+            fireEvent.click(historyHeader);
+
+            const audiosItem = screen.getByText('Audio');
+            audiosItem.focus();
+            fireEvent.keyDown(audiosItem, { key: 'Enter' });
+
+            expect(defaultProps.onViewChange).toHaveBeenCalledWith({ kind: 'history', filter: 'audio' });
         });
     });
 

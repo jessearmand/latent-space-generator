@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Modal from 'react-modal';
 import { fal } from '@fal-ai/client';
 import './App.css';
@@ -8,11 +8,12 @@ import { ModelsProvider, useModels } from './contexts/ModelsContext';
 import { useServerKeys } from './contexts/ServerKeysContext';
 import { useOpenRouterAuth } from './contexts/OpenRouterAuthContext';
 import { Sidebar } from './components/Sidebar';
-import { GenerationHistory } from './components/GenerationHistory';
+import { HistoryView } from './components/HistoryView';
 import { isVideoMode, isAudioMode } from './components/GenerationTabs';
 import type { GenerationMode } from './components/GenerationTabs';
 import { InputSection } from './components/InputSection';
 import { OutputSection } from './components/OutputSection';
+import type { AppView, HistoryFilter } from './types/appView';
 import {
     useStatusMessage,
     useImageUpload,
@@ -135,7 +136,10 @@ const AppContent: React.FC = () => {
     });
 
     // Generation history (session-only, CDN URLs expire)
-    const { history, addToHistory, removeHistoryEntry, clearHistory } = useGenerationHistory();
+    const { history, addToHistory, removeHistoryEntry, clearHistoryByFilter, getCountByFilter } = useGenerationHistory();
+
+    // View routing: 'generate' shows normal UI, 'history' shows history grid
+    const [appView, setAppView] = useState<AppView>({ kind: 'generate' });
 
     // Refs to capture prompt/model/mode at generation time for accurate history entries
     const lastPromptRef = useRef<string>('');
@@ -180,7 +184,23 @@ const AppContent: React.FC = () => {
     const wrappedTabChange = useCallback((mode: GenerationMode) => {
         saveAndClearResults();
         handleTabChange(mode);
+        setAppView({ kind: 'generate' });
     }, [saveAndClearResults, handleTabChange]);
+
+    // Handle view changes from sidebar (switching to history or back to generate)
+    const handleViewChange = useCallback((view: AppView) => {
+        if (view.kind === 'history') {
+            saveAndClearResults();
+        }
+        setAppView(view);
+    }, [saveAndClearResults]);
+
+    // Badge counts for history sidebar items
+    const historyBadgeCounts: Record<HistoryFilter, number> = useMemo(() => ({
+        image: getCountByFilter('image'),
+        video: getCountByFilter('video'),
+        audio: getCountByFilter('audio'),
+    }), [getCountByFilter]);
 
     // Handler for the generate button - saves previous results then starts new generation
     const handleGenerate = useCallback(() => {
@@ -219,56 +239,63 @@ const AppContent: React.FC = () => {
                     <Sidebar
                         activeMode={activeTab}
                         onModeChange={wrappedTabChange}
+                        activeView={appView}
+                        onViewChange={handleViewChange}
+                        historyBadgeCounts={historyBadgeCounts}
                         disabled={isGenerating}
                     />
-                    {history.length > 0 && (
-                        <GenerationHistory
-                            history={history}
-                            onClearHistory={clearHistory}
-                            onRemoveEntry={removeHistoryEntry}
-                        />
-                    )}
                 </aside>
 
                 <main className="app-main">
-                    <p className="app-description">
-                        {activeTab === 'text-to-image' && 'Select a model and enter a text prompt to generate an image.'}
-                        {activeTab === 'image-to-image' && 'Upload an image and enter a prompt to transform it.'}
-                        {activeTab === 'text-to-video' && 'Select a model and enter a text prompt to generate a video.'}
-                        {activeTab === 'image-to-video' && 'Upload an image and enter a prompt to animate it.'}
-                        {activeTab === 'video-to-video' && 'Upload a video and enter a prompt to transform it.'}
-                        {activeTab === 'text-to-speech' && 'Enter text to convert to speech.'}
-                        {activeTab === 'text-to-audio' && 'Enter a prompt to generate music or sound effects.'}
-                        {activeTab === 'audio-to-audio' && 'Upload an audio file and enter text for voice cloning.'}
-                        {activeTab === 'video-to-audio' && 'Upload a video to generate synced audio.'}
-                        {activeTab === 'audio-understanding' && 'Upload an audio file and ask questions about its content.'}
-                    </p>
+                    {appView.kind === 'history' ? (
+                        <HistoryView
+                            filter={appView.filter}
+                            history={history}
+                            onRemoveEntry={removeHistoryEntry}
+                            onClearFilter={clearHistoryByFilter}
+                        />
+                    ) : (
+                        <>
+                            <p className="app-description">
+                                {activeTab === 'text-to-image' && 'Select a model and enter a text prompt to generate an image.'}
+                                {activeTab === 'image-to-image' && 'Upload an image and enter a prompt to transform it.'}
+                                {activeTab === 'text-to-video' && 'Select a model and enter a text prompt to generate a video.'}
+                                {activeTab === 'image-to-video' && 'Upload an image and enter a prompt to animate it.'}
+                                {activeTab === 'video-to-video' && 'Upload a video and enter a prompt to transform it.'}
+                                {activeTab === 'text-to-speech' && 'Enter text to convert to speech.'}
+                                {activeTab === 'text-to-audio' && 'Enter a prompt to generate music or sound effects.'}
+                                {activeTab === 'audio-to-audio' && 'Upload an audio file and enter text for voice cloning.'}
+                                {activeTab === 'video-to-audio' && 'Upload a video to generate synced audio.'}
+                                {activeTab === 'audio-understanding' && 'Upload an audio file and ask questions about its content.'}
+                            </p>
 
-                    <InputSection
-                        activeTab={activeTab}
-                        currentSelectedModel={currentSelectedModel}
-                        uploadedImages={uploadedImages}
-                        imagePreviews={imagePreviews}
-                        setUploadedImages={setUploadedImages}
-                        uploadedVideoFile={uploadedVideoFile}
-                        setUploadedVideoFile={setUploadedVideoFile}
-                        uploadedAudioFile={uploadedAudioFile}
-                        setUploadedAudioFile={setUploadedAudioFile}
-                        promptText={promptText}
-                        setPromptText={setPromptText}
-                        isGenerating={isGenerating}
-                        modelsLoading={modelsLoading}
-                        handleGenerate={handleGenerate}
-                    />
+                            <InputSection
+                                activeTab={activeTab}
+                                currentSelectedModel={currentSelectedModel}
+                                uploadedImages={uploadedImages}
+                                imagePreviews={imagePreviews}
+                                setUploadedImages={setUploadedImages}
+                                uploadedVideoFile={uploadedVideoFile}
+                                setUploadedVideoFile={setUploadedVideoFile}
+                                uploadedAudioFile={uploadedAudioFile}
+                                setUploadedAudioFile={setUploadedAudioFile}
+                                promptText={promptText}
+                                setPromptText={setPromptText}
+                                isGenerating={isGenerating}
+                                modelsLoading={modelsLoading}
+                                handleGenerate={handleGenerate}
+                            />
 
-                    <OutputSection
-                        audioUrl={audioUrl}
-                        textOutput={textOutput}
-                        videoUrl={videoUrl}
-                        imageUrls={imageUrls}
-                        statusMessage={statusMessage}
-                        statusType={statusType}
-                    />
+                            <OutputSection
+                                audioUrl={audioUrl}
+                                textOutput={textOutput}
+                                videoUrl={videoUrl}
+                                imageUrls={imageUrls}
+                                statusMessage={statusMessage}
+                                statusType={statusType}
+                            />
+                        </>
+                    )}
                 </main>
             </div>
         </div>

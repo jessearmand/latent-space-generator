@@ -1,0 +1,91 @@
+/* Prompt overlay at the bottom of history cards */
+
+.prompt-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 10px 8px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    color: #fff;
+    pointer-events: none;
+}
+
+.prompt-overlay-text {
+    font-size: 0.78em;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.prompt-overlay-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    gap: 6px;
+}
+
+.prompt-overlay-model {
+    font-size: 0.7em;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.prompt-overlay-time {
+    font-size: 0.68em;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.prompt-overlay-copy {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.72em;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+}
+
+.prompt-overlay-copy:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* Standalone variant (not over an image, e.g. audio cards) */
+.prompt-overlay--standalone {
+    position: relative;
+    background: #f5f5f5;
+    color: #333;
+    padding: 8px 10px;
+    border-radius: 0 0 8px 8px;
+}
+
+.prompt-overlay--standalone .prompt-overlay-model {
+    color: #555;
+    opacity: 1;
+}
+
+.prompt-overlay--standalone .prompt-overlay-time {
+    color: #888;
+    opacity: 1;
+}
+
+.prompt-overlay--standalone .prompt-overlay-copy {
+    background: rgba(0, 0, 0, 0.08);
+    color: #333;
+}
+
+.prompt-overlay--standalone .prompt-overlay-copy:hover {
+    background: rgba(0, 0, 0, 0.15);
+}

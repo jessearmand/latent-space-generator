@@ -10,3 +10,4 @@ export { useImageGeneration, type UseImageGenerationParams, type UseImageGenerat
 export { useVideoGeneration, type UseVideoGenerationParams, type UseVideoGenerationReturn } from './useVideoGeneration';
 export { useAudioGeneration, type UseAudioGenerationParams, type UseAudioGenerationReturn } from './useAudioGeneration';
 export { useGenerationHistory, type AddToHistoryParams, type UseGenerationHistoryReturn } from './useGenerationHistory';
+export { type HistoryFilter, type AppView, outputTypeToHistoryFilter } from '../types/appView';

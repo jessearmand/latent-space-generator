@@ -1,6 +1,6 @@
 /**
  * Sidebar navigation component for switching between generation modes.
- * Organizes modes by media type: Image, Video, Audio.
+ * Organizes modes by media type: Image, Video, Audio, and Generation History.
  *
  * Implements WAI-ARIA TreeView pattern with roving tabindex:
  * - Arrow keys navigate between visible tree items
@@ -13,25 +13,37 @@
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { GenerationMode } from './GenerationTabs';
+import type { AppView, HistoryFilter } from '../types/appView';
 import './Sidebar.css';
 
 interface SidebarProps {
     activeMode: GenerationMode;
     onModeChange: (mode: GenerationMode) => void;
+    activeView: AppView;
+    onViewChange: (view: AppView) => void;
+    historyBadgeCounts?: Record<HistoryFilter, number>;
     disabled?: boolean;
 }
 
 interface SectionConfig {
     id: string;
     label: string;
-    modes: { id: GenerationMode; label: string }[];
+    isHistory?: boolean;
+    modes: { id: string; label: string }[];
 }
 
 export interface TreeNode {
     type: 'section' | 'mode';
     sectionId: string;
-    modeId?: GenerationMode;
+    modeId?: string;
 }
+
+/** Map from history mode id (e.g. 'history-image') to HistoryFilter */
+const historyModeToFilter: Record<string, HistoryFilter> = {
+    'history-image': 'image',
+    'history-video': 'video',
+    'history-audio': 'audio',
+};
 
 const sections: SectionConfig[] = [
     {
@@ -62,15 +74,25 @@ const sections: SectionConfig[] = [
             { id: 'audio-understanding', label: 'Audio Understanding' },
         ],
     },
+    {
+        id: 'history',
+        label: 'Generation History',
+        isHistory: true,
+        modes: [
+            { id: 'history-image', label: 'Images' },
+            { id: 'history-video', label: 'Videos' },
+            { id: 'history-audio', label: 'Audio' },
+        ],
+    },
 ];
 
 /** Storage key for expanded sections */
 const EXPANDED_SECTIONS_KEY = 'fal_sidebar_expanded';
 
-/** Get section containing a mode */
+/** Get section containing a generation mode (only searches non-history sections) */
 function getSectionForMode(mode: GenerationMode): string {
     for (const section of sections) {
-        if (section.modes.some((m) => m.id === mode)) {
+        if (!section.isHistory && section.modes.some((m) => m.id === mode)) {
             return section.id;
         }
     }
@@ -92,7 +114,7 @@ export function buildVisibleNodes(expandedSections: Set<string>): TreeNode[] {
 }
 
 /** Find index of a node matching a mode or section */
-function findNodeIndex(nodes: TreeNode[], sectionId: string, modeId?: GenerationMode): number {
+function findNodeIndex(nodes: TreeNode[], sectionId: string, modeId?: string): number {
     return nodes.findIndex((n) => {
         if (modeId) return n.type === 'mode' && n.modeId === modeId;
         return n.type === 'section' && n.sectionId === sectionId;
@@ -115,7 +137,19 @@ function getInitialExpandedSections(activeMode: GenerationMode): Set<string> {
     return new Set([getSectionForMode(activeMode)]);
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disabled = false }) => {
+/** Check if a section is the history section */
+function isHistorySection(sectionId: string): boolean {
+    return sections.find((s) => s.id === sectionId)?.isHistory === true;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+    activeMode,
+    onModeChange,
+    activeView,
+    onViewChange,
+    historyBadgeCounts,
+    disabled = false,
+}) => {
     const [expandedSections, setExpandedSections] = useState<Set<string>>(() =>
         getInitialExpandedSections(activeMode)
     );
@@ -141,13 +175,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
         }
     }, [activeMode, expandedSections]);
 
-    // Sync focusedIndex when activeMode changes externally
+    // Sync focusedIndex when activeMode or activeView changes externally
     useEffect(() => {
-        const idx = findNodeIndex(visibleNodes, getSectionForMode(activeMode), activeMode);
-        if (idx !== -1) {
-            setFocusedIndex(idx);
+        if (activeView.kind === 'history') {
+            const historyModeId = `history-${activeView.filter}`;
+            const idx = findNodeIndex(visibleNodes, 'history', historyModeId);
+            if (idx !== -1) {
+                setFocusedIndex(idx);
+            }
+        } else {
+            const idx = findNodeIndex(visibleNodes, getSectionForMode(activeMode), activeMode);
+            if (idx !== -1) {
+                setFocusedIndex(idx);
+            }
         }
-    }, [activeMode, visibleNodes]);
+    }, [activeMode, activeView, visibleNodes]);
 
     // When a section collapses and focused child disappears, move focus to parent section
     useEffect(() => {
@@ -177,6 +219,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
             return next;
         });
     }, []);
+
+    /** Handle activating a mode item (either generation mode or history filter) */
+    const activateMode = useCallback(
+        (modeId: string, sectionId: string) => {
+            if (isHistorySection(sectionId)) {
+                const filter = historyModeToFilter[modeId];
+                if (filter) {
+                    onViewChange({ kind: 'history', filter });
+                }
+            } else {
+                onModeChange(modeId as GenerationMode);
+            }
+        },
+        [onModeChange, onViewChange],
+    );
 
     const handleTreeKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -234,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                     if (node.type === 'section') {
                         toggleSection(node.sectionId);
                     } else if (node.modeId) {
-                        onModeChange(node.modeId);
+                        activateMode(node.modeId, node.sectionId);
                     }
                     break;
 
@@ -246,7 +303,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                 e.preventDefault();
             }
         },
-        [disabled, visibleNodes, expandedSections, moveFocus, toggleSection, onModeChange]
+        [disabled, visibleNodes, expandedSections, moveFocus, toggleSection, activateMode]
+    );
+
+    /** Check if a mode item is currently active */
+    const isModeActive = useCallback(
+        (modeId: string, sectionIsHistory: boolean): boolean => {
+            if (sectionIsHistory) {
+                const filter = historyModeToFilter[modeId];
+                return activeView.kind === 'history' && activeView.filter === filter;
+            }
+            return activeView.kind === 'generate' && activeMode === modeId;
+        },
+        [activeMode, activeView],
+    );
+
+    /** Check if a section has any active child */
+    const isSectionActive = useCallback(
+        (section: SectionConfig): boolean => {
+            return section.modes.some((m) => isModeActive(m.id, section.isHistory === true));
+        },
+        [isModeActive],
     );
 
     // Track ref index counter during render
@@ -256,7 +333,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
         <div className="sidebar" role="tree" aria-label="Generation modes">
             {sections.map((section) => {
                 const isExpanded = expandedSections.has(section.id);
-                const hasModeActive = section.modes.some((m) => m.id === activeMode);
+                const hasModeActive = isSectionActive(section);
 
                 // Capture the ref index for this section header
                 const sectionRefIndex = refIndex++;
@@ -276,7 +353,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                             ref={(el) => { nodeRefs.current[sectionRefIndex] = el; }}
                             disabled={disabled}
                         >
-                            <span className="sidebar-section-icon">{isExpanded ? '▼' : '▶'}</span>
+                            <span className="sidebar-section-icon">{isExpanded ? '\u25BC' : '\u25B6'}</span>
                             <span className="sidebar-section-label">{section.label}</span>
                         </button>
 
@@ -287,8 +364,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                                 className="sidebar-mode-list"
                             >
                                 {section.modes.map((mode) => {
-                                    const isActive = activeMode === mode.id;
+                                    const isActive = isModeActive(mode.id, section.isHistory === true);
                                     const modeRefIndex = refIndex++;
+
+                                    // Badge count for history items
+                                    const badgeCount = section.isHistory && historyBadgeCounts
+                                        ? historyBadgeCounts[historyModeToFilter[mode.id] as HistoryFilter]
+                                        : undefined;
 
                                     return (
                                         <button
@@ -298,7 +380,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                                             aria-level={2}
                                             aria-selected={isActive}
                                             className={`sidebar-mode-item ${isActive ? 'active' : ''}`}
-                                            onClick={() => !disabled && onModeChange(mode.id)}
+                                            onClick={() => !disabled && activateMode(mode.id, section.id)}
                                             onKeyDown={handleTreeKeyDown}
                                             onFocus={() => setFocusedIndex(modeRefIndex)}
                                             tabIndex={focusedIndex === modeRefIndex ? 0 : -1}
@@ -306,6 +388,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMode, onModeChange, disa
                                             disabled={disabled}
                                         >
                                             {mode.label}
+                                            {badgeCount !== undefined && badgeCount > 0 && (
+                                                <span className="sidebar-badge">{badgeCount}</span>
+                                            )}
                                         </button>
                                     );
                                 })}

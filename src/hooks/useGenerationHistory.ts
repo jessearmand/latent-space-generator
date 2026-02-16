@@ -6,6 +6,7 @@ import {
     MAX_HISTORY_ENTRIES,
     generateHistoryId,
 } from '../types/history';
+import { type HistoryFilter, outputTypeToHistoryFilter } from '../types/appView';
 
 export interface AddToHistoryParams {
     type: OutputType;
@@ -21,6 +22,8 @@ export interface UseGenerationHistoryReturn {
     addToHistory: (params: AddToHistoryParams) => void;
     removeHistoryEntry: (id: string) => void;
     clearHistory: () => void;
+    clearHistoryByFilter: (filter: HistoryFilter) => void;
+    getCountByFilter: (filter: HistoryFilter) => number;
 }
 
 /**
@@ -53,5 +56,16 @@ export function useGenerationHistory(): UseGenerationHistoryReturn {
         setHistory([]);
     }, []);
 
-    return { history, addToHistory, removeHistoryEntry, clearHistory };
+    const clearHistoryByFilter = useCallback((filter: HistoryFilter) => {
+        setHistory((prev) => prev.filter((entry) => outputTypeToHistoryFilter(entry.type) !== filter));
+    }, []);
+
+    const getCountByFilter = useCallback(
+        (filter: HistoryFilter): number => {
+            return history.filter((entry) => outputTypeToHistoryFilter(entry.type) === filter).length;
+        },
+        [history],
+    );
+
+    return { history, addToHistory, removeHistoryEntry, clearHistory, clearHistoryByFilter, getCountByFilter };
 }
