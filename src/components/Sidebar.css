@@ -88,6 +88,26 @@
     cursor: not-allowed;
 }
 
+/* Badge for history item counts */
+.sidebar-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 8px;
+    font-size: 0.72em;
+    font-weight: 600;
+    color: #fff;
+    background-color: #6c757d;
+    border-radius: 9px;
+}
+
+.sidebar-mode-item.active .sidebar-badge {
+    background-color: #007bff;
+}
+
 /* Focus styles for accessibility */
 .sidebar-section-header:focus-visible,
 .sidebar-mode-item:focus-visible {
