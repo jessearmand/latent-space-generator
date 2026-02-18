@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -41,14 +41,17 @@ export function useAudioGeneration({
 
     const generateAudio = useCallback(
         async (promptOrText: string, model: ModelConfig) => {
-            if (!promptOrText) {
+            const modelId = model.endpointId;
+            const modelName = model.displayName;
+
+            // Audio Isolation doesn't need text input; PersonaPlex prompt is optional
+            const noTextRequired = isElevenLabsAudioIsolationModel(modelId);
+            if (!promptOrText && !noTextRequired) {
                 setStatus('Please enter text or a prompt.', 'error');
                 console.error('Text/prompt is empty. Cannot generate audio.');
                 return;
             }
 
-            const modelId = model.endpointId;
-            const modelName = model.displayName;
             const isAudioToAudio = activeTab === 'audio-to-audio';
             const isVideoToAudio = activeTab === 'video-to-audio';
             const isAudioUnderstanding = activeTab === 'audio-understanding' || isAudioUnderstandingModel(modelId);
@@ -127,6 +130,11 @@ export function useAudioGeneration({
             const isChatterbox = modelIdLower.includes('chatterbox');
             const isDiaVoiceClone = modelIdLower.includes('dia-tts') || modelIdLower.includes('voice-clone');
             const isMirelo = modelIdLower.includes('mirelo') || modelIdLower.includes('sfx-v1');
+            const isElevenLabsTTS = isElevenLabsTTSModel(modelId);
+            const isElevenLabsSFX = isElevenLabsSFXModel(modelId);
+            const isElevenLabsMusic = isElevenLabsMusicModel(modelId);
+            const isElevenLabsAudioIsolation = isElevenLabsAudioIsolationModel(modelId);
+            const isPersonaPlex = isPersonaPlexModel(modelId);
 
             // Model-specific prompt field routing
             if (isMinimaxTurbo) {
@@ -189,6 +197,41 @@ export function useAudioGeneration({
                 if (config.chatterboxCfg !== 0.5) {
                     input.cfg = config.chatterboxCfg;
                 }
+            }
+
+            // ElevenLabs TTS specific parameters (Turbo v2.5 and Multilingual v2)
+            if (isElevenLabsTTS) {
+                input.voice = config.elevenLabsVoice;
+                if (config.elevenLabsStability !== 0.5) input.stability = config.elevenLabsStability;
+                if (config.elevenLabsSimilarityBoost !== 0.75) input.similarity_boost = config.elevenLabsSimilarityBoost;
+                if (config.elevenLabsStyle !== 0) input.style = config.elevenLabsStyle;
+                if (config.elevenLabsSpeed !== 1) input.speed = config.elevenLabsSpeed;
+            }
+
+            // ElevenLabs Sound Effects v2 — uses 'text' not 'prompt'
+            if (isElevenLabsSFX) {
+                delete input.prompt;
+                input.text = promptOrText;
+                if (config.audioDuration > 0) input.duration_seconds = config.audioDuration;
+                if (config.elevenLabsPromptInfluence !== 0.3) input.prompt_influence = config.elevenLabsPromptInfluence;
+            }
+
+            // ElevenLabs Music — uses 'prompt' (handled by generic non-TTS path above)
+            if (isElevenLabsMusic) {
+                if (config.audioDuration > 0) input.music_length_ms = config.audioDuration * 1000;
+                if (config.elevenLabsForceInstrumental) input.force_instrumental = true;
+            }
+
+            // ElevenLabs Audio Isolation — just needs audio_url
+            if (isElevenLabsAudioIsolation && uploadedAudioUrl) {
+                input.audio_url = uploadedAudioUrl;
+            }
+
+            // PersonaPlex — audio-to-audio with audio_url + prompt + voice
+            if (isPersonaPlex && uploadedAudioUrl) {
+                input.audio_url = uploadedAudioUrl;
+                if (promptOrText) input.prompt = promptOrText;
+                if (config.personaPlexVoice !== 'NATF2') input.voice = config.personaPlexVoice;
             }
 
             // Dia TTS Voice Clone specific parameters

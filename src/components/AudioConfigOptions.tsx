@@ -6,8 +6,8 @@
 import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
-import { MINIMAX_VOICES, MINIMAX_EMOTIONS, MINIMAX_LANGUAGE_BOOST, QWEN3_TTS_VOICES, QWEN3_TTS_LANGUAGES } from '../types/audio';
-import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel } from '../services/audioModels';
+import { MINIMAX_VOICES, MINIMAX_EMOTIONS, MINIMAX_LANGUAGE_BOOST, QWEN3_TTS_VOICES, QWEN3_TTS_LANGUAGES, ELEVENLABS_VOICES, PERSONAPLEX_VOICES } from '../types/audio';
+import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -30,6 +30,11 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
     const isBeatovenMusic = isBeatoven && modelId.includes('music');
     const isBeatovenSFX = isBeatoven && modelId.includes('sound-effect');
     const isAudioUnderstanding = isAudioUnderstandingModel(selectedModel.endpointId);
+    const isElevenLabsTTS = isElevenLabsTTSModel(selectedModel.endpointId);
+    const isElevenLabsSFX = isElevenLabsSFXModel(selectedModel.endpointId);
+    const isElevenLabsMusic = isElevenLabsMusicModel(selectedModel.endpointId);
+    const isElevenLabsAudioIsolation = isElevenLabsAudioIsolationModel(selectedModel.endpointId);
+    const isPersonaPlex = isPersonaPlexModel(selectedModel.endpointId);
 
     return (
         <div className="audio-config-options">
@@ -250,6 +255,154 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                 </>
             )}
 
+            {/* ElevenLabs TTS Settings (Turbo v2.5 & Multilingual v2) */}
+            {isElevenLabsTTS && (
+                <>
+                    <div className="form-group">
+                        <label htmlFor="elevenlabs-voice">Voice:</label>
+                        <select
+                            id="elevenlabs-voice"
+                            value={config.elevenLabsVoice}
+                            onChange={(e) => config.setElevenLabsVoice(e.target.value)}
+                        >
+                            {ELEVENLABS_VOICES.map((voice) => (
+                                <option key={voice.id} value={voice.id}>
+                                    {voice.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="elevenlabs-stability">
+                            Stability: <span className="range-value">{config.elevenLabsStability.toFixed(2)}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="elevenlabs-stability"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={config.elevenLabsStability}
+                            onChange={(e) => config.setElevenLabsStability(parseFloat(e.target.value))}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="elevenlabs-similarity">
+                            Similarity Boost: <span className="range-value">{config.elevenLabsSimilarityBoost.toFixed(2)}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="elevenlabs-similarity"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={config.elevenLabsSimilarityBoost}
+                            onChange={(e) => config.setElevenLabsSimilarityBoost(parseFloat(e.target.value))}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="elevenlabs-style">
+                            Style: <span className="range-value">{config.elevenLabsStyle.toFixed(2)}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="elevenlabs-style"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={config.elevenLabsStyle}
+                            onChange={(e) => config.setElevenLabsStyle(parseFloat(e.target.value))}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="elevenlabs-speed">
+                            Speed: <span className="range-value">{config.elevenLabsSpeed.toFixed(1)}x</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="elevenlabs-speed"
+                            min="0.7"
+                            max="1.2"
+                            step="0.1"
+                            value={config.elevenLabsSpeed}
+                            onChange={(e) => config.setElevenLabsSpeed(parseFloat(e.target.value))}
+                        />
+                    </div>
+                </>
+            )}
+
+            {/* ElevenLabs SFX v2 Settings */}
+            {isElevenLabsSFX && (
+                <div className="form-group">
+                    <label htmlFor="elevenlabs-prompt-influence">
+                        Prompt Influence: <span className="range-value">{config.elevenLabsPromptInfluence.toFixed(2)}</span>
+                    </label>
+                    <input
+                        type="range"
+                        id="elevenlabs-prompt-influence"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.elevenLabsPromptInfluence}
+                        onChange={(e) => config.setElevenLabsPromptInfluence(parseFloat(e.target.value))}
+                    />
+                    <span className="hint"> (higher = more text-driven)</span>
+                </div>
+            )}
+
+            {/* ElevenLabs Music Settings */}
+            {isElevenLabsMusic && (
+                <div className="form-group">
+                    <label htmlFor="elevenlabs-force-instrumental">
+                        <input
+                            id="elevenlabs-force-instrumental"
+                            type="checkbox"
+                            checked={config.elevenLabsForceInstrumental}
+                            onChange={(e) => config.setElevenLabsForceInstrumental(e.target.checked)}
+                        />
+                        {' '}Force Instrumental
+                    </label>
+                </div>
+            )}
+
+            {/* ElevenLabs Audio Isolation info */}
+            {isElevenLabsAudioIsolation && (
+                <div className="form-group">
+                    <p className="config-hint">
+                        Upload an audio file to isolate vocals from the mix.
+                    </p>
+                </div>
+            )}
+
+            {/* PersonaPlex Settings */}
+            {isPersonaPlex && (
+                <>
+                    <div className="form-group">
+                        <label htmlFor="personaplex-voice">Voice:</label>
+                        <select
+                            id="personaplex-voice"
+                            value={config.personaPlexVoice}
+                            onChange={(e) => config.setPersonaPlexVoice(e.target.value)}
+                        >
+                            {PERSONAPLEX_VOICES.map((voice) => (
+                                <option key={voice.id} value={voice.id}>
+                                    {voice.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <p className="config-hint">
+                            Upload audio and optionally describe the target persona in the prompt.
+                        </p>
+                    </div>
+                </>
+            )}
+
             {/* Dia Voice Clone info */}
             {isDiaVoiceClone && (
                 <div className="form-group">
@@ -278,7 +431,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         type="range"
                         id="audio-duration"
                         min="1"
-                        max={isBeatovenMusic ? 150 : isBeatovenSFX ? 35 : 60}
+                        max={isBeatovenMusic ? 150 : isBeatovenSFX ? 35 : isElevenLabsSFX ? 22 : 60}
                         step="1"
                         value={config.audioDuration}
                         onChange={(e) => config.setAudioDuration(parseInt(e.target.value, 10))}
@@ -288,6 +441,9 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                     )}
                     {isBeatovenSFX && (
                         <span className="hint"> (1-35s for Beatoven SFX)</span>
+                    )}
+                    {isElevenLabsSFX && (
+                        <span className="hint"> (0.5-22s for ElevenLabs SFX)</span>
                     )}
                 </div>
             )}
