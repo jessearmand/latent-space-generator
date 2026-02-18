@@ -6,8 +6,8 @@
 import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
-import { MINIMAX_VOICES, MINIMAX_EMOTIONS } from '../types/audio';
-import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel } from '../services/audioModels';
+import { MINIMAX_VOICES, MINIMAX_EMOTIONS, MINIMAX_LANGUAGE_BOOST, QWEN3_TTS_VOICES, QWEN3_TTS_LANGUAGES } from '../types/audio';
+import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel } from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -17,7 +17,10 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
     const config = useConfig();
 
     const modelId = selectedModel.endpointId.toLowerCase();
+    const isMinimaxTurbo = isMinimaxTurboModel(selectedModel.endpointId);
     const isMinimax = modelId.includes('minimax') || modelId.includes('speech-02');
+    const isQwen3 = isQwen3TTSModel(selectedModel.endpointId);
+    const isQwen3VoiceDesign = isQwen3VoiceDesignModel(selectedModel.endpointId);
     const isChatterbox = modelId.includes('chatterbox');
     const isDiaVoiceClone = modelId.includes('dia-tts') || modelId.includes('voice-clone');
     const isMirelo = modelId.includes('mirelo') || modelId.includes('sfx-v1');
@@ -30,7 +33,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
     return (
         <div className="audio-config-options">
-            {/* MiniMax Speech-02-HD Settings */}
+            {/* MiniMax Shared Settings (Speech-02-HD & Speech 2.8 Turbo) */}
             {isMinimax && (
                 <>
                     <div className="form-group">
@@ -93,19 +96,104 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         />
                     </div>
 
+                    {/* Language Boost — shared by both HD and Turbo */}
                     <div className="form-group">
-                        <label htmlFor="tts-emotion">Emotion:</label>
+                        <label htmlFor="minimax-language-boost">Language Boost:</label>
                         <select
-                            id="tts-emotion"
-                            value={config.ttsEmotion}
-                            onChange={(e) => config.setTtsEmotion(e.target.value)}
+                            id="minimax-language-boost"
+                            value={config.minimaxLanguageBoost}
+                            onChange={(e) => config.setMinimaxLanguageBoost(e.target.value)}
                         >
-                            {MINIMAX_EMOTIONS.map((emotion) => (
-                                <option key={emotion} value={emotion}>
-                                    {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                            {MINIMAX_LANGUAGE_BOOST.map((lang) => (
+                                <option key={lang} value={lang}>
+                                    {lang === 'auto' ? 'Auto' : lang}
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    {/* Emotion — HD only (not documented for Turbo) */}
+                    {!isMinimaxTurbo && (
+                        <div className="form-group">
+                            <label htmlFor="tts-emotion">Emotion:</label>
+                            <select
+                                id="tts-emotion"
+                                value={config.ttsEmotion}
+                                onChange={(e) => config.setTtsEmotion(e.target.value)}
+                            >
+                                {MINIMAX_EMOTIONS.map((emotion) => (
+                                    <option key={emotion} value={emotion}>
+                                        {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Qwen3-TTS Settings */}
+            {isQwen3 && (
+                <>
+                    {!isQwen3VoiceDesign && (
+                        <div className="form-group">
+                            <label htmlFor="qwen-voice">Voice:</label>
+                            <select
+                                id="qwen-voice"
+                                value={config.qwenTtsVoice}
+                                onChange={(e) => config.setQwenTtsVoice(e.target.value)}
+                            >
+                                {QWEN3_TTS_VOICES.map((voice) => (
+                                    <option key={voice.id} value={voice.id}>
+                                        {voice.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="form-group">
+                        <label htmlFor="qwen-language">Language:</label>
+                        <select
+                            id="qwen-language"
+                            value={config.qwenTtsLanguage}
+                            onChange={(e) => config.setQwenTtsLanguage(e.target.value)}
+                        >
+                            {QWEN3_TTS_LANGUAGES.map((lang) => (
+                                <option key={lang} value={lang}>
+                                    {lang}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="qwen-style-prompt">
+                            Style Prompt <span className="hint">({isQwen3VoiceDesign ? 'required' : 'optional'})</span>:
+                        </label>
+                        <textarea
+                            id="qwen-style-prompt"
+                            value={config.qwenTtsStylePrompt}
+                            onChange={(e) => config.setQwenTtsStylePrompt(e.target.value)}
+                            placeholder={isQwen3VoiceDesign ? 'Describe the voice style...' : 'Optional tone/style guidance...'}
+                            rows={2}
+                            className="negative-prompt-textarea"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="qwen-temperature">
+                            Temperature: <span className="range-value">{config.qwenTtsTemperature.toFixed(1)}</span>
+                        </label>
+                        <input
+                            type="range"
+                            id="qwen-temperature"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={config.qwenTtsTemperature}
+                            onChange={(e) => config.setQwenTtsTemperature(parseFloat(e.target.value))}
+                        />
                     </div>
                 </>
             )}
