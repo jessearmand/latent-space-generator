@@ -106,3 +106,30 @@ export const MINIMAX_EMOTIONS: MiniMaxEmotion[] = [
     'disgusted',
     'surprised',
 ];
+
+/** MiniMax Speech 2.8 Turbo language boost options */
+export const MINIMAX_LANGUAGE_BOOST = [
+    'auto', 'English', 'Chinese', 'Japanese', 'Korean',
+    'French', 'German', 'Spanish', 'Portuguese', 'Italian', 'Russian',
+    'Arabic', 'Turkish', 'Dutch', 'Thai', 'Vietnamese', 'Indonesian',
+    'Hindi', 'Polish', 'Swedish', 'Danish', 'Finnish', 'Norwegian',
+] as const;
+
+/** Qwen3-TTS available voices */
+export const QWEN3_TTS_VOICES = [
+    { id: 'Vivian', name: 'Vivian' },
+    { id: 'Serena', name: 'Serena' },
+    { id: 'Uncle_Fu', name: 'Uncle Fu' },
+    { id: 'Dylan', name: 'Dylan' },
+    { id: 'Eric', name: 'Eric' },
+    { id: 'Ryan', name: 'Ryan' },
+    { id: 'Aiden', name: 'Aiden' },
+    { id: 'Ono_Anna', name: 'Ono Anna' },
+    { id: 'Sohee', name: 'Sohee' },
+] as const;
+
+/** Qwen3-TTS language options */
+export const QWEN3_TTS_LANGUAGES = [
+    'Auto', 'English', 'Chinese', 'Spanish', 'French',
+    'German', 'Italian', 'Japanese', 'Korean', 'Portuguese', 'Russian',
+] as const;
