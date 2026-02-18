@@ -57,6 +57,22 @@ export const CURATED_TEXT_TO_SPEECH_MODELS: ModelConfig[] = [
         supportsImageInput: false,
         outputType: 'audio',
     },
+    {
+        endpointId: 'fal-ai/elevenlabs/tts/turbo-v2.5',
+        displayName: 'ElevenLabs TTS Turbo v2.5',
+        category: 'text-to-speech',
+        description: 'Fast multilingual TTS, 21 voices, stability/style control, $0.05/1K chars',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
+        endpointId: 'fal-ai/elevenlabs/tts/multilingual-v2',
+        displayName: 'ElevenLabs TTS Multilingual v2',
+        category: 'text-to-speech',
+        description: 'High-quality multilingual TTS, 21 voices, stability/style control, $0.10/1K chars',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
 ];
 
 /**
@@ -80,10 +96,18 @@ export const CURATED_TEXT_TO_AUDIO_MODELS: ModelConfig[] = [
         outputType: 'audio',
     },
     {
-        endpointId: 'fal-ai/eleven/sound-effect-generation',
-        displayName: 'ElevenLabs Sound Effects',
+        endpointId: 'fal-ai/elevenlabs/sound-effects/v2',
+        displayName: 'ElevenLabs Sound Effects v2',
         category: 'text-to-audio',
-        description: 'Professional-grade sound effects from text descriptions',
+        description: 'Professional sound effects, 0.5-22s, prompt influence control, $0.002/sec',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
+        endpointId: 'fal-ai/elevenlabs/music',
+        displayName: 'ElevenLabs Music',
+        category: 'text-to-audio',
+        description: 'AI music generation with composition plans, instrumental option, $0.80/min',
         supportsImageInput: false,
         outputType: 'audio',
     },
@@ -114,6 +138,22 @@ export const CURATED_AUDIO_TO_AUDIO_MODELS: ModelConfig[] = [
         displayName: 'Dia TTS Voice Clone',
         category: 'audio-to-audio',
         description: 'Clone any voice from a sample audio file',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
+        endpointId: 'fal-ai/elevenlabs/audio-isolation',
+        displayName: 'ElevenLabs Audio Isolation',
+        category: 'audio-to-audio',
+        description: 'Isolate vocals from audio or video files, $0.10/min',
+        supportsImageInput: false,
+        outputType: 'audio',
+    },
+    {
+        endpointId: 'fal-ai/personaplex',
+        displayName: 'PersonaPlex',
+        category: 'audio-to-audio',
+        description: 'Audio-to-audio voice conversion with persona prompts, 18 voices, $0.001/sec',
         supportsImageInput: false,
         outputType: 'audio',
     },
@@ -225,7 +265,6 @@ export function isSFXModel(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
     return (
         lowerEndpoint.includes('sound-effect') ||
-        lowerEndpoint.includes('eleven') ||
         lowerEndpoint.includes('sfx')
     );
 }
@@ -243,7 +282,13 @@ export function isAudioUnderstandingModel(endpointId: string): boolean {
  */
 export function requiresAudioInputForModel(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
-    return lowerEndpoint.includes('voice-clone') || lowerEndpoint.includes('audio-to-audio') || lowerEndpoint.includes('audio-understanding');
+    return (
+        lowerEndpoint.includes('voice-clone') ||
+        lowerEndpoint.includes('audio-to-audio') ||
+        lowerEndpoint.includes('audio-understanding') ||
+        lowerEndpoint.includes('audio-isolation') ||
+        lowerEndpoint.includes('personaplex')
+    );
 }
 
 /**
@@ -282,4 +327,39 @@ export function isQwen3TTSModel(endpointId: string): boolean {
  */
 export function isQwen3VoiceDesignModel(endpointId: string): boolean {
     return endpointId.toLowerCase().includes('qwen-3-tts/voice-design');
+}
+
+/**
+ * Check if a model is an ElevenLabs TTS model (Turbo v2.5 or Multilingual v2)
+ */
+export function isElevenLabsTTSModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('elevenlabs/tts');
+}
+
+/**
+ * Check if a model is ElevenLabs Sound Effects v2
+ */
+export function isElevenLabsSFXModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('elevenlabs/sound-effects');
+}
+
+/**
+ * Check if a model is ElevenLabs Music
+ */
+export function isElevenLabsMusicModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('elevenlabs/music');
+}
+
+/**
+ * Check if a model is ElevenLabs Audio Isolation
+ */
+export function isElevenLabsAudioIsolationModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('elevenlabs/audio-isolation');
+}
+
+/**
+ * Check if a model is PersonaPlex
+ */
+export function isPersonaPlexModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('personaplex');
 }
