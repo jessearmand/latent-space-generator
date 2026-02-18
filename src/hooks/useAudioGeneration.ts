@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -120,33 +120,58 @@ export function useAudioGeneration({
             const isTTS = isTTSModel(modelId);
             const isMusic = isMusicModel(modelId);
             const isSFX = isSFXModel(modelId);
+            const isMinimaxTurbo = isMinimaxTurboModel(modelId);
             const isMinimax = modelIdLower.includes('minimax') || modelIdLower.includes('speech-02');
+            const isQwen3 = isQwen3TTSModel(modelId);
+            const isQwen3VoiceDesign = isQwen3VoiceDesignModel(modelId);
             const isChatterbox = modelIdLower.includes('chatterbox');
             const isDiaVoiceClone = modelIdLower.includes('dia-tts') || modelIdLower.includes('voice-clone');
             const isMirelo = modelIdLower.includes('mirelo') || modelIdLower.includes('sfx-v1');
 
-            // TTS models use 'text', others use 'prompt'
-            if (isTTS) {
+            // Model-specific prompt field routing
+            if (isMinimaxTurbo) {
+                // Speech 2.8 Turbo uses 'prompt' (supports pause/interjection tags)
+                input.prompt = promptOrText;
+            } else if (isQwen3) {
+                // Qwen3 TTS models always use 'text' for speech content
+                input.text = promptOrText;
+                // Voice Design requires 'prompt' for style; TTS uses it optionally
+                if (isQwen3VoiceDesign || config.qwenTtsStylePrompt) {
+                    input.prompt = config.qwenTtsStylePrompt || 'Speak naturally.';
+                }
+            } else if (isTTS) {
                 input.text = promptOrText;
             } else {
                 input.prompt = promptOrText;
             }
 
-            // MiniMax Speech-02-HD specific parameters
+            // MiniMax shared parameters (Speech-02-HD and Speech-02-Turbo)
+            // Both models use identical API: text, voice_setting, language_boost
             if (isMinimax) {
-                input.voice_id = config.ttsVoiceId;
-                if (config.ttsSpeed !== 1.0) {
-                    input.speed = config.ttsSpeed;
+                const voiceSetting: Record<string, unknown> = {
+                    voice_id: config.ttsVoiceId,
+                    speed: config.ttsSpeed,
+                    vol: config.ttsVolume * 10,
+                    pitch: config.ttsPitch,
+                };
+                input.voice_setting = voiceSetting;
+                if (config.minimaxLanguageBoost !== 'auto') {
+                    input.language_boost = config.minimaxLanguageBoost;
                 }
-                if (config.ttsVolume !== 1.0) {
-                    // API expects 0-10 range, UI stores 0-1
-                    input.vol = config.ttsVolume * 10;
+            }
+
+            // Qwen3-TTS specific parameters
+            if (isQwen3 && !isQwen3VoiceDesign) {
+                if (config.qwenTtsVoice) {
+                    input.voice = config.qwenTtsVoice;
                 }
-                if (config.ttsPitch !== 0) {
-                    input.pitch = config.ttsPitch;
+            }
+            if (isQwen3) {
+                if (config.qwenTtsLanguage !== 'Auto') {
+                    input.language = config.qwenTtsLanguage;
                 }
-                if (config.ttsEmotion && config.ttsEmotion !== 'neutral') {
-                    input.emotion = config.ttsEmotion;
+                if (config.qwenTtsTemperature !== 0.9) {
+                    input.temperature = config.qwenTtsTemperature;
                 }
             }
 

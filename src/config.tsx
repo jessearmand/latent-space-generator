@@ -75,6 +75,13 @@ export interface ConfigState {
   videoPreprocessor: string;  // none, depth, canny, pose
   // Audio understanding settings
   audioDetailedAnalysis: boolean;  // Enable detailed analysis for audio understanding
+  // MiniMax Speech 2.8 Turbo settings
+  minimaxLanguageBoost: string;  // Language boost: 'auto', 'English', etc.
+  // Qwen3-TTS settings
+  qwenTtsVoice: string;  // Voice ID: 'Vivian', 'Serena', etc.
+  qwenTtsLanguage: string;  // Language: 'Auto', 'English', etc.
+  qwenTtsStylePrompt: string;  // Style/tone guidance for voice design
+  qwenTtsTemperature: number;  // Sampling temperature: 0-1, default 0.9
 }
 
 interface ConfigContextType extends ConfigState {
@@ -152,6 +159,13 @@ interface ConfigContextType extends ConfigState {
   setVideoPreprocessor: (value: string) => void;
   // Audio understanding setter
   setAudioDetailedAnalysis: (value: boolean) => void;
+  // MiniMax Speech 2.8 Turbo setters
+  setMinimaxLanguageBoost: (value: string) => void;
+  // Qwen3-TTS setters
+  setQwenTtsVoice: (value: string) => void;
+  setQwenTtsLanguage: (value: string) => void;
+  setQwenTtsStylePrompt: (value: string) => void;
+  setQwenTtsTemperature: (value: number) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -231,6 +245,13 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [videoPreprocessor, setVideoPreprocessor] = useState<string>(localStorage.getItem('VIDEO_PREPROCESSOR') || 'none');
   // Audio understanding settings
   const [audioDetailedAnalysis, setAudioDetailedAnalysis] = useState<boolean>(localStorage.getItem('AUDIO_DETAILED_ANALYSIS') === 'true');
+  // MiniMax Speech 2.8 Turbo settings
+  const [minimaxLanguageBoost, setMinimaxLanguageBoost] = useState<string>(localStorage.getItem('MINIMAX_LANGUAGE_BOOST') || 'auto');
+  // Qwen3-TTS settings
+  const [qwenTtsVoice, setQwenTtsVoice] = useState<string>(localStorage.getItem('QWEN_TTS_VOICE') || 'Vivian');
+  const [qwenTtsLanguage, setQwenTtsLanguage] = useState<string>(localStorage.getItem('QWEN_TTS_LANGUAGE') || 'Auto');
+  const [qwenTtsStylePrompt, setQwenTtsStylePrompt] = useState<string>(localStorage.getItem('QWEN_TTS_STYLE_PROMPT') || '');
+  const [qwenTtsTemperature, setQwenTtsTemperature] = useState<number>(parseFloat(localStorage.getItem('QWEN_TTS_TEMPERATURE') || '0.9'));
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -307,7 +328,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('VIDEO_PREPROCESSOR', videoPreprocessor);
     // Audio understanding persistence
     localStorage.setItem('AUDIO_DETAILED_ANALYSIS', audioDetailedAnalysis.toString());
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, geminiNumImages, geminiOutputFormat, geminiResolution, geminiEnableWebSearch, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis]);
+    // MiniMax Speech 2.8 Turbo persistence
+    localStorage.setItem('MINIMAX_LANGUAGE_BOOST', minimaxLanguageBoost);
+    // Qwen3-TTS persistence
+    localStorage.setItem('QWEN_TTS_VOICE', qwenTtsVoice);
+    localStorage.setItem('QWEN_TTS_LANGUAGE', qwenTtsLanguage);
+    localStorage.setItem('QWEN_TTS_STYLE_PROMPT', qwenTtsStylePrompt);
+    localStorage.setItem('QWEN_TTS_TEMPERATURE', qwenTtsTemperature.toString());
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, geminiNumImages, geminiOutputFormat, geminiResolution, geminiEnableWebSearch, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis, minimaxLanguageBoost, qwenTtsVoice, qwenTtsLanguage, qwenTtsStylePrompt, qwenTtsTemperature]);
 
   return (
     <ConfigContext.Provider value={{
@@ -381,7 +409,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       // Video preprocessor
       videoPreprocessor, setVideoPreprocessor,
       // Audio understanding
-      audioDetailedAnalysis, setAudioDetailedAnalysis
+      audioDetailedAnalysis, setAudioDetailedAnalysis,
+      // MiniMax Speech 2.8 Turbo
+      minimaxLanguageBoost, setMinimaxLanguageBoost,
+      // Qwen3-TTS
+      qwenTtsVoice, setQwenTtsVoice,
+      qwenTtsLanguage, setQwenTtsLanguage,
+      qwenTtsStylePrompt, setQwenTtsStylePrompt,
+      qwenTtsTemperature, setQwenTtsTemperature
     }}>
       {children}
     </ConfigContext.Provider>
