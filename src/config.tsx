@@ -82,6 +82,18 @@ export interface ConfigState {
   qwenTtsLanguage: string;  // Language: 'Auto', 'English', etc.
   qwenTtsStylePrompt: string;  // Style/tone guidance for voice design
   qwenTtsTemperature: number;  // Sampling temperature: 0-1, default 0.9
+  // ElevenLabs TTS settings (shared by Turbo v2.5 and Multilingual v2)
+  elevenLabsVoice: string;  // Voice name, default 'Rachel'
+  elevenLabsStability: number;  // 0-1, default 0.5
+  elevenLabsSimilarityBoost: number;  // 0-1, default 0.75
+  elevenLabsStyle: number;  // 0-1, default 0
+  elevenLabsSpeed: number;  // 0.7-1.2, default 1
+  // ElevenLabs SFX v2 settings
+  elevenLabsPromptInfluence: number;  // 0-1, default 0.3
+  // ElevenLabs Music settings
+  elevenLabsForceInstrumental: boolean;  // default false
+  // PersonaPlex settings
+  personaPlexVoice: string;  // Voice enum, default 'NATF2'
 }
 
 interface ConfigContextType extends ConfigState {
@@ -166,6 +178,18 @@ interface ConfigContextType extends ConfigState {
   setQwenTtsLanguage: (value: string) => void;
   setQwenTtsStylePrompt: (value: string) => void;
   setQwenTtsTemperature: (value: number) => void;
+  // ElevenLabs TTS setters
+  setElevenLabsVoice: (value: string) => void;
+  setElevenLabsStability: (value: number) => void;
+  setElevenLabsSimilarityBoost: (value: number) => void;
+  setElevenLabsStyle: (value: number) => void;
+  setElevenLabsSpeed: (value: number) => void;
+  // ElevenLabs SFX v2 setters
+  setElevenLabsPromptInfluence: (value: number) => void;
+  // ElevenLabs Music setters
+  setElevenLabsForceInstrumental: (value: boolean) => void;
+  // PersonaPlex setters
+  setPersonaPlexVoice: (value: string) => void;
 }
 
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
@@ -252,6 +276,18 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [qwenTtsLanguage, setQwenTtsLanguage] = useState<string>(localStorage.getItem('QWEN_TTS_LANGUAGE') || 'Auto');
   const [qwenTtsStylePrompt, setQwenTtsStylePrompt] = useState<string>(localStorage.getItem('QWEN_TTS_STYLE_PROMPT') || '');
   const [qwenTtsTemperature, setQwenTtsTemperature] = useState<number>(parseFloat(localStorage.getItem('QWEN_TTS_TEMPERATURE') || '0.9'));
+  // ElevenLabs TTS settings
+  const [elevenLabsVoice, setElevenLabsVoice] = useState<string>(localStorage.getItem('ELEVENLABS_VOICE') || 'Rachel');
+  const [elevenLabsStability, setElevenLabsStability] = useState<number>(parseFloat(localStorage.getItem('ELEVENLABS_STABILITY') || '0.5'));
+  const [elevenLabsSimilarityBoost, setElevenLabsSimilarityBoost] = useState<number>(parseFloat(localStorage.getItem('ELEVENLABS_SIMILARITY_BOOST') || '0.75'));
+  const [elevenLabsStyle, setElevenLabsStyle] = useState<number>(parseFloat(localStorage.getItem('ELEVENLABS_STYLE') || '0'));
+  const [elevenLabsSpeed, setElevenLabsSpeed] = useState<number>(parseFloat(localStorage.getItem('ELEVENLABS_SPEED') || '1'));
+  // ElevenLabs SFX v2 settings
+  const [elevenLabsPromptInfluence, setElevenLabsPromptInfluence] = useState<number>(parseFloat(localStorage.getItem('ELEVENLABS_PROMPT_INFLUENCE') || '0.3'));
+  // ElevenLabs Music settings
+  const [elevenLabsForceInstrumental, setElevenLabsForceInstrumental] = useState<boolean>(localStorage.getItem('ELEVENLABS_FORCE_INSTRUMENTAL') === 'true');
+  // PersonaPlex settings
+  const [personaPlexVoice, setPersonaPlexVoice] = useState<string>(localStorage.getItem('PERSONAPLEX_VOICE') || 'NATF2');
 
   useEffect(() => {
     localStorage.setItem('SAFETY_TOLERANCE', safetyTolerance);
@@ -335,7 +371,19 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('QWEN_TTS_LANGUAGE', qwenTtsLanguage);
     localStorage.setItem('QWEN_TTS_STYLE_PROMPT', qwenTtsStylePrompt);
     localStorage.setItem('QWEN_TTS_TEMPERATURE', qwenTtsTemperature.toString());
-  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, geminiNumImages, geminiOutputFormat, geminiResolution, geminiEnableWebSearch, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis, minimaxLanguageBoost, qwenTtsVoice, qwenTtsLanguage, qwenTtsStylePrompt, qwenTtsTemperature]);
+    // ElevenLabs TTS persistence
+    localStorage.setItem('ELEVENLABS_VOICE', elevenLabsVoice);
+    localStorage.setItem('ELEVENLABS_STABILITY', elevenLabsStability.toString());
+    localStorage.setItem('ELEVENLABS_SIMILARITY_BOOST', elevenLabsSimilarityBoost.toString());
+    localStorage.setItem('ELEVENLABS_STYLE', elevenLabsStyle.toString());
+    localStorage.setItem('ELEVENLABS_SPEED', elevenLabsSpeed.toString());
+    // ElevenLabs SFX v2 persistence
+    localStorage.setItem('ELEVENLABS_PROMPT_INFLUENCE', elevenLabsPromptInfluence.toString());
+    // ElevenLabs Music persistence
+    localStorage.setItem('ELEVENLABS_FORCE_INSTRUMENTAL', elevenLabsForceInstrumental.toString());
+    // PersonaPlex persistence
+    localStorage.setItem('PERSONAPLEX_VOICE', personaPlexVoice);
+  }, [safetyTolerance, aspectRatio, imageSize, raw, enableSafetyChecker, seed, guidanceScale, imagePromptStrength, gptImageSize, gptNumImages, gptQuality, gptBackground, geminiNumImages, geminiOutputFormat, geminiResolution, geminiEnableWebSearch, grokNumImages, grokOutputFormat, numLayers, acceleration, videoDuration, videoAspectRatio, videoResolution, videoGuidanceScale, videoSeed, videoNegativePrompt, generateAudio, videoCfgScale, videoFps, videoNumFrames, videoOutputSize, videoUseMultiscale, videoNumInferenceSteps, videoAcceleration, videoCameraLora, videoCameraLoraScale, videoEnablePromptExpansion, videoStrength, audioOutputFormat, audioSeed, ttsVoiceId, ttsSpeed, ttsVolume, ttsPitch, ttsEmotion, chatterboxExaggeration, chatterboxTemperature, chatterboxCfg, audioDuration, beatovenRefinement, beatovenCreativity, beatovenNegativePrompt, mmAudioCfgStrength, mmAudioNumSteps, briaBgColor, briaOutputCodec, videoPreprocessor, audioDetailedAnalysis, minimaxLanguageBoost, qwenTtsVoice, qwenTtsLanguage, qwenTtsStylePrompt, qwenTtsTemperature, elevenLabsVoice, elevenLabsStability, elevenLabsSimilarityBoost, elevenLabsStyle, elevenLabsSpeed, elevenLabsPromptInfluence, elevenLabsForceInstrumental, personaPlexVoice]);
 
   return (
     <ConfigContext.Provider value={{
@@ -416,7 +464,19 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       qwenTtsVoice, setQwenTtsVoice,
       qwenTtsLanguage, setQwenTtsLanguage,
       qwenTtsStylePrompt, setQwenTtsStylePrompt,
-      qwenTtsTemperature, setQwenTtsTemperature
+      qwenTtsTemperature, setQwenTtsTemperature,
+      // ElevenLabs TTS
+      elevenLabsVoice, setElevenLabsVoice,
+      elevenLabsStability, setElevenLabsStability,
+      elevenLabsSimilarityBoost, setElevenLabsSimilarityBoost,
+      elevenLabsStyle, setElevenLabsStyle,
+      elevenLabsSpeed, setElevenLabsSpeed,
+      // ElevenLabs SFX v2
+      elevenLabsPromptInfluence, setElevenLabsPromptInfluence,
+      // ElevenLabs Music
+      elevenLabsForceInstrumental, setElevenLabsForceInstrumental,
+      // PersonaPlex
+      personaPlexVoice, setPersonaPlexVoice,
     }}>
       {children}
     </ConfigContext.Provider>

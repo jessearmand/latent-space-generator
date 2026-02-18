@@ -133,3 +133,50 @@ export const QWEN3_TTS_LANGUAGES = [
     'Auto', 'English', 'Chinese', 'Spanish', 'French',
     'German', 'Italian', 'Japanese', 'Korean', 'Portuguese', 'Russian',
 ] as const;
+
+/** ElevenLabs TTS available voices (shared by Turbo v2.5 and Multilingual v2) */
+export const ELEVENLABS_VOICES = [
+    { id: 'Rachel', name: 'Rachel' },
+    { id: 'Aria', name: 'Aria' },
+    { id: 'Roger', name: 'Roger' },
+    { id: 'Sarah', name: 'Sarah' },
+    { id: 'Laura', name: 'Laura' },
+    { id: 'Charlie', name: 'Charlie' },
+    { id: 'George', name: 'George' },
+    { id: 'Callum', name: 'Callum' },
+    { id: 'River', name: 'River' },
+    { id: 'Liam', name: 'Liam' },
+    { id: 'Charlotte', name: 'Charlotte' },
+    { id: 'Alice', name: 'Alice' },
+    { id: 'Matilda', name: 'Matilda' },
+    { id: 'Will', name: 'Will' },
+    { id: 'Jessica', name: 'Jessica' },
+    { id: 'Eric', name: 'Eric' },
+    { id: 'Chris', name: 'Chris' },
+    { id: 'Brian', name: 'Brian' },
+    { id: 'Daniel', name: 'Daniel' },
+    { id: 'Lily', name: 'Lily' },
+    { id: 'Bill', name: 'Bill' },
+] as const;
+
+/** PersonaPlex available voices */
+export const PERSONAPLEX_VOICES = [
+    { id: 'NATF0', name: 'Natural Female 0' },
+    { id: 'NATF1', name: 'Natural Female 1' },
+    { id: 'NATF2', name: 'Natural Female 2' },
+    { id: 'NATF3', name: 'Natural Female 3' },
+    { id: 'NATM0', name: 'Natural Male 0' },
+    { id: 'NATM1', name: 'Natural Male 1' },
+    { id: 'NATM2', name: 'Natural Male 2' },
+    { id: 'NATM3', name: 'Natural Male 3' },
+    { id: 'VARF0', name: 'Varied Female 0' },
+    { id: 'VARF1', name: 'Varied Female 1' },
+    { id: 'VARF2', name: 'Varied Female 2' },
+    { id: 'VARF3', name: 'Varied Female 3' },
+    { id: 'VARF4', name: 'Varied Female 4' },
+    { id: 'VARM0', name: 'Varied Male 0' },
+    { id: 'VARM1', name: 'Varied Male 1' },
+    { id: 'VARM2', name: 'Varied Male 2' },
+    { id: 'VARM3', name: 'Varied Male 3' },
+    { id: 'VARM4', name: 'Varied Male 4' },
+] as const;
