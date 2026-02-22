@@ -426,7 +426,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                     <input
                         type="range"
                         id="audio-duration"
-                        min="1"
+                        min={isBeatovenMusic ? 5 : 1}
                         max={isBeatovenMusic ? 150 : isBeatovenSFX ? 35 : isElevenLabsSFX ? 22 : 60}
                         step="1"
                         value={config.audioDuration}
@@ -455,8 +455,8 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         <input
                             type="range"
                             id="beatoven-refinement"
-                            min="1"
-                            max={isBeatovenMusic ? 100 : 40}
+                            min="10"
+                            max="200"
                             step="1"
                             value={config.beatovenRefinement}
                             onChange={(e) => config.setBeatovenRefinement(parseInt(e.target.value, 10))}
@@ -473,7 +473,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                             type="range"
                             id="beatoven-creativity"
                             min="1"
-                            max="32"
+                            max="20"
                             step="1"
                             value={config.beatovenCreativity}
                             onChange={(e) => config.setBeatovenCreativity(parseFloat(e.target.value))}
