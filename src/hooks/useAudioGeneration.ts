@@ -261,14 +261,10 @@ export function useAudioGeneration({
             // Beatoven-specific parameters
             const isBeatoven = isBeatovenModel(modelId);
             if (isBeatoven) {
-                // Refinement: higher = better quality (default 100 for music, 40 for SFX)
-                if (config.beatovenRefinement !== 100) {
-                    input.refinement = config.beatovenRefinement;
-                }
-                // Creativity: 1-32, default 16
-                if (config.beatovenCreativity !== 16) {
-                    input.creativity = config.beatovenCreativity;
-                }
+                // Refinement: 10-200, default 100 for music / 40 for SFX
+                input.refinement = config.beatovenRefinement;
+                // Creativity: 1-20, default 16
+                input.creativity = config.beatovenCreativity;
                 // Negative prompt
                 if (config.beatovenNegativePrompt) {
                     input.negative_prompt = config.beatovenNegativePrompt;

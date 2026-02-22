@@ -2,7 +2,6 @@ import type React from 'react';
 import { useCallback } from 'react';
 import type { HistoryEntry } from '../types/history';
 import { PromptOverlay } from './PromptOverlay';
-import { DownloadButton } from './DownloadButton';
 import { AudioPlayer } from './AudioPlayer';
 import './HistoryAudioCard.css';
 
@@ -32,7 +31,6 @@ export const HistoryAudioCard: React.FC<HistoryAudioCardProps> = ({ entry, onRem
     return (
         <div className="history-audio-card">
             <div className="history-card-actions">
-                {audioUrl && <DownloadButton url={audioUrl} label="Download audio" />}
                 {isTextEntry && (
                     <button
                         type="button"
