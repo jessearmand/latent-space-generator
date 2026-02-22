@@ -96,14 +96,6 @@ export const CURATED_TEXT_TO_AUDIO_MODELS: ModelConfig[] = [
         outputType: 'audio',
     },
     {
-        endpointId: 'fal-ai/elevenlabs/sound-effects/v2',
-        displayName: 'ElevenLabs Sound Effects v2',
-        category: 'text-to-audio',
-        description: 'Professional sound effects, 0.5-22s, prompt influence control, $0.002/sec',
-        supportsImageInput: false,
-        outputType: 'audio',
-    },
-    {
         endpointId: 'fal-ai/elevenlabs/music',
         displayName: 'ElevenLabs Music',
         category: 'text-to-audio',
