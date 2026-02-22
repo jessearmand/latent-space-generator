@@ -7,7 +7,7 @@
 export interface MiniMaxVoiceSettings {
     voice_id: string;
     speed?: number; // 0.5-2.0, default 1.0
-    vol?: number; // 0-1, default 1.0
+    vol?: number; // 0.01-10, default 1.0
     pitch?: number; // -12 to 12, default 0
     emotion?: MiniMaxEmotion;
 }
@@ -82,19 +82,35 @@ export interface AudioGenerationResult {
     duration?: number;
 }
 
-/** MiniMax Speech-02-HD available voices (subset of 300+ voices) */
+/** MiniMax default voice ID from fal OpenAPI/playground schema */
+export const MINIMAX_DEFAULT_VOICE_ID = 'Wise_Woman';
+
+/** MiniMax speech voices (from fal OpenAPI VoiceSetting examples) */
 export const MINIMAX_VOICES = [
-    { id: 'male-qn-qingse', name: 'Male - Qingse' },
-    { id: 'male-qn-jingying', name: 'Male - Jingying' },
-    { id: 'male-qn-daxuesheng', name: 'Male - Student' },
-    { id: 'female-shaonv', name: 'Female - Young' },
-    { id: 'female-yujie', name: 'Female - Mature' },
-    { id: 'female-chengshu', name: 'Female - Adult' },
-    { id: 'presenter_male', name: 'Presenter Male' },
-    { id: 'presenter_female', name: 'Presenter Female' },
-    { id: 'audiobook_male_1', name: 'Audiobook Male 1' },
-    { id: 'audiobook_female_1', name: 'Audiobook Female 1' },
+    { id: 'Wise_Woman', name: 'Wise Woman' },
+    { id: 'Friendly_Person', name: 'Friendly Person' },
+    { id: 'Inspirational_girl', name: 'Inspirational Girl' },
+    { id: 'Deep_Voice_Man', name: 'Deep Voice Man' },
+    { id: 'Calm_Woman', name: 'Calm Woman' },
+    { id: 'Casual_Guy', name: 'Casual Guy' },
+    { id: 'Lively_Girl', name: 'Lively Girl' },
+    { id: 'Patient_Man', name: 'Patient Man' },
+    { id: 'Young_Knight', name: 'Young Knight' },
+    { id: 'Determined_Man', name: 'Determined Man' },
+    { id: 'Lovely_Girl', name: 'Lovely Girl' },
+    { id: 'Decent_Boy', name: 'Decent Boy' },
+    { id: 'Imposing_Manner', name: 'Imposing Manner' },
+    { id: 'Elegant_Man', name: 'Elegant Man' },
+    { id: 'Abbess', name: 'Abbess' },
+    { id: 'Sweet_Girl_2', name: 'Sweet Girl 2' },
+    { id: 'Exuberant_Girl', name: 'Exuberant Girl' },
 ] as const;
+
+const MINIMAX_VOICE_ID_SET = new Set<string>(MINIMAX_VOICES.map((voice) => voice.id));
+
+export function isValidMinimaxVoiceId(voiceId: string): boolean {
+    return MINIMAX_VOICE_ID_SET.has(voiceId);
+}
 
 /** MiniMax emotion options */
 export const MINIMAX_EMOTIONS: MiniMaxEmotion[] = [
@@ -107,12 +123,46 @@ export const MINIMAX_EMOTIONS: MiniMaxEmotion[] = [
     'surprised',
 ];
 
-/** MiniMax Speech 2.8 Turbo language boost options */
+/** MiniMax language boost options from fal OpenAPI schema */
 export const MINIMAX_LANGUAGE_BOOST = [
-    'auto', 'English', 'Chinese', 'Japanese', 'Korean',
-    'French', 'German', 'Spanish', 'Portuguese', 'Italian', 'Russian',
-    'Arabic', 'Turkish', 'Dutch', 'Thai', 'Vietnamese', 'Indonesian',
-    'Hindi', 'Polish', 'Swedish', 'Danish', 'Finnish', 'Norwegian',
+    'Chinese',
+    'Chinese,Yue',
+    'English',
+    'Arabic',
+    'Russian',
+    'Spanish',
+    'French',
+    'Portuguese',
+    'German',
+    'Turkish',
+    'Dutch',
+    'Ukrainian',
+    'Vietnamese',
+    'Indonesian',
+    'Japanese',
+    'Italian',
+    'Korean',
+    'Thai',
+    'Polish',
+    'Romanian',
+    'Greek',
+    'Czech',
+    'Finnish',
+    'Hindi',
+    'Bulgarian',
+    'Danish',
+    'Hebrew',
+    'Malay',
+    'Slovak',
+    'Swedish',
+    'Croatian',
+    'Hungarian',
+    'Norwegian',
+    'Slovenian',
+    'Catalan',
+    'Nynorsk',
+    'Afrikaans',
+    'auto',
 ] as const;
 
 /** Qwen3-TTS available voices */

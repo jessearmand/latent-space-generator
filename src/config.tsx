@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
+import { MINIMAX_DEFAULT_VOICE_ID, isValidMinimaxVoiceId } from './types/audio';
 
 export interface ConfigState {
   safetyTolerance: string;
@@ -52,7 +53,7 @@ export interface ConfigState {
   // TTS settings (MiniMax Speech-02-HD)
   ttsVoiceId: string;  // Voice ID
   ttsSpeed: number;  // 0.5-2.0, default 1.0
-  ttsVolume: number;  // 0-1, default 1.0
+  ttsVolume: number;  // 0.01-10, default 1.0
   ttsPitch: number;  // -12 to 12, default 0
   ttsEmotion: string;  // 'neutral', 'happy', 'sad', etc.
   // Chatterbox TTS settings
@@ -195,6 +196,12 @@ interface ConfigContextType extends ConfigState {
 export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 export const ConfigProvider = ({ children }: { children: ReactNode }) => {
+  const storedTtsVoiceId = localStorage.getItem('TTS_VOICE_ID');
+  const storedTtsVolume = parseFloat(localStorage.getItem('TTS_VOLUME') || '1.0');
+  const normalizedTtsVolume = Number.isFinite(storedTtsVolume)
+    ? Math.min(10, Math.max(0.01, storedTtsVolume))
+    : 1.0;
+
   const [safetyTolerance, setSafetyTolerance] = useState<string>(localStorage.getItem('SAFETY_TOLERANCE') || '2');
   const [aspectRatio, setAspectRatio] = useState<string>(localStorage.getItem('ASPECT_RATIO') || '16:9');
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | string>(JSON.parse(localStorage.getItem('IMAGE_SIZE') || '"landscape_4_3"'));
@@ -243,10 +250,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   // Audio generation settings
   const [audioOutputFormat, setAudioOutputFormat] = useState<string>(localStorage.getItem('AUDIO_OUTPUT_FORMAT') || 'mp3');
   const [audioSeed, setAudioSeed] = useState<number | null>(localStorage.getItem('AUDIO_SEED') !== 'null' ? parseInt(localStorage.getItem('AUDIO_SEED') || '0', 10) : null);
-  // TTS settings (MiniMax Speech-02-HD)
-  const [ttsVoiceId, setTtsVoiceId] = useState<string>(localStorage.getItem('TTS_VOICE_ID') || 'male-qn-qingse');
+  // TTS settings (MiniMax Speech models)
+  const [ttsVoiceId, setTtsVoiceId] = useState<string>(
+    storedTtsVoiceId && isValidMinimaxVoiceId(storedTtsVoiceId)
+      ? storedTtsVoiceId
+      : MINIMAX_DEFAULT_VOICE_ID
+  );
   const [ttsSpeed, setTtsSpeed] = useState<number>(parseFloat(localStorage.getItem('TTS_SPEED') || '1.0'));
-  const [ttsVolume, setTtsVolume] = useState<number>(parseFloat(localStorage.getItem('TTS_VOLUME') || '1.0'));
+  const [ttsVolume, setTtsVolume] = useState<number>(normalizedTtsVolume);
   const [ttsPitch, setTtsPitch] = useState<number>(parseInt(localStorage.getItem('TTS_PITCH') || '0', 10));
   const [ttsEmotion, setTtsEmotion] = useState<string>(localStorage.getItem('TTS_EMOTION') || 'neutral');
   // Chatterbox TTS settings
