@@ -369,3 +369,11 @@ export function isElevenLabsAudioIsolationModel(endpointId: string): boolean {
 export function isPersonaPlexModel(endpointId: string): boolean {
     return endpointId.toLowerCase().includes('personaplex');
 }
+
+/**
+ * Check if an audio model can run without user-provided prompt text.
+ * These models are audio-driven and can use server-side defaults.
+ */
+export function isPromptOptionalForAudioModel(endpointId: string): boolean {
+    return isElevenLabsAudioIsolationModel(endpointId) || isPersonaPlexModel(endpointId);
+}

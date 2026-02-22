@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isMinimaxSpeech28Model, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isMinimaxSpeech28Model, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel, isPromptOptionalForAudioModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -45,7 +45,7 @@ export function useAudioGeneration({
             const modelName = model.displayName;
 
             // Audio Isolation doesn't need text input; PersonaPlex prompt is optional
-            const noTextRequired = isElevenLabsAudioIsolationModel(modelId);
+            const noTextRequired = isPromptOptionalForAudioModel(modelId);
             if (!promptOrText && !noTextRequired) {
                 setStatus('Please enter text or a prompt.', 'error');
                 console.error('Text/prompt is empty. Cannot generate audio.');

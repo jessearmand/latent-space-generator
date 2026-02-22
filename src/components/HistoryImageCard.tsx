@@ -14,9 +14,16 @@ interface HistoryImageCardProps {
 export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRemove }) => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    const handleClick = useCallback(() => {
+    const openPreview = useCallback(() => {
         setIsPreviewOpen(true);
     }, []);
+
+    const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if ((e.target as HTMLElement).closest('.history-card-actions')) {
+            return;
+        }
+        openPreview();
+    }, [openPreview]);
 
     const handleRemove = useCallback(
         (e: React.MouseEvent) => {
@@ -37,7 +44,7 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
                 onClick={handleClick}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPreview(); } }}
                 aria-label={`Preview: ${entry.prompt || 'Generated image'}`}
             >
                 {entry.urls.length > 1 && (
