@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
+import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isMinimaxSpeech28Model, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -123,8 +123,8 @@ export function useAudioGeneration({
             const isTTS = isTTSModel(modelId);
             const isMusic = isMusicModel(modelId);
             const isSFX = isSFXModel(modelId);
-            const isMinimaxTurbo = isMinimaxTurboModel(modelId);
-            const isMinimax = modelIdLower.includes('minimax') || modelIdLower.includes('speech-02');
+            const isMinimaxSpeech28 = isMinimaxSpeech28Model(modelId);
+            const isMinimax = isMinimaxSpeechModel(modelId);
             const isQwen3 = isQwen3TTSModel(modelId);
             const isQwen3VoiceDesign = isQwen3VoiceDesignModel(modelId);
             const isChatterbox = modelIdLower.includes('chatterbox');
@@ -137,8 +137,8 @@ export function useAudioGeneration({
             const isPersonaPlex = isPersonaPlexModel(modelId);
 
             // Model-specific prompt field routing
-            if (isMinimaxTurbo) {
-                // Speech 2.8 Turbo uses 'prompt' (supports pause/interjection tags)
+            if (isMinimaxSpeech28) {
+                // Speech 2.8 (HD/Turbo) uses 'prompt' with pause/interjection tags
                 input.prompt = promptOrText;
             } else if (isQwen3) {
                 // Qwen3 TTS models always use 'text' for speech content
@@ -153,15 +153,17 @@ export function useAudioGeneration({
                 input.prompt = promptOrText;
             }
 
-            // MiniMax shared parameters (Speech-02-HD and Speech-02-Turbo)
-            // Both models use identical API: text, voice_setting, language_boost
+            // MiniMax shared parameters (Speech-02 and Speech-2.8 variants)
             if (isMinimax) {
                 const voiceSetting: Record<string, unknown> = {
                     voice_id: config.ttsVoiceId,
                     speed: config.ttsSpeed,
-                    vol: config.ttsVolume * 10,
+                    vol: config.ttsVolume,
                     pitch: config.ttsPitch,
                 };
+                if (config.ttsEmotion !== 'neutral') {
+                    voiceSetting.emotion = config.ttsEmotion;
+                }
                 input.voice_setting = voiceSetting;
                 if (config.minimaxLanguageBoost !== 'auto') {
                     input.language_boost = config.minimaxLanguageBoost;
