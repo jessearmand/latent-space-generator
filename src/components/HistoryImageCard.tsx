@@ -48,7 +48,7 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
                 aria-label={`Preview: ${entry.prompt || 'Generated image'}`}
             >
                 {entry.urls.length > 1 && (
-                    <span className="history-image-badge">{entry.urls.length} layers</span>
+                    <span className="history-image-badge">{entry.urls.length} images</span>
                 )}
 
                 <div className="history-card-actions">

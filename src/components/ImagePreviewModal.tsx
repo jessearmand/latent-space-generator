@@ -54,7 +54,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         >
             <div className="image-preview-header">
                 <h3>{modelName} &middot; {formatRelativeTime(timestamp)}</h3>
-                <button type="button" className="image-preview-close" onClick={onClose}>
+                <button type="button" className="image-preview-close" onClick={onClose} aria-label="Close preview">
                     X
                 </button>
             </div>
