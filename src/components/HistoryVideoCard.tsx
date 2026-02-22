@@ -53,7 +53,7 @@ export const HistoryVideoCard: React.FC<HistoryVideoCardProps> = ({ entry, onRem
             )}
 
             <div className="history-card-actions">
-                <DownloadButton url={videoUrl} label="Download video" />
+                {!isExpanded && <DownloadButton url={videoUrl} label="Download video" />}
                 <button
                     type="button"
                     className="history-card-remove"
