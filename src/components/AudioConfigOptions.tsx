@@ -7,7 +7,7 @@ import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
 import { MINIMAX_VOICES, MINIMAX_EMOTIONS, MINIMAX_LANGUAGE_BOOST, QWEN3_TTS_VOICES, QWEN3_TTS_LANGUAGES, ELEVENLABS_VOICES, PERSONAPLEX_VOICES } from '../types/audio';
-import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxTurboModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
+import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -17,8 +17,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
     const config = useConfig();
 
     const modelId = selectedModel.endpointId.toLowerCase();
-    const isMinimaxTurbo = isMinimaxTurboModel(selectedModel.endpointId);
-    const isMinimax = modelId.includes('minimax') || modelId.includes('speech-02');
+    const isMinimax = isMinimaxSpeechModel(selectedModel.endpointId);
     const isQwen3 = isQwen3TTSModel(selectedModel.endpointId);
     const isQwen3VoiceDesign = isQwen3VoiceDesignModel(selectedModel.endpointId);
     const isChatterbox = modelId.includes('chatterbox');
@@ -38,7 +37,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
     return (
         <div className="audio-config-options">
-            {/* MiniMax Shared Settings (Speech-02-HD & Speech 2.8 Turbo) */}
+            {/* MiniMax Speech Settings (Speech-02 and Speech-2.8 variants) */}
             {isMinimax && (
                 <>
                     <div className="form-group">
@@ -73,14 +72,14 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
                     <div className="form-group">
                         <label htmlFor="tts-volume">
-                            Volume: <span className="range-value">{Math.round(config.ttsVolume * 100)}%</span>
+                            Volume: <span className="range-value">{config.ttsVolume.toFixed(2)}</span>
                         </label>
                         <input
                             type="range"
                             id="tts-volume"
-                            min="0"
-                            max="1"
-                            step="0.1"
+                            min="0.01"
+                            max="10"
+                            step="0.01"
                             value={config.ttsVolume}
                             onChange={(e) => config.setTtsVolume(parseFloat(e.target.value))}
                         />
@@ -117,23 +116,20 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         </select>
                     </div>
 
-                    {/* Emotion — HD only (not documented for Turbo) */}
-                    {!isMinimaxTurbo && (
-                        <div className="form-group">
-                            <label htmlFor="tts-emotion">Emotion:</label>
-                            <select
-                                id="tts-emotion"
-                                value={config.ttsEmotion}
-                                onChange={(e) => config.setTtsEmotion(e.target.value)}
-                            >
-                                {MINIMAX_EMOTIONS.map((emotion) => (
-                                    <option key={emotion} value={emotion}>
-                                        {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+                    <div className="form-group">
+                        <label htmlFor="tts-emotion">Emotion:</label>
+                        <select
+                            id="tts-emotion"
+                            value={config.ttsEmotion}
+                            onChange={(e) => config.setTtsEmotion(e.target.value)}
+                        >
+                            {MINIMAX_EMOTIONS.map((emotion) => (
+                                <option key={emotion} value={emotion}>
+                                    {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </>
             )}
 
