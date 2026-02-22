@@ -60,3 +60,24 @@
 .history-text-copy:hover {
     background: #e5e5e5;
 }
+
+/* Compact overrides for audio player inside history grid cells */
+.history-audio-player .audio-player {
+    padding: 10px;
+    margin-bottom: 0;
+}
+
+.history-audio-player .audio-player-header {
+    margin-bottom: 8px;
+}
+
+.history-audio-player .audio-play-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.history-audio-player .audio-time {
+    min-width: 36px;
+    font-size: 0.8em;
+}

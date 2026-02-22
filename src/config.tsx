@@ -63,8 +63,8 @@ export interface ConfigState {
   // Music/SFX generation settings
   audioDuration: number;  // seconds, for music and SFX generation
   // Beatoven-specific settings
-  beatovenRefinement: number;  // 1-100 for music, 1-40 for SFX (quality iterations)
-  beatovenCreativity: number;  // 1-32, default 16 (variation level)
+  beatovenRefinement: number;  // 10-200, default 100 for music / 40 for SFX (quality iterations)
+  beatovenCreativity: number;  // 1-20, default 16 (variation level)
   beatovenNegativePrompt: string;  // Content to avoid
   // MMAudio V2 settings (video-to-audio)
   mmAudioCfgStrength: number;  // 1-10, default 4.5
