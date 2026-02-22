@@ -208,7 +208,7 @@ export function useAudioGeneration({
                 if (config.elevenLabsSpeed !== 1) input.speed = config.elevenLabsSpeed;
             }
 
-            // ElevenLabs Sound Effects v2 — uses 'text' not 'prompt'
+            // ElevenLabs Sound Effects — currently blocklisted (fal.ai bug: routes to deprecated v0)
             if (isElevenLabsSFX) {
                 delete input.prompt;
                 input.text = promptOrText;
@@ -251,8 +251,8 @@ export function useAudioGeneration({
                 }
             }
 
-            // Music and SFX duration
-            if ((isMusic || isSFX) && config.audioDuration > 0) {
+            // Music and SFX duration (exclude ElevenLabs which uses its own duration params)
+            if ((isMusic || isSFX) && !isElevenLabsSFX && !isElevenLabsMusic && config.audioDuration > 0) {
                 input.duration = config.audioDuration;
             }
 

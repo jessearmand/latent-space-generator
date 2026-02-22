@@ -11,6 +11,7 @@ import {
     type ModelCategory,
     normalizeModel,
 } from '../types/models';
+import { isBlocklisted } from './deprecatedModels';
 
 const API_BASE_URL = 'https://api.fal.ai/v1';
 const PROXY_URL = 'http://localhost:3001/api/fal/proxy';
@@ -107,7 +108,7 @@ async function fetchAllModelsForCategory(
         hasMore = response.has_more;
     }
 
-    return allModels;
+    return allModels.filter(m => !isBlocklisted(m.endpoint_id));
 }
 
 /** Fetch all image generation models (text-to-image and image-to-image) */
