@@ -300,11 +300,25 @@ export function isBeatovenModel(endpointId: string): boolean {
 }
 
 /**
- * Check if a model is MiniMax Speech 2.8 Turbo
- * Uses 'prompt' instead of 'text', otherwise shares voice_setting/language_boost with HD
+ * Check if a model is a MiniMax speech TTS endpoint
+ */
+export function isMinimaxSpeechModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('fal-ai/minimax/speech-');
+}
+
+/**
+ * Check if a model is MiniMax Speech 2.8 (HD/Turbo)
+ * Speech 2.8 uses `prompt` (with pause/interjection tags) and supports `voice_modify`.
+ */
+export function isMinimaxSpeech28Model(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('fal-ai/minimax/speech-2.8');
+}
+
+/**
+ * Backwards-compatible alias used in existing callsites.
  */
 export function isMinimaxTurboModel(endpointId: string): boolean {
-    return endpointId.toLowerCase().includes('speech-2.8');
+    return isMinimaxSpeech28Model(endpointId);
 }
 
 /**
