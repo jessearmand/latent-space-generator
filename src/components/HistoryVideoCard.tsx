@@ -34,6 +34,14 @@ export const HistoryVideoCard: React.FC<HistoryVideoCardProps> = ({ entry, onRem
             {isExpanded ? (
                 <div className="history-video-expanded">
                     <VideoPlayer src={videoUrl} />
+                    <button
+                        type="button"
+                        className="history-video-collapse"
+                        onClick={handleToggle}
+                        aria-label="Collapse video"
+                    >
+                        &#9650;
+                    </button>
                 </div>
             ) : (
                 // biome-ignore lint/a11y/useSemanticElements: div wraps video thumbnail with complex layout

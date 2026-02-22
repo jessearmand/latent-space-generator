@@ -82,3 +82,21 @@
 .history-video-expanded .video-player-container {
     border-radius: 0;
 }
+
+/* Collapse button in expanded state */
+.history-video-collapse {
+    display: block;
+    width: 100%;
+    padding: 6px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #ccc;
+    font-size: 0.75em;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.history-video-collapse:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}

@@ -150,7 +150,7 @@ export function useAudioGeneration({
             } else if (isTTS) {
                 input.text = promptOrText;
             } else {
-                input.prompt = promptOrText;
+                if (promptOrText) input.prompt = promptOrText;
             }
 
             // MiniMax shared parameters (Speech-02 and Speech-2.8 variants)
