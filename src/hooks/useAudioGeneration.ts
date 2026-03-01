@@ -220,7 +220,7 @@ export function useAudioGeneration({
 
             // ElevenLabs Music — uses 'prompt' (handled by generic non-TTS path above)
             if (isElevenLabsMusic) {
-                if (config.audioDuration > 0) input.music_length_ms = config.audioDuration * 1000;
+                if (config.audioDuration > 0) input.music_length_ms = Math.round(config.audioDuration * 1000);
                 if (config.elevenLabsForceInstrumental) input.force_instrumental = true;
             }
 
