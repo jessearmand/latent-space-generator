@@ -6,11 +6,12 @@
  * from `\x1b[A` (ANSI cursor-up escape code) used by progress
  * libraries like tqdm.
  */
-// Regex patterns to match control characters - these are intentional
-// biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally matching ANSI escape sequences
-const ANSI_ESCAPE_REGEX = /\x1b\[[0-9;]*[A-Za-z]/g;
-// biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally matching control characters
-const CONTROL_CHAR_REGEX = /[\x00-\x08\x0b\x0c\x0e-\x1f]/g;
+// Regex patterns to match ANSI and control characters.
+// Unicode escapes preserve intent without embedding raw control characters.
+// oxlint-disable-next-line no-control-regex -- This regex intentionally matches ANSI escape prefixes from external progress output.
+const ANSI_ESCAPE_REGEX = /\u001B\[[0-9;]*[A-Za-z]/g;
+// oxlint-disable-next-line no-control-regex -- This regex intentionally strips ASCII control characters except newlines.
+const CONTROL_CHAR_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
 
 export function sanitizeLogMessage(message: string): string {
     if (!message) return 'Processing...';

@@ -44,20 +44,17 @@ export const HistoryVideoCard: React.FC<HistoryVideoCardProps> = ({ entry, onRem
                     </button>
                 </div>
             ) : (
-                // biome-ignore lint/a11y/useSemanticElements: div wraps video thumbnail with complex layout
-                <div
+                <button
+                    type="button"
                     className="history-video-thumb"
                     onClick={handleToggle}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggle(); } }}
                     aria-label={`Play video: ${entry.prompt || 'Generated video'}`}
                 >
                     <video src={videoUrl} preload="metadata" muted>
                         <track kind="captions" />
                     </video>
                     <span className="history-video-play-icon" aria-hidden="true" />
-                </div>
+                </button>
             )}
 
             <div className="history-card-actions">

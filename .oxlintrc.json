@@ -1,0 +1,14 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "vitest"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "warn"
+    },
+    "rules": {
+        "import/no-unassigned-import": "off",
+        "react/react-in-jsx-scope": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-array-sort": "off"
+    }
+}

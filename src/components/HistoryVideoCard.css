@@ -17,6 +17,11 @@
 .history-video-thumb {
     position: relative;
     aspect-ratio: 16/9;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
 }
 
 .history-video-thumb video {

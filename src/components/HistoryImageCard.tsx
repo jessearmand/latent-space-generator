@@ -38,7 +38,7 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
 
     return (
         <>
-            {/* biome-ignore lint/a11y/useSemanticElements: button wraps complex card layout with nested interactive elements */}
+            {/* oxlint-disable jsx-a11y/prefer-tag-over-role -- This preview container includes nested action buttons, so a semantic button wrapper would create invalid interactive nesting. */}
             <div
                 className="history-image-card"
                 onClick={handleClick}
@@ -71,6 +71,7 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
                     timestamp={entry.timestamp}
                 />
             </div>
+            {/* oxlint-enable jsx-a11y/prefer-tag-over-role */}
 
             <ImagePreviewModal
                 isOpen={isPreviewOpen}

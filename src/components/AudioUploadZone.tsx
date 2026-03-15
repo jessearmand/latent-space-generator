@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import './AudioUploadZone.css';
 
 interface AudioUploadZoneProps {
@@ -24,6 +24,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputId = useId();
 
     // Revoke object URL on unmount to prevent memory leaks
     useEffect(() => {
@@ -116,8 +117,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
 
     return (
         <div className="audio-upload-zone-container">
-            {/* biome-ignore lint/a11y/noLabelWithoutControl: Associated with hidden file input */}
-            <label className="audio-upload-label">Upload Audio File:</label>
+            <label htmlFor={inputId} className="audio-upload-label">Upload Audio File:</label>
 
             {!uploadedFile ? (
                 <button
@@ -150,7 +150,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                         </span>
                     </div>
                     {audioPreviewUrl && (
-                        /* biome-ignore lint/a11y/useMediaCaption: Uploaded audio, no captions available */
+                        /* oxlint-disable-next-line jsx-a11y/media-has-caption -- Uploaded previews do not ship with caption tracks. */
                         <audio
                             src={audioPreviewUrl}
                             controls
@@ -169,6 +169,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
             )}
 
             <input
+                id={inputId}
                 ref={fileInputRef}
                 type="file"
                 accept={ACCEPTED_EXTENSIONS.join(',')}

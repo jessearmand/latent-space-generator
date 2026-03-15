@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import './VideoUploadZone.css';
 
 interface VideoUploadZoneProps {
@@ -24,6 +24,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputId = useId();
 
     // Sync preview URL when parent clears the file externally
     useEffect(() => {
@@ -124,8 +125,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
 
     return (
         <div className="video-upload-zone-container">
-            {/* biome-ignore lint/a11y/noLabelWithoutControl: Associated with hidden file input */}
-            <label className="video-upload-label">Upload Video File:</label>
+            <label htmlFor={inputId} className="video-upload-label">Upload Video File:</label>
 
             {!uploadedFile ? (
                 <button
@@ -158,7 +158,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                         </span>
                     </div>
                     {videoPreviewUrl && (
-                        /* biome-ignore lint/a11y/useMediaCaption: Uploaded video, no captions available */
+                        /* oxlint-disable-next-line jsx-a11y/media-has-caption -- Uploaded previews do not ship with caption tracks. */
                         <video
                             src={videoPreviewUrl}
                             controls
@@ -177,6 +177,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
             )}
 
             <input
+                id={inputId}
                 ref={fileInputRef}
                 type="file"
                 accept={ACCEPTED_EXTENSIONS.join(',')}
