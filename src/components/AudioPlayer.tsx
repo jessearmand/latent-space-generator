@@ -75,7 +75,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, title = 'Generate
                 <DownloadButton url={src} label="Download audio" />
             </div>
 
-            {/* biome-ignore lint/a11y/useMediaCaption: Generated audio, no captions available */}
+            {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- Generated audio files do not include caption tracks. */}
             <audio
                 ref={audioRef}
                 src={src}

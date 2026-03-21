@@ -268,7 +268,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 </button>
             )}
 
-            {/* biome-ignore lint/a11y/useSemanticElements: Drop zone requires div for drag-and-drop functionality */}
+            {/* oxlint-disable jsx-a11y/prefer-tag-over-role -- The drop zone needs drag-and-drop behavior and contains nested controls, so a semantic button wrapper would be invalid. */}
             <div
                 className={zoneClasses}
                 onDragOver={handleDragOver}
@@ -330,6 +330,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                     </div>
                 )}
             </div>
+            {/* oxlint-enable jsx-a11y/prefer-tag-over-role */}
 
             {error && <p className="upload-error">{error}</p>}
         </div>

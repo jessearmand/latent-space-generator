@@ -358,7 +358,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </button>
 
                         {isExpanded && (
-                            // biome-ignore lint/a11y/useSemanticElements: WAI-ARIA TreeView requires role="group" for child grouping
                             <div
                                 role="group"
                                 className="sidebar-mode-list"

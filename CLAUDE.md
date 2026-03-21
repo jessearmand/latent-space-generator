@@ -11,7 +11,7 @@ Latent Space Generator — React single-page application for AI media generation
 - **OpenAI models**: GPT Image models (gpt-image-1.5, gpt-image-1-mini) via direct API calls, fal.ai, or OpenRouter
 - **Gemini image models**: Gemini 2.5 Flash Image, Gemini 3 Pro Image via fal.ai (OpenRouter fallback)
 
-Uses Vite for development, Vitest for testing, and Biome for linting.
+Uses Vite for development, Vitest for testing, and Oxlint for linting. Biome is temporarily retained during the migration for parity checks.
 
 ## Development Commands
 
@@ -23,8 +23,9 @@ bun run start:server  # Start Bun proxy server only
 bun run build         # Production build (output to build/)
 bun run test          # Run tests with Vitest (not `bun test` which uses Bun's native runner)
 bun run typecheck     # TypeScript type checking
-bun run lint          # Run Biome linter
-bun run lint:fix      # Fix linting issues automatically
+bun run lint          # Run Oxlint and fail on warnings
+bun run lint:fix      # Apply Oxlint autofixes, then fail on remaining warnings
+bun run lint:biome    # Temporary parity check during the Biome -> Oxlint migration
 ```
 
 ## Architecture
