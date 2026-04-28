@@ -79,6 +79,17 @@
     color: #999;
 }
 
+.upload-caption {
+    margin: 8px 0 0;
+    padding: 8px 12px;
+    background: #f7f7f7;
+    border-left: 3px solid #999;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #555;
+    line-height: 1.4;
+}
+
 /* Preview state */
 .upload-preview {
     display: flex;

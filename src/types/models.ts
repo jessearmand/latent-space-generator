@@ -7,7 +7,11 @@
 export type ImageModelCategory = 'text-to-image' | 'image-to-image';
 
 /** Model categories for video generation */
-export type VideoModelCategory = 'text-to-video' | 'image-to-video' | 'video-to-video';
+export type VideoModelCategory =
+    | 'text-to-video'
+    | 'image-to-video'
+    | 'video-to-video'
+    | 'reference-to-video';
 
 /** Model categories for audio generation */
 export type AudioModelCategory =
@@ -100,7 +104,8 @@ function getOutputType(category: ModelCategory): OutputType {
     if (
         category === 'text-to-video' ||
         category === 'image-to-video' ||
-        category === 'video-to-video'
+        category === 'video-to-video' ||
+        category === 'reference-to-video'
     ) {
         return 'video';
     }
@@ -120,7 +125,11 @@ function getOutputType(category: ModelCategory): OutputType {
 
 /** Determine if model supports image input based on category */
 function getSupportsImageInput(category: ModelCategory): boolean {
-    return category === 'image-to-image' || category === 'image-to-video';
+    return (
+        category === 'image-to-image' ||
+        category === 'image-to-video' ||
+        category === 'reference-to-video'
+    );
 }
 
 /** Determine if model supports video input based on category */

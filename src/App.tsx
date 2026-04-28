@@ -262,6 +262,7 @@ const AppContent: React.FC = () => {
                                 {activeTab === 'text-to-video' && 'Select a model and enter a text prompt to generate a video.'}
                                 {activeTab === 'image-to-video' && 'Upload an image and enter a prompt to animate it.'}
                                 {activeTab === 'video-to-video' && 'Upload a video and enter a prompt to transform it.'}
+                                {activeTab === 'reference-to-video' && 'Upload up to 9 reference images and use @Image1, @Image2... in your prompt.'}
                                 {activeTab === 'text-to-speech' && 'Enter text to convert to speech.'}
                                 {activeTab === 'text-to-audio' && 'Enter a prompt to generate music or sound effects.'}
                                 {activeTab === 'audio-to-audio' && 'Upload an audio file and enter text for voice cloning.'}

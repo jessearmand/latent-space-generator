@@ -101,4 +101,47 @@ describe('getImageInputConfig', () => {
             });
         });
     });
+
+    describe('Seedance image-to-video (start frame + optional end frame)', () => {
+        it.each([
+            'bytedance/seedance-2.0/image-to-video',
+            'bytedance/seedance-2.0/fast/image-to-video',
+        ])('%s should expose 2 image slots, no strength', (modelId) => {
+            const config = getImageInputConfig(modelId);
+            expect(config).toEqual({
+                paramName: 'image_url',
+                isArray: false,
+                strengthParam: null,
+                maxImages: 2,
+            });
+        });
+    });
+
+    describe('Seedance reference-to-video (up to 9 reference images)', () => {
+        it.each([
+            'bytedance/seedance-2.0/reference-to-video',
+            'bytedance/seedance-2.0/fast/reference-to-video',
+        ])('%s should expose 9 image slots in array form', (modelId) => {
+            const config = getImageInputConfig(modelId);
+            expect(config).toEqual({
+                paramName: 'image_urls',
+                isArray: true,
+                strengthParam: null,
+                maxImages: 9,
+            });
+        });
+    });
+
+    describe('Non-seedance image-to-video models still default to single slot', () => {
+        it.each([
+            'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
+            'fal-ai/veo2/image-to-video',
+            'fal-ai/ltx-2/image-to-video',
+        ])('%s should keep maxImages=1', (modelId) => {
+            const config = getImageInputConfig(modelId);
+            expect(config.maxImages).toBe(1);
+            expect(config.paramName).toBe('image_url');
+            expect(config.isArray).toBe(false);
+        });
+    });
 });

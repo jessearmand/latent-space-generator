@@ -10,6 +10,7 @@ import { ImageUploadZone } from './ImageUploadZone';
 import { VideoUploadZone } from './VideoUploadZone';
 import { AudioUploadZone } from './AudioUploadZone';
 import { getImageInputConfig } from '../services/modelParams';
+import { isSeedanceImageToVideoModel } from '../services/videoModels';
 
 export interface InputSectionProps {
     activeTab: GenerationMode;
@@ -56,6 +57,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 return 'Animate this image with...';
             case 'video-to-video':
                 return 'Transform this video into...';
+            case 'reference-to-video':
+                return 'Use @Image1, @Image2... in your prompt to reference uploaded images';
             case 'text-to-speech':
                 return 'Hello, welcome to the presentation...';
             case 'text-to-audio':
@@ -94,19 +97,32 @@ export const InputSection: React.FC<InputSectionProps> = ({
         <div className="input-section">
             <ModelSelector filterByCategory={activeTab} />
 
-            {/* Image upload for image-to-image and image-to-video modes */}
+            {/* Image upload for image-to-image, image-to-video, and reference-to-video modes.
+                `getImageInputConfig` is the single source of truth for slot count across all
+                three modes (i2i, i2v, r2v). Seedance i2v exposes 2 slots (start + end frame);
+                seedance r2v exposes up to 9 reference image slots. */}
             {requiresImageInput(activeTab) && currentSelectedModel && (
-                <ImageUploadZone
-                    uploadedImages={uploadedImages}
-                    imagePreviews={imagePreviews}
-                    onImagesChange={setUploadedImages}
-                    maxImages={
-                        activeTab === 'image-to-video'
-                            ? 1
-                            : getImageInputConfig(currentSelectedModel.endpointId).maxImages
-                    }
-                    disabled={isGenerating}
-                />
+                <>
+                    <ImageUploadZone
+                        uploadedImages={uploadedImages}
+                        imagePreviews={imagePreviews}
+                        onImagesChange={setUploadedImages}
+                        maxImages={getImageInputConfig(currentSelectedModel.endpointId).maxImages}
+                        disabled={isGenerating}
+                    />
+                    {activeTab === 'image-to-video'
+                        && isSeedanceImageToVideoModel(currentSelectedModel.endpointId) && (
+                        <p className="upload-caption">
+                            First image is the start frame. The optional second image is used
+                            as the end frame for a transition.
+                        </p>
+                    )}
+                    {activeTab === 'reference-to-video' && (
+                        <p className="upload-caption">
+                            Reference images are addressable as @Image1, @Image2, … in the prompt.
+                        </p>
+                    )}
+                </>
             )}
 
             {/* Video upload for video-to-video and video-to-audio modes */}

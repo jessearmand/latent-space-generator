@@ -99,6 +99,22 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         supportsImageInput: false,
         outputType: 'video',
     },
+    {
+        endpointId: 'bytedance/seedance-2.0/fast/text-to-video',
+        displayName: 'Seedance 2.0 Fast',
+        category: 'text-to-video',
+        description: "ByteDance's flagship T2V (fast tier) with native audio and director-level control",
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.0/text-to-video',
+        displayName: 'Seedance 2.0 Pro',
+        category: 'text-to-video',
+        description: "ByteDance's flagship T2V (pro tier) with 1080p, native audio, and multi-shot editing",
+        supportsImageInput: false,
+        outputType: 'video',
+    },
 ];
 
 /**
@@ -184,6 +200,46 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'LTX-2 Pro I2V',
         category: 'image-to-video',
         description: 'Transform images into videos with audio, up to 2160p',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.0/fast/image-to-video',
+        displayName: 'Seedance 2.0 Fast I2V',
+        category: 'image-to-video',
+        description: "ByteDance's flagship I2V (fast tier) with optional end-frame morph",
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.0/image-to-video',
+        displayName: 'Seedance 2.0 Pro I2V',
+        category: 'image-to-video',
+        description: "ByteDance's flagship I2V (pro tier) with 1080p and start/end-frame control",
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+];
+
+/**
+ * Curated list of reference-to-video models (Updated Apr 2026)
+ * Reference-to-video uses up to 9 reference images (and, future-work, up to 3 ref videos
+ * + 3 ref audio clips) addressable in the prompt as @Image1, @Video1, @Audio1, etc.
+ */
+export const CURATED_REFERENCE_TO_VIDEO_MODELS: ModelConfig[] = [
+    {
+        endpointId: 'bytedance/seedance-2.0/fast/reference-to-video',
+        displayName: 'Seedance 2.0 Fast R2V',
+        category: 'reference-to-video',
+        description: "ByteDance's reference-to-video (fast tier) — up to 9 ref images via @Image1 etc.",
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.0/reference-to-video',
+        displayName: 'Seedance 2.0 Pro R2V',
+        category: 'reference-to-video',
+        description: "ByteDance's reference-to-video (pro tier) — up to 9 ref images, 1080p output",
         supportsImageInput: true,
         outputType: 'video',
     },
@@ -298,6 +354,7 @@ export const CURATED_VIDEO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_VIDEO_MODELS,
     ...CURATED_IMAGE_TO_VIDEO_MODELS,
     ...CURATED_VIDEO_TO_VIDEO_MODELS,
+    ...CURATED_REFERENCE_TO_VIDEO_MODELS,
 ];
 
 /**
@@ -320,7 +377,31 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
         return CURATED_VIDEO_TO_VIDEO_MODELS;
     }
 
+    if (category === 'reference-to-video') {
+        return CURATED_REFERENCE_TO_VIDEO_MODELS;
+    }
+
     return [];
+}
+
+/** Detect ByteDance Seedance 2.0 endpoints (any tier, any sub-task). */
+export function isSeedanceModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('seedance-2');
+}
+
+/** Detect the Seedance Fast tier specifically (caps at 720p). */
+export function isSeedanceFastModel(endpointId: string): boolean {
+    return endpointId.toLowerCase().includes('seedance-2.0/fast');
+}
+
+/** Detect Seedance reference-to-video endpoints (Pro and Fast). */
+export function isSeedanceReferenceModel(endpointId: string): boolean {
+    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('reference-to-video');
+}
+
+/** Detect Seedance image-to-video endpoints (Pro and Fast). */
+export function isSeedanceImageToVideoModel(endpointId: string): boolean {
+    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('image-to-video');
 }
 
 /**
