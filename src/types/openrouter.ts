@@ -126,11 +126,20 @@ export function filterModels(
     models: OpenRouterModel[],
     filters: OpenRouterModelFilters
 ): OpenRouterModel[] {
+    // Normalize the filter the same way model providers are normalized, so a
+    // persisted localStorage value like `~anthropic` (from before the alias
+    // collapse landed) still matches the canonical `anthropic` bucket.
+    const normalizedProviderFilter = filters.provider
+        ? filters.provider.startsWith('~')
+            ? filters.provider.slice(1)
+            : filters.provider
+        : null;
+
     return models.filter((model) => {
         // Filter by provider (derived from model ID)
-        if (filters.provider) {
+        if (normalizedProviderFilter) {
             const modelProvider = getProviderFromId(model.id);
-            if (modelProvider !== filters.provider) {
+            if (modelProvider !== normalizedProviderFilter) {
                 return false;
             }
         }
