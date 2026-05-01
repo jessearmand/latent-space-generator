@@ -54,10 +54,17 @@ export interface OpenRouterModel {
 /**
  * Extract provider name from model ID
  * e.g., "google/gemini-3-flash" -> "google"
- * Returns the raw provider name without formatting
+ *      "~anthropic/claude-haiku-latest" -> "anthropic"
+ *
+ * OpenRouter prefixes its always-redirect alias models with `~` (e.g.
+ * `~anthropic/claude-haiku-latest`, which "always redirects to the latest model
+ * in the Anthropic Claude Haiku family"). For filtering and display we treat
+ * those as the same vendor as the canonical models, so the dropdown doesn't
+ * show duplicate `anthropic` / `~anthropic` entries for the same provider.
  */
 export function getProviderFromId(modelId: string): string {
-    return modelId.split("/")[0] || "unknown";
+    const prefix = modelId.split("/")[0] || "unknown";
+    return prefix.startsWith("~") ? prefix.slice(1) : prefix;
 }
 
 export interface OpenRouterModelsResponse {
