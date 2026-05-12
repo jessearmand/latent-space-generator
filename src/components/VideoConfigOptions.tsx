@@ -29,9 +29,13 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     const isLtxFastModel = modelId.includes('ltx-2') && modelId.includes('fast') && !modelId.includes('ltx-2-19b');
     const isGrokVideoModel = modelId.includes('grok-imagine-video');
     const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
-    const supportsAudio = isVeoModel || isLtxModel;
-    // Guidance scale: ltx-2-19b has it, but veo, ltx-2 Pro/Fast, kling, and grok don't
-    const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
+    const isSeedance = modelId.includes('seedance-2');
+    const isSeedanceFast = modelId.includes('seedance-2.0/fast');
+    const supportsAudio = isVeoModel || isLtxModel || isSeedance;
+    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't
+    const supportsGuidanceScale =
+        isLtx19bModel ||
+        (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -49,6 +53,12 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different durations
     const getDurationOptions = (): string[] => {
+        // Seedance 2.0 — "auto" lets the model decide; otherwise 4-15 seconds.
+        // Stored as bare number strings ("4", "5", ..., "15") to match the API enum.
+        if (isSeedance) {
+            return ['auto', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
+        }
+
         // Grok Imagine Video supports 1-15s continuous
         if (isGrokVideoModel) {
             return ['1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', '10s', '11s', '12s', '13s', '14s', '15s'];
@@ -80,6 +90,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different aspect ratios
     const getAspectRatioOptions = (): string[] => {
+        // Seedance 2.0 — "auto" infers from prompt/image; supports 21:9 ultrawide.
+        if (isSeedance) {
+            return ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'];
+        }
+
         // Grok Imagine Video supports these aspect ratios
         if (isGrokVideoModel) {
             return ['16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16'];
@@ -111,6 +126,12 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
     // Different models support different resolutions
     const getResolutionOptions = (): string[] => {
+        // Seedance 2.0 — Fast tier caps at 720p; Pro tier adds 1080p.
+        // 720p first so the validate-and-reset effect lands on a sensible default.
+        if (isSeedance) {
+            return isSeedanceFast ? ['720p', '480p'] : ['720p', '480p', '1080p'];
+        }
+
         // Grok Imagine Video supports 480p and 720p
         if (isGrokVideoModel) {
             return ['480p', '720p'];
@@ -406,17 +427,20 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                 />
             </div>
 
-            <div className="form-group">
-                <label htmlFor="video-negative-prompt">Negative Prompt:</label>
-                <textarea
-                    id="video-negative-prompt"
-                    value={config.videoNegativePrompt}
-                    onChange={(e) => config.setVideoNegativePrompt(e.target.value)}
-                    placeholder="Content to avoid (e.g., blur, distort, low quality)"
-                    rows={2}
-                    className="negative-prompt-textarea"
-                />
-            </div>
+            {/* Seedance 2.0 doesn't expose negative_prompt in its schema, hide the field. */}
+            {!isSeedance && (
+                <div className="form-group">
+                    <label htmlFor="video-negative-prompt">Negative Prompt:</label>
+                    <textarea
+                        id="video-negative-prompt"
+                        value={config.videoNegativePrompt}
+                        onChange={(e) => config.setVideoNegativePrompt(e.target.value)}
+                        placeholder="Content to avoid (e.g., blur, distort, low quality)"
+                        rows={2}
+                        className="negative-prompt-textarea"
+                    />
+                </div>
+            )}
 
             {/* V2V Strength - for transformation intensity */}
             {supportsV2VStrength && (

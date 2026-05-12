@@ -7,7 +7,11 @@
 export type ImageModelCategory = 'text-to-image' | 'image-to-image';
 
 /** Model categories for video generation */
-export type VideoModelCategory = 'text-to-video' | 'image-to-video' | 'video-to-video';
+export type VideoModelCategory =
+    | 'text-to-video'
+    | 'image-to-video'
+    | 'video-to-video'
+    | 'reference-to-video';
 
 /** Model categories for audio generation */
 export type AudioModelCategory =
@@ -100,7 +104,8 @@ function getOutputType(category: ModelCategory): OutputType {
     if (
         category === 'text-to-video' ||
         category === 'image-to-video' ||
-        category === 'video-to-video'
+        category === 'video-to-video' ||
+        category === 'reference-to-video'
     ) {
         return 'video';
     }
@@ -120,7 +125,11 @@ function getOutputType(category: ModelCategory): OutputType {
 
 /** Determine if model supports image input based on category */
 function getSupportsImageInput(category: ModelCategory): boolean {
-    return category === 'image-to-image' || category === 'image-to-video';
+    return (
+        category === 'image-to-image' ||
+        category === 'image-to-video' ||
+        category === 'reference-to-video'
+    );
 }
 
 /** Determine if model supports video input based on category */
@@ -136,7 +145,14 @@ export function getSupportsAudioInput(category: ModelCategory): boolean {
 /** Convert API model to internal ModelConfig */
 export function normalizeModel(model: FalModel): ModelConfig {
     const metadata = model.metadata || {};
-    const category = metadata.category || 'text-to-image';
+    // fal.ai's catalog files some reference-to-video endpoints (e.g. Seedance r2v)
+    // under metadata.category === 'image-to-video'. Detect them by endpoint suffix
+    // so they route through the dedicated R2V picker and the R2V branch of
+    // useVideoGeneration (`image_urls` array) instead of the I2V branch (`image_url`).
+    const endpointIdLower = model.endpoint_id.toLowerCase();
+    const category: ModelCategory = endpointIdLower.endsWith('/reference-to-video')
+        ? 'reference-to-video'
+        : metadata.category || 'text-to-image';
 
     return {
         endpointId: model.endpoint_id,

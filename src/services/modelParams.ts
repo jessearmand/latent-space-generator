@@ -1,10 +1,20 @@
 /**
- * Model-specific parameter configuration for fal.ai image-to-image models
+ * Model-specific parameter configuration for fal.ai models that take image input.
+ *
+ * Originally written for image-to-image; now also covers image-to-video and
+ * reference-to-video models so that `InputSection` has a single source of truth
+ * for how many image slots `ImageUploadZone` should expose.
  *
  * Different models use different parameter naming conventions:
  * - Some use `image_urls` (array), others use `image_url` (string)
  * - Some use `strength`, others use `image_prompt_strength`, some have none
- * - Some support multiple input images (up to 8 for flux-2-pro/edit)
+ * - Some support multiple input images (up to 9 for seedance reference-to-video)
+ *
+ * Notes on video coverage:
+ * - Seedance i2v exposes 2 slots: slot[0] -> `image_url`, slot[1] -> `end_image_url`.
+ *   The `paramName` here stays `'image_url'` (singular) because that's what the
+ *   primary slot maps to; the hook handles `end_image_url` separately.
+ * - Seedance r2v exposes up to 9 slots: all -> `image_urls` (array of URLs).
  */
 
 export interface ImageInputConfig {
@@ -54,7 +64,7 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         /qwen-image-edit-25\d{2}/,
         /qwen-image-edit-plus/,
         /wan.*\/image-to-image/,
-        /wan.*image/i,
+        /wan.*image(?!-to-video)/i,
     ];
 
     // Models that don't support strength parameter
@@ -73,7 +83,7 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         /qwen-image-edit(?!\/image-to-image)/,
         /qwen-image-layered/,
         /wan.*\/image-to-image/,
-        /wan.*image/i,
+        /wan.*image(?!-to-video)/i,
     ];
 
     // Models that support many images
@@ -85,6 +95,29 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         /flux-2\/edit/,
         /flux-2\/flash\/edit/,
     ];
+
+    // Video model overrides (Seedance 2.0)
+    // - reference-to-video: array of up to 9 reference images
+    // - image-to-video: single primary `image_url`, but a 2nd slot maps to `end_image_url`
+    //   in the hook, so we expose 2 upload slots while keeping paramName='image_url'.
+    const lower = modelId.toLowerCase();
+    const isSeedance = lower.includes('seedance-2');
+    if (isSeedance && lower.includes('reference-to-video')) {
+        return {
+            paramName: 'image_urls',
+            isArray: true,
+            strengthParam: null,
+            maxImages: 9,
+        };
+    }
+    if (isSeedance && lower.includes('image-to-video')) {
+        return {
+            paramName: 'image_url',
+            isArray: false,
+            strengthParam: null,
+            maxImages: 2,
+        };
+    }
 
     const usesArray = arrayImageModels.some(pattern => pattern.test(modelId));
     const hasStrength = !noStrengthModels.some(pattern => pattern.test(modelId));

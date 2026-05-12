@@ -46,12 +46,12 @@ describe('buildVisibleNodes', () => {
 
     it('includes all children when all sections expanded', () => {
         const nodes = buildVisibleNodes(new Set(['image', 'video', 'audio', 'history']));
-        // 4 sections + 2 image + 3 video + 5 audio + 3 history = 17
-        expect(nodes).toHaveLength(17);
+        // 4 sections + 2 image + 4 video + 5 audio + 3 history = 18
+        expect(nodes).toHaveLength(18);
         expect(nodes[0]).toEqual({ type: 'section', sectionId: 'image' });
         expect(nodes[3]).toEqual({ type: 'section', sectionId: 'video' });
-        expect(nodes[7]).toEqual({ type: 'section', sectionId: 'audio' });
-        expect(nodes[13]).toEqual({ type: 'section', sectionId: 'history' });
+        expect(nodes[8]).toEqual({ type: 'section', sectionId: 'audio' });
+        expect(nodes[14]).toEqual({ type: 'section', sectionId: 'history' });
     });
 });
 

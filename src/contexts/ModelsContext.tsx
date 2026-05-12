@@ -338,6 +338,18 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
             ? sourceModels.filter(m => m.category === category)
             : sourceModels;
 
+        // fal.ai's catalog categorizes Seedance reference-to-video under `image-to-video`,
+        // so the fetched-all path would otherwise return nothing for our `reference-to-video`
+        // UX category. Always seed it from the curated list so the user sees something.
+        if (category === 'reference-to-video' && showAllVideoModels) {
+            const curatedR2V = curatedVideoModels.filter(m => m.category === 'reference-to-video');
+            const fetchedIds = new Set(filtered.map(m => m.endpointId));
+            filtered = [
+                ...filtered,
+                ...curatedR2V.filter(m => !fetchedIds.has(m.endpointId)),
+            ];
+        }
+
         if (showAllVideoModels && videoSearchQuery) {
             filtered = filterModelsByQuery(filtered, videoSearchQuery);
         }
