@@ -275,6 +275,54 @@ Audio generation is handled by `useAudioGeneration` hook with model-specific par
 
 The fal client uses proxy configuration: `fal.config({ proxyUrl: '/api/fal/proxy' })` (relative path, resolved by Vite's dev proxy to port 3001).
 
+### Secrets via fnox (dev)
+
+Local development loads server-side keys with [fnox](https://fnox.jdx.dev). `fnox.toml` is the manifest — it names providers and references secrets, but the values live in the **macOS Keychain**, not in the file, so the config is safe to commit.
+
+```toml
+# fnox.toml
+default_provider = "OpenRouter"
+
+[providers.OpenRouter]
+type = "keychain"
+service = "openrouter"
+
+[providers.fal]
+type = "keychain"
+service = "fnox"
+
+[secrets]
+OPENROUTER_API_KEY = { provider = "OpenRouter", value = "OPENROUTER_API_KEY" }
+FAL_API_KEY        = { provider = "fal", value = "FAL_API_KEY" }
+```
+
+`OPENAI_API_KEY` is intentionally not defined here; GPT image models fall back to fal.ai/OpenRouter.
+
+**Store a secret in the Keychain** (one-time, prompts for the value):
+
+```bash
+fnox set OPENROUTER_API_KEY --provider OpenRouter
+fnox set FAL_API_KEY --provider fal
+```
+
+**Run with secrets injected** — `fnox exec` resolves each secret from its provider and exports it as an env var for the child process only (nothing is written to disk):
+
+```bash
+fnox exec -- bun start              # client + proxy server
+fnox exec -- bun run start:server   # proxy server only
+fnox exec -- bun run build
+```
+
+This is the current dev setup — there is no production profile yet. For production, add a profile backed by a cloud provider (e.g. AWS Secrets Manager) and run `fnox exec --profile production -- ...`.
+
+**Verify injection** — the proxy server logs key availability on startup (`server/index.ts`), so `fnox exec -- bun run start:server` should print:
+
+```text
+FAL_API_KEY configured: Yes
+OPENROUTER_API_KEY configured: Yes
+OPENAI_API_KEY configured: No
+```
+
 ## Adding a New Model Category
 
 1. Update `ImageModelCategory` type in `types/models.ts`
