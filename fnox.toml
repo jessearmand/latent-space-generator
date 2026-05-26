@@ -1,0 +1,13 @@
+default_provider = "OpenRouter"
+
+[providers.OpenRouter]
+type = "keychain"
+service = "openrouter"
+
+[providers.fal]
+type = "keychain"
+service = "fnox"
+
+[secrets]
+OPENROUTER_API_KEY= { provider = "OpenRouter", value = "OPENROUTER_API_KEY" }
+FAL_API_KEY= { provider = "fal", value = "FAL_API_KEY" }
