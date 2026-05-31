@@ -10,22 +10,19 @@ import type { ModelConfig } from '../types/models';
 
 interface VideoConfigOptionsProps {
     selectedModel: ModelConfig;
-    isVideoToVideo?: boolean;  // Indicates V2V mode for additional controls
+    isVideoToVideo?: boolean; // Indicates V2V mode for additional controls
 }
 
-export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
-    selectedModel,
-    isVideoToVideo = false,
-}) => {
+export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selectedModel, isVideoToVideo = false }) => {
     const config = useConfig();
     const modelId = selectedModel.endpointId.toLowerCase();
 
     // Model detection helpers
     const isKlingModel = modelId.includes('kling');
     const isVeoModel = modelId.includes('veo');
-    const isLtx19bModel = modelId.includes('ltx-2-19b');  // 19B version has more params
-    const isLtxProFastModel = modelId.includes('ltx-2') && !modelId.includes('ltx-2-19b');  // Pro/Fast versions
-    const isLtxModel = modelId.includes('ltx-2');  // Any LTX-2 model
+    const isLtx19bModel = modelId.includes('ltx-2-19b'); // 19B version has more params
+    const isLtxProFastModel = modelId.includes('ltx-2') && !modelId.includes('ltx-2-19b'); // Pro/Fast versions
+    const isLtxModel = modelId.includes('ltx-2'); // Any LTX-2 model
     const isLtxFastModel = modelId.includes('ltx-2') && modelId.includes('fast') && !modelId.includes('ltx-2-19b');
     const isGrokVideoModel = modelId.includes('grok-imagine-video');
     const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
@@ -34,8 +31,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
     const supportsAudio = isVeoModel || isLtxModel || isSeedance;
     // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't
     const supportsGuidanceScale =
-        isLtx19bModel ||
-        (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
+        isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -198,7 +194,9 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                     onChange={(e) => config.setVideoDuration(e.target.value)}
                 >
                     {durationOptions.map((duration) => (
-                        <option key={duration} value={duration}>{duration}</option>
+                        <option key={duration} value={duration}>
+                            {duration}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -211,7 +209,9 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                     onChange={(e) => config.setVideoAspectRatio(e.target.value)}
                 >
                     {aspectRatioOptions.map((ratio) => (
-                        <option key={ratio} value={ratio}>{ratio}</option>
+                        <option key={ratio} value={ratio}>
+                            {ratio}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -225,7 +225,9 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                         onChange={(e) => config.setVideoResolution(e.target.value)}
                     >
                         {resolutionOptions.map((res) => (
-                            <option key={res} value={res}>{res}</option>
+                            <option key={res} value={res}>
+                                {res}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -249,11 +251,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
             {isLtxProFastModel && (
                 <div className="form-group">
                     <label htmlFor="video-fps">Frame Rate:</label>
-                    <select
-                        id="video-fps"
-                        value={config.videoFps}
-                        onChange={(e) => config.setVideoFps(e.target.value)}
-                    >
+                    <select id="video-fps" value={config.videoFps} onChange={(e) => config.setVideoFps(e.target.value)}>
                         <option value="25">25 fps (standard)</option>
                         <option value="50">50 fps (smooth)</option>
                     </select>
@@ -311,7 +309,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                             min="9"
                             max="481"
                             value={config.videoNumFrames}
-                            onChange={(e) => config.setVideoNumFrames(Math.max(9, Math.min(481, parseInt(e.target.value, 10) || 121)))}
+                            onChange={(e) =>
+                                config.setVideoNumFrames(
+                                    Math.max(9, Math.min(481, parseInt(e.target.value, 10) || 121)),
+                                )
+                            }
                         />
                         <span className="hint"> (9-481, ~{Math.round(config.videoNumFrames / 25)}s at 25fps)</span>
                     </div>
@@ -354,7 +356,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                             min="8"
                             max="50"
                             value={config.videoNumInferenceSteps}
-                            onChange={(e) => config.setVideoNumInferenceSteps(Math.max(8, Math.min(50, parseInt(e.target.value, 10) || 40)))}
+                            onChange={(e) =>
+                                config.setVideoNumInferenceSteps(
+                                    Math.max(8, Math.min(50, parseInt(e.target.value, 10) || 40)),
+                                )
+                            }
                         />
                         <span className="hint"> (8-50, more = better quality)</span>
                     </div>
@@ -446,8 +452,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
             {supportsV2VStrength && (
                 <div className="form-group">
                     <label htmlFor="video-strength">
-                        Transformation Strength:{' '}
-                        <span className="range-value">{config.videoStrength.toFixed(2)}</span>
+                        Transformation Strength: <span className="range-value">{config.videoStrength.toFixed(2)}</span>
                     </label>
                     <input
                         id="video-strength"
@@ -489,8 +494,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
 
                     <div className="form-group">
                         <label htmlFor="mmaudio-cfg-strength">
-                            CFG Strength:{' '}
-                            <span className="range-value">{config.mmAudioCfgStrength.toFixed(1)}</span>
+                            CFG Strength: <span className="range-value">{config.mmAudioCfgStrength.toFixed(1)}</span>
                         </label>
                         <input
                             id="mmaudio-cfg-strength"
@@ -514,7 +518,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
                             value={config.mmAudioNumSteps}
                             onChange={(e) =>
                                 config.setMmAudioNumSteps(
-                                    Math.max(10, Math.min(50, parseInt(e.target.value, 10) || 25))
+                                    Math.max(10, Math.min(50, parseInt(e.target.value, 10) || 25)),
                                 )
                             }
                         />
@@ -565,8 +569,8 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
             {isLightXRelight && (
                 <div className="form-group">
                     <p className="config-hint">
-                        Upload a video to relight it with different lighting conditions.
-                        Use the prompt to describe the desired lighting (e.g., "sunset", "studio lighting").
+                        Upload a video to relight it with different lighting conditions. Use the prompt to describe the
+                        desired lighting (e.g., "sunset", "studio lighting").
                     </p>
                 </div>
             )}
@@ -575,8 +579,8 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
             {isLightXRecamera && (
                 <div className="form-group">
                     <p className="config-hint">
-                        Upload a video to change camera angles and movements.
-                        Use the prompt to describe the desired camera motion.
+                        Upload a video to change camera angles and movements. Use the prompt to describe the desired
+                        camera motion.
                     </p>
                 </div>
             )}
@@ -585,8 +589,8 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({
             {isGrokVideoEdit && (
                 <div className="form-group">
                     <p className="config-hint">
-                        Upload a video to edit with Grok Imagine.
-                        Input video will be resized to max 854x480 and truncated to 8 seconds.
+                        Upload a video to edit with Grok Imagine. Input video will be resized to max 854x480 and
+                        truncated to 8 seconds.
                     </p>
                 </div>
             )}

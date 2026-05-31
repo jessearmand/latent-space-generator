@@ -30,12 +30,12 @@ export async function submitAndPollFalQueue({
         });
         console.log(`Status update for request ID ${requestId}:`, statusResult.status);
 
-        if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
+        if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
             const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
             const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
             onStatus(`Request is ${statusResult.status}: ${latestLog}`);
-            await new Promise(resolve => setTimeout(resolve, pollInterval));
-        } else if (statusResult.status === "COMPLETED") {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        } else if (statusResult.status === 'COMPLETED') {
             const result = await fal.queue.result(modelId, { requestId });
             console.log(`Request completed. Full result:`, result);
             return { data: result.data as Record<string, unknown> };

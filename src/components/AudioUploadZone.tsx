@@ -13,14 +13,19 @@ interface AudioUploadZoneProps {
     disabled?: boolean;
 }
 
-const ACCEPTED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
+const ACCEPTED_AUDIO_TYPES = [
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav',
+    'audio/ogg',
+    'audio/m4a',
+    'audio/mp4',
+    'audio/x-m4a',
+    'audio/aac',
+];
 const ACCEPTED_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
 
-export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
-    uploadedFile,
-    onFileChange,
-    disabled = false,
-}) => {
+export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({ uploadedFile, onFileChange, disabled = false }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,9 +42,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
         (file: File) => {
             // Validate file type
             const isValidType = ACCEPTED_AUDIO_TYPES.includes(file.type);
-            const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
-                file.name.toLowerCase().endsWith(ext)
-            );
+            const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext));
 
             if (!isValidType && !hasValidExtension) {
                 console.error('Invalid audio file type:', file.type);
@@ -55,7 +58,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
 
             onFileChange(file);
         },
-        [audioPreviewUrl, onFileChange]
+        [audioPreviewUrl, onFileChange],
     );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -83,7 +86,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                 handleFile(files[0]);
             }
         },
-        [disabled, handleFile]
+        [disabled, handleFile],
     );
 
     const handleInputChange = useCallback(
@@ -93,7 +96,7 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                 handleFile(files[0]);
             }
         },
-        [handleFile]
+        [handleFile],
     );
 
     const handleRemove = useCallback(() => {
@@ -117,7 +120,9 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
 
     return (
         <div className="audio-upload-zone-container">
-            <label htmlFor={inputId} className="audio-upload-label">Upload Audio File:</label>
+            <label htmlFor={inputId} className="audio-upload-label">
+                Upload Audio File:
+            </label>
 
             {!uploadedFile ? (
                 <button
@@ -132,12 +137,8 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                 >
                     <div className="audio-upload-content">
                         <span className="audio-upload-icon">🎵</span>
-                        <span className="audio-upload-text">
-                            Drag & drop an audio file here, or click to select
-                        </span>
-                        <span className="audio-upload-hint">
-                            Supported: MP3, WAV, OGG, M4A, AAC
-                        </span>
+                        <span className="audio-upload-text">Drag & drop an audio file here, or click to select</span>
+                        <span className="audio-upload-hint">Supported: MP3, WAV, OGG, M4A, AAC</span>
                     </div>
                 </button>
             ) : (
@@ -145,24 +146,13 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({
                     <div className="audio-preview-info">
                         <span className="audio-preview-icon">🎵</span>
                         <span className="audio-preview-name">{uploadedFile.name}</span>
-                        <span className="audio-preview-size">
-                            ({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
+                        <span className="audio-preview-size">({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                     {audioPreviewUrl && (
                         /* oxlint-disable-next-line jsx-a11y/media-has-caption -- Uploaded previews do not ship with caption tracks. */
-                        <audio
-                            src={audioPreviewUrl}
-                            controls
-                            className="audio-preview-player"
-                        />
+                        <audio src={audioPreviewUrl} controls className="audio-preview-player" />
                     )}
-                    <button
-                        type="button"
-                        className="audio-remove-btn"
-                        onClick={handleRemove}
-                        disabled={disabled}
-                    >
+                    <button type="button" className="audio-remove-btn" onClick={handleRemove} disabled={disabled}>
                         Remove
                     </button>
                 </div>

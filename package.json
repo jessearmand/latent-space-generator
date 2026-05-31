@@ -23,7 +23,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "tsc -b",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "lint": "oxlint . --deny-warnings --report-unused-disable-directives-severity=error",
+    "lint:github": "oxlint . --format=github --deny-warnings --report-unused-disable-directives-severity=error",
     "lint:fix": "oxlint . --fix --deny-warnings --report-unused-disable-directives-severity=error",
     "lint:biome": "biome lint .",
     "shutdown": "./scripts/shutdown.sh"
@@ -55,6 +58,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "concurrently": "^9.1.0",
     "jsdom": "^27.3.0",
+    "oxfmt": "^0.52.0",
     "oxlint": "^1.55.0",
     "typescript": "^5.7",
     "vite": "^7.3.2",

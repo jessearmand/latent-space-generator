@@ -90,11 +90,7 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
     // Note: fal.ai docs say "up to 9 images" but API counts each image as 1 MP minimum,
     // and the 9 MP limit includes output. With 9 images + 1 MP output = 10 MP > 9 MP limit.
     // Limit to 8 images to stay within the 9 MP budget (8 input + 1 output = 9 MP).
-    const manyImagesModels = [
-        /flux-2-pro\/edit/,
-        /flux-2\/edit/,
-        /flux-2\/flash\/edit/,
-    ];
+    const manyImagesModels = [/flux-2-pro\/edit/, /flux-2\/edit/, /flux-2\/flash\/edit/];
 
     // Video model overrides (Seedance 2.0)
     // - reference-to-video: array of up to 9 reference images
@@ -119,16 +115,16 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         };
     }
 
-    const usesArray = arrayImageModels.some(pattern => pattern.test(modelId));
-    const hasStrength = !noStrengthModels.some(pattern => pattern.test(modelId));
-    const supportsManyImages = manyImagesModels.some(pattern => pattern.test(modelId));
+    const usesArray = arrayImageModels.some((pattern) => pattern.test(modelId));
+    const hasStrength = !noStrengthModels.some((pattern) => pattern.test(modelId));
+    const supportsManyImages = manyImagesModels.some((pattern) => pattern.test(modelId));
 
     // Determine max images: 8 for flux edit models, 4 for other array models, 1 for single
     let maxImages = 1;
     if (supportsManyImages) {
         maxImages = 8;
     } else if (usesArray) {
-        maxImages = 4;  // Reasonable default for multi-image models
+        maxImages = 4; // Reasonable default for multi-image models
     }
 
     return {

@@ -29,15 +29,12 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
     const { isAuthenticated, login, logout, isLoading: authLoading, error: authError } = useOpenRouterAuth();
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onRequestClose={onClose}
-            className="modal"
-            overlayClassName="overlay"
-        >
+        <Modal isOpen={isOpen} onRequestClose={onClose} className="modal" overlayClassName="overlay">
             <div className="modal-header">
                 <h3>Settings</h3>
-                <button type="button" className="close-btn" onClick={onClose}>X</button>
+                <button type="button" className="close-btn" onClick={onClose}>
+                    X
+                </button>
             </div>
             <p>API keys for fal.ai and OpenAI are configured server-side.</p>
 
@@ -47,7 +44,9 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
                 {isAuthenticated ? (
                     <div className="auth-status">
                         <span className="auth-badge connected">Connected</span>
-                        <button type="button" className="logout-btn" onClick={logout}>Disconnect</button>
+                        <button type="button" className="logout-btn" onClick={logout}>
+                            Disconnect
+                        </button>
                     </div>
                 ) : (
                     <>
@@ -60,7 +59,9 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
                 <p className="auth-note">Without login, the server&apos;s shared API key is used.</p>
             </div>
 
-            <button type="button" className="save-btn" onClick={onClose}>Close</button>
+            <button type="button" className="save-btn" onClick={onClose}>
+                Close
+            </button>
         </Modal>
     );
 };
@@ -87,8 +88,8 @@ const AppContent: React.FC = () => {
     const currentSelectedModel = isAudioMode(activeTab)
         ? selectedAudioModel
         : isVideoMode(activeTab)
-        ? selectedVideoModel
-        : selectedModel;
+          ? selectedVideoModel
+          : selectedModel;
 
     // Image generation hook
     const {
@@ -136,7 +137,8 @@ const AppContent: React.FC = () => {
     });
 
     // Generation history (session-only, CDN URLs expire)
-    const { history, addToHistory, removeHistoryEntry, clearHistoryByFilter, getCountByFilter } = useGenerationHistory();
+    const { history, addToHistory, removeHistoryEntry, clearHistoryByFilter, getCountByFilter } =
+        useGenerationHistory();
 
     // View routing: 'generate' shows normal UI, 'history' shows history grid
     const [appView, setAppView] = useState<AppView>({ kind: 'generate' });
@@ -164,7 +166,14 @@ const AppContent: React.FC = () => {
             addToHistory({ type: 'audio', urls: [audioUrl], prompt, modelName, mode });
         }
         if (textOutput) {
-            addToHistory({ type: 'text', urls: [], textContent: textOutput, prompt, modelName, mode });
+            addToHistory({
+                type: 'text',
+                urls: [],
+                textContent: textOutput,
+                prompt,
+                modelName,
+                mode,
+            });
         }
 
         clearImages();
@@ -181,26 +190,35 @@ const AppContent: React.FC = () => {
     }, []);
 
     // Wrap tab change: save results to history before switching modes
-    const wrappedTabChange = useCallback((mode: GenerationMode) => {
-        saveAndClearResults();
-        handleTabChange(mode);
-        setAppView({ kind: 'generate' });
-    }, [saveAndClearResults, handleTabChange]);
+    const wrappedTabChange = useCallback(
+        (mode: GenerationMode) => {
+            saveAndClearResults();
+            handleTabChange(mode);
+            setAppView({ kind: 'generate' });
+        },
+        [saveAndClearResults, handleTabChange],
+    );
 
     // Handle view changes from sidebar (switching to history or back to generate)
-    const handleViewChange = useCallback((view: AppView) => {
-        if (view.kind === 'history') {
-            saveAndClearResults();
-        }
-        setAppView(view);
-    }, [saveAndClearResults]);
+    const handleViewChange = useCallback(
+        (view: AppView) => {
+            if (view.kind === 'history') {
+                saveAndClearResults();
+            }
+            setAppView(view);
+        },
+        [saveAndClearResults],
+    );
 
     // Badge counts for history sidebar items
-    const historyBadgeCounts: Record<HistoryFilter, number> = useMemo(() => ({
-        image: getCountByFilter('image'),
-        video: getCountByFilter('video'),
-        audio: getCountByFilter('audio'),
-    }), [getCountByFilter]);
+    const historyBadgeCounts: Record<HistoryFilter, number> = useMemo(
+        () => ({
+            image: getCountByFilter('image'),
+            video: getCountByFilter('video'),
+            audio: getCountByFilter('audio'),
+        }),
+        [getCountByFilter],
+    );
 
     // Handler for the generate button - saves previous results then starts new generation
     const handleGenerate = useCallback(() => {
@@ -229,7 +247,9 @@ const AppContent: React.FC = () => {
         <div className="app-container">
             <header className="app-header">
                 <h1>Latent Space Generator</h1>
-                <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>Settings</button>
+                <button type="button" className="settings-btn" onClick={() => setIsModalOpen(true)}>
+                    Settings
+                </button>
             </header>
 
             <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
@@ -257,17 +277,23 @@ const AppContent: React.FC = () => {
                     ) : (
                         <>
                             <p className="app-description">
-                                {activeTab === 'text-to-image' && 'Select a model and enter a text prompt to generate an image.'}
-                                {activeTab === 'image-to-image' && 'Upload an image and enter a prompt to transform it.'}
-                                {activeTab === 'text-to-video' && 'Select a model and enter a text prompt to generate a video.'}
+                                {activeTab === 'text-to-image' &&
+                                    'Select a model and enter a text prompt to generate an image.'}
+                                {activeTab === 'image-to-image' &&
+                                    'Upload an image and enter a prompt to transform it.'}
+                                {activeTab === 'text-to-video' &&
+                                    'Select a model and enter a text prompt to generate a video.'}
                                 {activeTab === 'image-to-video' && 'Upload an image and enter a prompt to animate it.'}
                                 {activeTab === 'video-to-video' && 'Upload a video and enter a prompt to transform it.'}
-                                {activeTab === 'reference-to-video' && 'Upload up to 9 reference images and use @Image1, @Image2... in your prompt.'}
+                                {activeTab === 'reference-to-video' &&
+                                    'Upload up to 9 reference images and use @Image1, @Image2... in your prompt.'}
                                 {activeTab === 'text-to-speech' && 'Enter text to convert to speech.'}
                                 {activeTab === 'text-to-audio' && 'Enter a prompt to generate music or sound effects.'}
-                                {activeTab === 'audio-to-audio' && 'Upload an audio file and enter text for voice cloning.'}
+                                {activeTab === 'audio-to-audio' &&
+                                    'Upload an audio file and enter text for voice cloning.'}
                                 {activeTab === 'video-to-audio' && 'Upload a video to generate synced audio.'}
-                                {activeTab === 'audio-understanding' && 'Upload an audio file and ask questions about its content.'}
+                                {activeTab === 'audio-understanding' &&
+                                    'Upload an audio file and ask questions about its content.'}
                             </p>
 
                             <InputSection

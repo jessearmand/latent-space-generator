@@ -44,14 +44,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
 
     return (
         <div className={`video-player-container ${className || ''}`}>
-            <video
-                ref={videoRef}
-                src={src}
-                controls
-                loop={isLooping}
-                className="video-player"
-                preload="metadata"
-            >
+            <video ref={videoRef} src={src} controls loop={isLooping} className="video-player" preload="metadata">
                 <track kind="captions" srcLang="en" label="No captions available" default />
                 Your browser does not support the video tag.
             </video>

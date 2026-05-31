@@ -25,12 +25,7 @@ const emptyIcons: Record<HistoryFilter, string> = {
     audio: '\uD83C\uDFB5',
 };
 
-export const HistoryView: React.FC<HistoryViewProps> = ({
-    filter,
-    history,
-    onRemoveEntry,
-    onClearFilter,
-}) => {
+export const HistoryView: React.FC<HistoryViewProps> = ({ filter, history, onRemoveEntry, onClearFilter }) => {
     const filteredEntries = useMemo(
         () => history.filter((entry) => outputTypeToHistoryFilter(entry.type) === filter),
         [history, filter],
@@ -41,11 +36,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <div className="history-view-header">
                 <h2>{filterLabels[filter]}</h2>
                 {filteredEntries.length > 0 && (
-                    <button
-                        type="button"
-                        className="history-view-clear-btn"
-                        onClick={() => onClearFilter(filter)}
-                    >
+                    <button type="button" className="history-view-clear-btn" onClick={() => onClearFilter(filter)}>
                         Clear All
                     </button>
                 )}

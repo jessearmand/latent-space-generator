@@ -18,12 +18,15 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
         setIsPreviewOpen(true);
     }, []);
 
-    const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if ((e.target as HTMLElement).closest('.history-card-actions')) {
-            return;
-        }
-        openPreview();
-    }, [openPreview]);
+    const handleClick = useCallback(
+        (e: React.MouseEvent<HTMLDivElement>) => {
+            if ((e.target as HTMLElement).closest('.history-card-actions')) {
+                return;
+            }
+            openPreview();
+        },
+        [openPreview],
+    );
 
     const handleRemove = useCallback(
         (e: React.MouseEvent) => {
@@ -44,12 +47,15 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
                 onClick={handleClick}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPreview(); } }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openPreview();
+                    }
+                }}
                 aria-label={`Preview: ${entry.prompt || 'Generated image'}`}
             >
-                {entry.urls.length > 1 && (
-                    <span className="history-image-badge">{entry.urls.length} images</span>
-                )}
+                {entry.urls.length > 1 && <span className="history-image-badge">{entry.urls.length} images</span>}
 
                 <div className="history-card-actions">
                     <DownloadButton url={thumbnailUrl} label="Download" />
@@ -65,11 +71,7 @@ export const HistoryImageCard: React.FC<HistoryImageCardProps> = ({ entry, onRem
 
                 <img src={thumbnailUrl} alt={entry.prompt || 'Generated image'} loading="lazy" />
 
-                <PromptOverlay
-                    prompt={entry.prompt}
-                    modelName={entry.modelName}
-                    timestamp={entry.timestamp}
-                />
+                <PromptOverlay prompt={entry.prompt} modelName={entry.modelName} timestamp={entry.timestamp} />
             </div>
             {/* oxlint-enable jsx-a11y/prefer-tag-over-role */}
 

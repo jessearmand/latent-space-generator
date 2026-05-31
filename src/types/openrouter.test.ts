@@ -52,30 +52,16 @@ describe('getUniqueProviders', () => {
 
 describe('filterModels by provider', () => {
     it('matches `~`-aliased models when the user filters by the canonical provider', () => {
-        const models = [
-            stub('anthropic/claude-opus-4'),
-            stub('~anthropic/claude-haiku-latest'),
-            stub('openai/gpt-5'),
-        ];
+        const models = [stub('anthropic/claude-opus-4'), stub('~anthropic/claude-haiku-latest'), stub('openai/gpt-5')];
         const filtered = filterModels(models, { provider: 'anthropic' });
-        expect(filtered.map((m) => m.id)).toEqual([
-            'anthropic/claude-opus-4',
-            '~anthropic/claude-haiku-latest',
-        ]);
+        expect(filtered.map((m) => m.id)).toEqual(['anthropic/claude-opus-4', '~anthropic/claude-haiku-latest']);
     });
 
     it('still matches when the persisted filter itself carries a stale `~` prefix', () => {
         // Simulates a user whose localStorage was saved with `~anthropic` before
         // this fix — they'd otherwise see an empty list until manually resetting.
-        const models = [
-            stub('anthropic/claude-opus-4'),
-            stub('~anthropic/claude-haiku-latest'),
-            stub('openai/gpt-5'),
-        ];
+        const models = [stub('anthropic/claude-opus-4'), stub('~anthropic/claude-haiku-latest'), stub('openai/gpt-5')];
         const filtered = filterModels(models, { provider: '~anthropic' });
-        expect(filtered.map((m) => m.id)).toEqual([
-            'anthropic/claude-opus-4',
-            '~anthropic/claude-haiku-latest',
-        ]);
+        expect(filtered.map((m) => m.id)).toEqual(['anthropic/claude-opus-4', '~anthropic/claude-haiku-latest']);
     });
 });

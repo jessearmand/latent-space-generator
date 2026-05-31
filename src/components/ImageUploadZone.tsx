@@ -91,7 +91,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 }
             }
         },
-        [validateFile, onImagesChange, uploadedImages, maxImages, isMultiImage]
+        [validateFile, onImagesChange, uploadedImages, maxImages, isMultiImage],
     );
 
     const handleDragOver = useCallback(
@@ -102,7 +102,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 setIsDragOver(true);
             }
         },
-        [disabled, canAddMore]
+        [disabled, canAddMore],
     );
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
@@ -124,7 +124,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 handleFiles(files);
             }
         },
-        [disabled, canAddMore, handleFiles]
+        [disabled, canAddMore, handleFiles],
     );
 
     const handleClick = useCallback(() => {
@@ -142,7 +142,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
             // Reset input so the same file can be selected again
             e.target.value = '';
         },
-        [handleFiles]
+        [handleFiles],
     );
 
     const handleRemove = useCallback(
@@ -152,7 +152,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
             const newFiles = uploadedImages.filter((_, i) => i !== index);
             onImagesChange(newFiles);
         },
-        [uploadedImages, onImagesChange]
+        [uploadedImages, onImagesChange],
     );
 
     const handleRemoveAll = useCallback(
@@ -161,7 +161,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
             setError(null);
             onImagesChange([]);
         },
-        [onImagesChange]
+        [onImagesChange],
     );
 
     const handleKeyDown = useCallback(
@@ -171,7 +171,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 handleClick();
             }
         },
-        [handleClick]
+        [handleClick],
     );
 
     /**
@@ -204,7 +204,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                 handleFiles(imageFiles);
             }
         },
-        [disabled, canAddMore, handleFiles]
+        [disabled, canAddMore, handleFiles],
     );
 
     // Add global paste event listener
@@ -259,11 +259,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
 
             {/* Show clear all button for multi-image mode */}
             {isMultiImage && uploadedImages.length > 1 && (
-                <button
-                    type="button"
-                    className="clear-all-btn"
-                    onClick={handleRemoveAll}
-                >
+                <button type="button" className="clear-all-btn" onClick={handleRemoveAll}>
                     Clear All
                 </button>
             )}
@@ -282,8 +278,8 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                     !canAddMore
                         ? `Maximum ${maxImages} images reached`
                         : uploadedImages.length > 0
-                            ? 'Click to add more images or paste with Ctrl+V'
-                            : 'Click, drag, or paste with Ctrl+V to upload image'
+                          ? 'Click to add more images or paste with Ctrl+V'
+                          : 'Click, drag, or paste with Ctrl+V to upload image'
                 }
             >
                 <input
@@ -321,12 +317,10 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
                             {!canAddMore
                                 ? `Maximum ${maxImages} images uploaded`
                                 : isMultiImage && uploadedImages.length > 0
-                                    ? `Add more images (${uploadedImages.length}/${maxImages})`
-                                    : 'Drag and drop, click to select, or paste (Ctrl+V / Cmd+V)'}
+                                  ? `Add more images (${uploadedImages.length}/${maxImages})`
+                                  : 'Drag and drop, click to select, or paste (Ctrl+V / Cmd+V)'}
                         </p>
-                        <p className="upload-hint">
-                            Supports PNG, JPEG, WebP (max 10MB each)
-                        </p>
+                        <p className="upload-hint">Supports PNG, JPEG, WebP (max 10MB each)</p>
                     </div>
                 )}
             </div>

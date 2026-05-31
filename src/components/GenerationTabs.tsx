@@ -56,11 +56,7 @@ export function isAudioMode(mode: GenerationMode): boolean {
 
 /** Helper to check if a mode requires image input */
 export function requiresImageInput(mode: GenerationMode): boolean {
-    return (
-        mode === 'image-to-image' ||
-        mode === 'image-to-video' ||
-        mode === 'reference-to-video'
-    );
+    return mode === 'image-to-image' || mode === 'image-to-video' || mode === 'reference-to-video';
 }
 
 /** Helper to check if a mode requires video input */
@@ -90,11 +86,7 @@ export function isValidGenerationMode(value: string): value is GenerationMode {
     );
 }
 
-export const GenerationTabs: React.FC<GenerationTabsProps> = ({
-    activeTab,
-    onTabChange,
-    disabled = false,
-}) => {
+export const GenerationTabs: React.FC<GenerationTabsProps> = ({ activeTab, onTabChange, disabled = false }) => {
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
             if (disabled) return;
@@ -116,7 +108,7 @@ export const GenerationTabs: React.FC<GenerationTabsProps> = ({
                 (tabButtons[newIndex] as HTMLButtonElement)?.focus();
             }
         },
-        [disabled, onTabChange]
+        [disabled, onTabChange],
     );
 
     return (

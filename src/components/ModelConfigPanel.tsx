@@ -17,10 +17,7 @@ interface ModelConfigPanelProps {
     activeTab?: GenerationMode;
 }
 
-export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
-    selectedModel,
-    activeTab = 'text-to-image',
-}) => {
+export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({ selectedModel, activeTab = 'text-to-image' }) => {
     const config = useConfig();
     const [isExpanded, setIsExpanded] = useState(true);
 
@@ -31,9 +28,11 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
     const isVideoModel = selectedModel.outputType === 'video';
     const isAudioModel = selectedModel.outputType === 'audio' || selectedModel.category === 'audio-understanding';
     const isImageToImage = selectedModel.supportsImageInput;
-    const isGptModel = selectedModel.endpointId.includes('gpt-image') || selectedModel.endpointId.includes('gpt-5-image');
+    const isGptModel =
+        selectedModel.endpointId.includes('gpt-image') || selectedModel.endpointId.includes('gpt-5-image');
     const isGrokImageModel = selectedModel.endpointId.includes('grok-imagine-image');
-    const isGeminiImageModel = selectedModel.endpointId.includes('gemini') && selectedModel.endpointId.includes('image');
+    const isGeminiImageModel =
+        selectedModel.endpointId.includes('gemini') && selectedModel.endpointId.includes('image');
     const isQwenModel = selectedModel.endpointId.includes('qwen-image');
     const isQwenLayeredModel = selectedModel.endpointId.includes('qwen-image-layered');
 
@@ -41,11 +40,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
         <div className="config-panel">
             <div className="config-header">
                 <h4>Settings for {selectedModel.displayName}</h4>
-                <button
-                    type="button"
-                    className="expand-config-btn"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
+                <button type="button" className="expand-config-btn" onClick={() => setIsExpanded(!isExpanded)}>
                     {isExpanded ? 'Hide Settings' : 'Show Settings'}
                 </button>
             </div>
@@ -55,7 +50,10 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                     {isAudioModel ? (
                         <AudioConfigOptions selectedModel={selectedModel} />
                     ) : isVideoModel ? (
-                        <VideoConfigOptions selectedModel={selectedModel} isVideoToVideo={activeTab === 'video-to-video'} />
+                        <VideoConfigOptions
+                            selectedModel={selectedModel}
+                            isVideoToVideo={activeTab === 'video-to-video'}
+                        />
                     ) : isGeminiImageModel ? (
                         <GeminiImageConfigOptions config={config} selectedModel={selectedModel} />
                     ) : isGptModel ? (
@@ -70,12 +68,7 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
                                 activeTab={activeTab}
                                 isImageToImage={isImageToImage}
                             />
-                            {isQwenModel && (
-                                <QwenConfigOptions
-                                    config={config}
-                                    showNumLayers={isQwenLayeredModel}
-                                />
-                            )}
+                            {isQwenModel && <QwenConfigOptions config={config} showNumLayers={isQwenLayeredModel} />}
                         </>
                     )}
                 </div>
@@ -91,17 +84,10 @@ interface FluxConfigOptionsProps {
     isImageToImage: boolean;
 }
 
-const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
-    config,
-    modelId,
-    activeTab,
-    isImageToImage,
-}) => {
+const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({ config, modelId, activeTab, isImageToImage }) => {
     // Check if this model supports strength parameter
     const imageConfig = getImageInputConfig(modelId);
-    const showImageStrength = activeTab === 'image-to-image'
-        && isImageToImage
-        && imageConfig.strengthParam !== null;
+    const showImageStrength = activeTab === 'image-to-image' && isImageToImage && imageConfig.strengthParam !== null;
     return (
         <>
             <div className="form-group">
@@ -112,7 +98,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                     onChange={(e) => config.setSafetyTolerance(e.target.value)}
                 >
                     {['1', '2', '3', '4', '5', '6'].map((val) => (
-                        <option key={val} value={val}>{val}</option>
+                        <option key={val} value={val}>
+                            {val}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -125,7 +113,9 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                     onChange={(e) => config.setAspectRatio(e.target.value)}
                 >
                     {['21:9', '16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '9:21'].map((ratio) => (
-                        <option key={ratio} value={ratio}>{ratio}</option>
+                        <option key={ratio} value={ratio}>
+                            {ratio}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -143,9 +133,13 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                         }
                     }}
                 >
-                    {['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9'].map((size) => (
-                        <option key={size} value={size}>{size}</option>
-                    ))}
+                    {['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9'].map(
+                        (size) => (
+                            <option key={size} value={size}>
+                                {size}
+                            </option>
+                        ),
+                    )}
                     <option value="custom">Custom</option>
                 </select>
                 {typeof config.imageSize !== 'string' && (
@@ -154,19 +148,23 @@ const FluxConfigOptions: React.FC<FluxConfigOptionsProps> = ({
                             type="number"
                             placeholder="Width"
                             value={config.imageSize.width}
-                            onChange={(e) => config.setImageSize({
-                                ...(config.imageSize as { width: number; height: number }),
-                                width: parseInt(e.target.value, 10) || 1024
-                            })}
+                            onChange={(e) =>
+                                config.setImageSize({
+                                    ...(config.imageSize as { width: number; height: number }),
+                                    width: parseInt(e.target.value, 10) || 1024,
+                                })
+                            }
                         />
                         <input
                             type="number"
                             placeholder="Height"
                             value={config.imageSize.height}
-                            onChange={(e) => config.setImageSize({
-                                ...(config.imageSize as { width: number; height: number }),
-                                height: parseInt(e.target.value, 10) || 1280
-                            })}
+                            onChange={(e) =>
+                                config.setImageSize({
+                                    ...(config.imageSize as { width: number; height: number }),
+                                    height: parseInt(e.target.value, 10) || 1280,
+                                })
+                            }
                         />
                     </div>
                 )}
@@ -251,7 +249,9 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
                     onChange={(e) => config.setGptImageSize(e.target.value)}
                 >
                     {['auto', '1024x1024', '1536x1024', '1024x1536'].map((size) => (
-                        <option key={size} value={size}>{size}</option>
+                        <option key={size} value={size}>
+                            {size}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -275,7 +275,9 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
                     onChange={(e) => config.setGptQuality(e.target.value)}
                 >
                     {['auto', 'low', 'medium', 'high'].map((val) => (
-                        <option key={val} value={val}>{val}</option>
+                        <option key={val} value={val}>
+                            {val}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -288,7 +290,9 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
                     onChange={(e) => config.setGptBackground(e.target.value)}
                 >
                     {['auto', 'transparent', 'opaque'].map((val) => (
-                        <option key={val} value={val}>{val}</option>
+                        <option key={val} value={val}>
+                            {val}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -298,7 +302,7 @@ const GptConfigOptions: React.FC<GptConfigOptionsProps> = ({ config }) => {
 
 interface QwenConfigOptionsProps {
     config: ReturnType<typeof useConfig>;
-    showNumLayers: boolean;  // Only show num_layers for qwen-image-layered
+    showNumLayers: boolean; // Only show num_layers for qwen-image-layered
 }
 
 /**
@@ -408,7 +412,9 @@ const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ con
                     onChange={(e) => config.setAspectRatio(e.target.value)}
                 >
                     {aspectRatios.map((ratio) => (
-                        <option key={ratio} value={ratio}>{ratio}</option>
+                        <option key={ratio} value={ratio}>
+                            {ratio}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -421,7 +427,9 @@ const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ con
                     onChange={(e) => config.setGeminiNumImages(parseInt(e.target.value, 10))}
                 >
                     {[1, 2, 3, 4].map((n) => (
-                        <option key={n} value={n}>{n}</option>
+                        <option key={n} value={n}>
+                            {n}
+                        </option>
                     ))}
                 </select>
                 <span className="hint"> (1-4 images per generation)</span>
@@ -454,7 +462,9 @@ const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ con
                             onChange={(e) => config.setSafetyTolerance(e.target.value)}
                         >
                             {['1', '2', '3', '4', '5', '6'].map((val) => (
-                                <option key={val} value={val}>{val}</option>
+                                <option key={val} value={val}>
+                                    {val}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -498,10 +508,23 @@ const GeminiImageConfigOptions: React.FC<GeminiImageConfigOptionsProps> = ({ con
 };
 
 // Grok's unique aspect ratios (hoisted to avoid re-creation on each render)
-const grokAspectRatios = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '20:9', '19.5:9', '9:19.5', '9:20', '1:2'];
+const grokAspectRatios = [
+    '1:1',
+    '2:1',
+    '16:9',
+    '4:3',
+    '3:2',
+    '2:3',
+    '3:4',
+    '9:16',
+    '20:9',
+    '19.5:9',
+    '9:19.5',
+    '9:20',
+    '1:2',
+];
 
 const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config }) => {
-
     return (
         <>
             <div className="form-group">
@@ -512,7 +535,9 @@ const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config 
                     onChange={(e) => config.setGrokNumImages(parseInt(e.target.value, 10))}
                 >
                     {[1, 2, 3, 4].map((n) => (
-                        <option key={n} value={n}>{n}</option>
+                        <option key={n} value={n}>
+                            {n}
+                        </option>
                     ))}
                 </select>
                 <span className="hint"> (1-4 images per generation)</span>
@@ -526,7 +551,9 @@ const GrokImageConfigOptions: React.FC<GrokImageConfigOptionsProps> = ({ config 
                     onChange={(e) => config.setAspectRatio(e.target.value)}
                 >
                     {grokAspectRatios.map((ratio) => (
-                        <option key={ratio} value={ratio}>{ratio}</option>
+                        <option key={ratio} value={ratio}>
+                            {ratio}
+                        </option>
                     ))}
                 </select>
             </div>

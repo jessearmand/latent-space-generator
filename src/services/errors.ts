@@ -75,7 +75,7 @@ export function parseFalError(error: unknown): string {
             if (messages.length === 1) {
                 return `Invalid parameter - ${messages[0]}`;
             }
-            return `Invalid parameters:\n${messages.map(m => `• ${m}`).join('\n')}`;
+            return `Invalid parameters:\n${messages.map((m) => `• ${m}`).join('\n')}`;
         }
 
         // Check for simple error object format: {"error": "message"} or {"detail": "message"}
@@ -98,7 +98,7 @@ export function parseFalError(error: unknown): string {
                     if (messages.length === 1) {
                         return `Invalid parameter - ${messages[0]}`;
                     }
-                    return `Invalid parameters:\n${messages.map(m => `• ${m}`).join('\n')}`;
+                    return `Invalid parameters:\n${messages.map((m) => `• ${m}`).join('\n')}`;
                 }
                 // Check for simple error format in parsed JSON string
                 if (typeof parsed === 'object' && parsed !== null) {
@@ -126,7 +126,7 @@ export function parseFalError(error: unknown): string {
                         if (messages.length === 1) {
                             return `Invalid parameter - ${messages[0]}`;
                         }
-                        return `Invalid parameters:\n${messages.map(m => `• ${m}`).join('\n')}`;
+                        return `Invalid parameters:\n${messages.map((m) => `• ${m}`).join('\n')}`;
                     }
                 }
             } catch {

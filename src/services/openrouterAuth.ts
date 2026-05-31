@@ -11,10 +11,7 @@ function base64UrlEncode(buffer: Uint8Array): string {
     for (let i = 0; i < buffer.byteLength; i++) {
         binary += String.fromCharCode(buffer[i]);
     }
-    return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**

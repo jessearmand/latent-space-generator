@@ -3,17 +3,17 @@
  * Uses OpenRouter LLMs via Vercel AI SDK to enhance image generation prompts
  */
 
-import type React from "react";
-import { useState, useCallback, useRef } from "react";
-import { useCompletion } from "@ai-sdk/react";
-import { useOpenRouter } from "../contexts/OpenRouterContext";
-import { useOpenRouterAuth } from "../contexts/OpenRouterAuthContext";
-import type { OpenRouterModel } from "../types/openrouter";
-import { getProviderFromId } from "../types/openrouter";
-import "./PromptOptimizer.css";
+import type React from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useCompletion } from '@ai-sdk/react';
+import { useOpenRouter } from '../contexts/OpenRouterContext';
+import { useOpenRouterAuth } from '../contexts/OpenRouterAuthContext';
+import type { OpenRouterModel } from '../types/openrouter';
+import { getProviderFromId } from '../types/openrouter';
+import './PromptOptimizer.css';
 
 /** Output format for the optimized prompt */
-export type PromptOutputFormat = "plain" | "json" | "xml";
+export type PromptOutputFormat = 'plain' | 'json' | 'xml';
 
 interface PromptOptimizerProps {
     /** The original prompt text from the main input */
@@ -22,13 +22,10 @@ interface PromptOptimizerProps {
     onPromptOptimized: (optimizedPrompt: string) => void;
 }
 
-export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
-    originalPrompt,
-    onPromptOptimized,
-}) => {
+export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ originalPrompt, onPromptOptimized }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [outputFormat, setOutputFormat] = useState<PromptOutputFormat>("plain");
+    const [outputFormat, setOutputFormat] = useState<PromptOutputFormat>('plain');
 
     const {
         filteredModels,
@@ -59,12 +56,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         complete,
         stop,
     } = useCompletion({
-        api: "/api/openrouter/completion",
+        api: '/api/openrouter/completion',
         // Use streamProtocol: 'text' to match server's toTextStreamResponse()
-        streamProtocol: "text",
+        streamProtocol: 'text',
         // Custom fetch to inject the current model and user key at request time
         fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
-            const body = JSON.parse((init?.body as string) || "{}");
+            const body = JSON.parse((init?.body as string) || '{}');
             // Use ref as fallback if model not already in body
             if (!body.model) {
                 body.model = selectedModelRef.current?.id;
@@ -79,7 +76,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             });
         }) as typeof globalThis.fetch,
         onError: (error) => {
-            console.error("Prompt optimization error:", error);
+            console.error('Prompt optimization error:', error);
         },
     });
 
@@ -104,7 +101,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             } catch (error) {
-                console.error("Failed to copy:", error);
+                console.error('Failed to copy:', error);
             }
         }
     }, [completion]);
@@ -117,7 +114,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 setSelectedModel(model);
             }
         },
-        [filteredModels, setSelectedModel]
+        [filteredModels, setSelectedModel],
     );
 
     const handleProviderChange = useCallback(
@@ -125,7 +122,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             const provider = e.target.value || null;
             setFilters({ ...filters, provider });
         },
-        [filters, setFilters]
+        [filters, setFilters],
     );
 
     const handleContextLengthChange = useCallback(
@@ -136,7 +133,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 minContextLength: value ? Number.parseInt(value, 10) : null,
             });
         },
-        [filters, setFilters]
+        [filters, setFilters],
     );
 
     const handleMaxTokensChange = useCallback(
@@ -147,7 +144,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 minMaxCompletionTokens: value ? Number.parseInt(value, 10) : null,
             });
         },
-        [filters, setFilters]
+        [filters, setFilters],
     );
 
     const handleModeratedChange = useCallback(
@@ -155,24 +152,24 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             const value = e.target.value;
             setFilters({
                 ...filters,
-                isModerated: value === "" ? null : value === "true",
+                isModerated: value === '' ? null : value === 'true',
             });
         },
-        [filters, setFilters]
+        [filters, setFilters],
     );
 
     const handleSearchChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             setFilters({ ...filters, search: e.target.value });
         },
-        [filters, setFilters]
+        [filters, setFilters],
     );
 
     const hasApiKeyError =
-        modelsError?.includes("API key") ||
-        modelsError?.includes("OPENROUTER_API_KEY") ||
-        (completionError as Error | undefined)?.message?.includes("API key") ||
-        (completionError as Error | undefined)?.message?.includes("OPENROUTER_API_KEY");
+        modelsError?.includes('API key') ||
+        modelsError?.includes('OPENROUTER_API_KEY') ||
+        (completionError as Error | undefined)?.message?.includes('API key') ||
+        (completionError as Error | undefined)?.message?.includes('OPENROUTER_API_KEY');
 
     return (
         <div className="prompt-optimizer">
@@ -183,7 +180,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 aria-expanded={!isCollapsed}
             >
                 <h4>
-                    <span className="collapse-icon">{isCollapsed ? "▶" : "▼"}</span>
+                    <span className="collapse-icon">{isCollapsed ? '▶' : '▼'}</span>
                     Prompt Optimizer
                 </h4>
             </button>
@@ -192,9 +189,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 <div className="prompt-optimizer-content">
                     {hasApiKeyError ? (
                         <div className="no-api-key-message">
-                            OpenRouter API key not configured. Log in with OpenRouter
-                            in Settings, or set OPENROUTER_API_KEY environment variable
-                            on the server.
+                            OpenRouter API key not configured. Log in with OpenRouter in Settings, or set
+                            OPENROUTER_API_KEY environment variable on the server.
                         </div>
                     ) : (
                         <>
@@ -202,7 +198,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                             <div className="optimizer-filter-row">
                                 <select
                                     className="optimizer-provider-select"
-                                    value={filters.provider || ""}
+                                    value={filters.provider || ''}
                                     onChange={handleProviderChange}
                                     title="Filter by provider"
                                 >
@@ -217,7 +213,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                     type="text"
                                     className="optimizer-search"
                                     placeholder="Search models..."
-                                    value={filters.search || ""}
+                                    value={filters.search || ''}
                                     onChange={handleSearchChange}
                                 />
                             </div>
@@ -226,7 +222,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                             <div className="optimizer-advanced-filters">
                                 <select
                                     className="optimizer-context-select"
-                                    value={filters.minContextLength ?? ""}
+                                    value={filters.minContextLength ?? ''}
                                     onChange={handleContextLengthChange}
                                     title="Minimum context length (input)"
                                 >
@@ -240,7 +236,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                 </select>
                                 <select
                                     className="optimizer-max-tokens-select"
-                                    value={filters.minMaxCompletionTokens ?? ""}
+                                    value={filters.minMaxCompletionTokens ?? ''}
                                     onChange={handleMaxTokensChange}
                                     title="Minimum output tokens capacity"
                                 >
@@ -254,7 +250,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                 </select>
                                 <select
                                     className="optimizer-moderated-select"
-                                    value={filters.isModerated == null ? "" : String(filters.isModerated)}
+                                    value={filters.isModerated == null ? '' : String(filters.isModerated)}
                                     onChange={handleModeratedChange}
                                     title="Content moderation"
                                 >
@@ -268,7 +264,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                             <div className="optimizer-model-row">
                                 <select
                                     className="optimizer-model-select"
-                                    value={selectedModel?.id || ""}
+                                    value={selectedModel?.id || ''}
                                     onChange={handleModelChange}
                                     disabled={modelsLoading || filteredModels.length === 0}
                                 >
@@ -291,17 +287,15 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                     disabled={modelsLoading}
                                     title="Refresh model list"
                                 >
-                                    {modelsLoading ? "..." : "⟳"}
+                                    {modelsLoading ? '...' : '⟳'}
                                 </button>
                             </div>
 
-                            {modelsError && !hasApiKeyError && (
-                                <div className="optimizer-error">{modelsError}</div>
-                            )}
+                            {modelsError && !hasApiKeyError && <div className="optimizer-error">{modelsError}</div>}
 
                             {completionError && !hasApiKeyError && (
                                 <div className="optimizer-error">
-                                    {(completionError as Error).message || "Optimization failed"}
+                                    {(completionError as Error).message || 'Optimization failed'}
                                 </div>
                             )}
 
@@ -313,8 +307,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                         type="radio"
                                         name="outputFormat"
                                         value="plain"
-                                        checked={outputFormat === "plain"}
-                                        onChange={() => setOutputFormat("plain")}
+                                        checked={outputFormat === 'plain'}
+                                        onChange={() => setOutputFormat('plain')}
                                     />
                                     Plain Text
                                 </label>
@@ -323,8 +317,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                         type="radio"
                                         name="outputFormat"
                                         value="json"
-                                        checked={outputFormat === "json"}
-                                        onChange={() => setOutputFormat("json")}
+                                        checked={outputFormat === 'json'}
+                                        onChange={() => setOutputFormat('json')}
                                     />
                                     JSON
                                 </label>
@@ -333,8 +327,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                         type="radio"
                                         name="outputFormat"
                                         value="xml"
-                                        checked={outputFormat === "xml"}
-                                        onChange={() => setOutputFormat("xml")}
+                                        checked={outputFormat === 'xml'}
+                                        onChange={() => setOutputFormat('xml')}
                                     />
                                     XML
                                 </label>
@@ -343,11 +337,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                             {/* Action buttons */}
                             <div className="optimizer-actions">
                                 {isOptimizing ? (
-                                    <button
-                                        type="button"
-                                        className="stop-btn"
-                                        onClick={stop}
-                                    >
+                                    <button type="button" className="stop-btn" onClick={stop}>
                                         Stop
                                     </button>
                                 ) : (
@@ -355,15 +345,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                         type="button"
                                         className="optimize-btn"
                                         onClick={handleOptimize}
-                                        disabled={
-                                            !originalPrompt.trim() ||
-                                            !selectedModel ||
-                                            modelsLoading
-                                        }
+                                        disabled={!originalPrompt.trim() || !selectedModel || modelsLoading}
                                     >
-                                        {isOptimizing && (
-                                            <span className="loading-spinner" />
-                                        )}
+                                        {isOptimizing && <span className="loading-spinner" />}
                                         Optimize Prompt
                                     </button>
                                 )}
@@ -372,27 +356,17 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                             {/* Completion preview */}
                             <div
                                 className={`optimizer-preview ${
-                                    isOptimizing
-                                        ? "streaming"
-                                        : completion
-                                        ? ""
-                                        : "empty"
+                                    isOptimizing ? 'streaming' : completion ? '' : 'empty'
                                 }`}
                             >
                                 {completion ||
-                                    (isOptimizing
-                                        ? "Generating..."
-                                        : "Optimized prompt will appear here...")}
+                                    (isOptimizing ? 'Generating...' : 'Optimized prompt will appear here...')}
                             </div>
 
                             {/* Result actions */}
                             {completion && !isOptimizing && (
                                 <div className="optimizer-result-actions">
-                                    <button
-                                        type="button"
-                                        className="use-prompt-btn"
-                                        onClick={handleUsePrompt}
-                                    >
+                                    <button type="button" className="use-prompt-btn" onClick={handleUsePrompt}>
                                         Use This Prompt
                                     </button>
                                     <button
@@ -403,12 +377,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                                     >
                                         Regenerate
                                     </button>
-                                    <button
-                                        type="button"
-                                        className="copy-btn"
-                                        onClick={handleCopy}
-                                    >
-                                        {copied ? "Copied!" : "Copy"}
+                                    <button type="button" className="copy-btn" onClick={handleCopy}>
+                                        {copied ? 'Copied!' : 'Copy'}
                                     </button>
                                 </div>
                             )}

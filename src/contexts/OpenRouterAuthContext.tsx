@@ -4,14 +4,7 @@
  */
 
 import type React from 'react';
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-    type ReactNode,
-} from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { initiateLogin, handleCallback } from '../services/openrouterAuth';
 
 const STORAGE_KEY = 'OPENROUTER_USER_KEY';

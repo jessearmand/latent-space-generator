@@ -42,12 +42,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                 <div className="text-output-container">
                     <div className="text-output-header">
                         <h3>Analysis Result</h3>
-                        <button
-                            type="button"
-                            className="copy-btn"
-                            onClick={handleCopy}
-                            aria-label="Copy analysis text"
-                        >
+                        <button type="button" className="copy-btn" onClick={handleCopy} aria-label="Copy analysis text">
                             {copied ? 'Copied!' : 'Copy'}
                         </button>
                     </div>

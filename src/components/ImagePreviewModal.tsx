@@ -53,7 +53,9 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             overlayClassName="image-preview-overlay"
         >
             <div className="image-preview-header">
-                <h3>{modelName} &middot; {formatRelativeTime(timestamp)}</h3>
+                <h3>
+                    {modelName} &middot; {formatRelativeTime(timestamp)}
+                </h3>
                 <button type="button" className="image-preview-close" onClick={onClose} aria-label="Close preview">
                     X
                 </button>
@@ -96,11 +98,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             <div className="image-preview-footer">
                 <p className="image-preview-prompt">{prompt}</p>
                 <div className="image-preview-actions">
-                    <button
-                        type="button"
-                        className="image-preview-copy-btn"
-                        onClick={handleCopyPrompt}
-                    >
+                    <button type="button" className="image-preview-copy-btn" onClick={handleCopyPrompt}>
                         Copy Prompt
                     </button>
                     <DownloadButton url={currentUrl} label="Download image" />

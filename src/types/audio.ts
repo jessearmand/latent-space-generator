@@ -13,14 +13,7 @@ export interface MiniMaxVoiceSettings {
 }
 
 /** Emotion options for MiniMax TTS */
-export type MiniMaxEmotion =
-    | 'neutral'
-    | 'happy'
-    | 'sad'
-    | 'angry'
-    | 'fearful'
-    | 'disgusted'
-    | 'surprised';
+export type MiniMaxEmotion = 'neutral' | 'happy' | 'sad' | 'angry' | 'fearful' | 'disgusted' | 'surprised';
 
 /** Audio output format options */
 export type AudioOutputFormat = 'mp3' | 'wav' | 'flac' | 'pcm' | 'ogg';
@@ -180,8 +173,17 @@ export const QWEN3_TTS_VOICES = [
 
 /** Qwen3-TTS language options */
 export const QWEN3_TTS_LANGUAGES = [
-    'Auto', 'English', 'Chinese', 'Spanish', 'French',
-    'German', 'Italian', 'Japanese', 'Korean', 'Portuguese', 'Russian',
+    'Auto',
+    'English',
+    'Chinese',
+    'Spanish',
+    'French',
+    'German',
+    'Italian',
+    'Japanese',
+    'Korean',
+    'Portuguese',
+    'Russian',
 ] as const;
 
 /** ElevenLabs TTS available voices (shared by Turbo v2.5 and Multilingual v2) */

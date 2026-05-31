@@ -4,13 +4,7 @@
  */
 
 import type React from 'react';
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    type ReactNode,
-} from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export interface ServerKeys {
     fal: boolean;
@@ -58,11 +52,7 @@ export const ServerKeysProvider: React.FC<ServerKeysProviderProps> = ({ children
             });
     }, []);
 
-    return (
-        <ServerKeysContext.Provider value={{ serverKeys, isLoaded }}>
-            {children}
-        </ServerKeysContext.Provider>
-    );
+    return <ServerKeysContext.Provider value={{ serverKeys, isLoaded }}>{children}</ServerKeysContext.Provider>;
 };
 
 export const useServerKeys = (): ServerKeysContextType => {

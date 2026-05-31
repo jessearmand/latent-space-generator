@@ -2,11 +2,7 @@ import type { ConfigState } from '../config';
 import type { ServerKeys } from '../contexts/ServerKeysContext';
 import { generateOpenAIImage, base64ToDataUrl, type OpenAIImageParams } from './openai';
 import { generateOpenRouterImage } from './openrouterImage';
-import {
-    mapToOpenAIModelName,
-    mapToOpenRouterModelId,
-    mapGeminiToOpenRouterModelId,
-} from './imageModels';
+import { mapToOpenAIModelName, mapToOpenRouterModelId, mapGeminiToOpenRouterModelId } from './imageModels';
 import { submitAndPollFalQueue } from './falQueue';
 import { buildGeminiImageInput, buildGptImageInput } from './imageInputBuilders';
 
@@ -81,7 +77,9 @@ export async function routeGeminiImage(
         throw new Error('OpenRouter response missing image data');
     }
 
-    throw new Error('No API key available for Gemini image generation. Configure FAL_API_KEY or log in with OpenRouter.');
+    throw new Error(
+        'No API key available for Gemini image generation. Configure FAL_API_KEY or log in with OpenRouter.',
+    );
 }
 
 export async function routeGptImage(
@@ -116,7 +114,9 @@ export async function routeGptImage(
             console.log(`${urls.length} OpenAI image(s) generated successfully`);
 
             if (response.usage) {
-                console.log(`Token usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}, Total: ${response.usage.total_tokens}`);
+                console.log(
+                    `Token usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}, Total: ${response.usage.total_tokens}`,
+                );
             }
             return { urls };
         }
@@ -138,7 +138,9 @@ export async function routeGptImage(
         });
 
         // fal.ai GPT returns images in result.data.images[] or result.data.data[]
-        const images = (result.data.images || result.data.data) as Array<{ url?: string; b64_json?: string }> | undefined;
+        const images = (result.data.images || result.data.data) as
+            | Array<{ url?: string; b64_json?: string }>
+            | undefined;
         if (images && images.length > 0) {
             const urls = images
                 .map((img) => img.url ?? (img.b64_json ? base64ToDataUrl(img.b64_json, 'png') : null))
@@ -157,10 +159,7 @@ export async function routeGptImage(
         onStatus(`Generating image with ${modelName} via OpenRouter...`);
         console.log(`[GPT→OpenRouter] Using OpenRouter with model: ${openRouterModelId}`);
 
-        const response = await generateOpenRouterImage(
-            { model: openRouterModelId, prompt },
-            openRouterUserKey,
-        );
+        const response = await generateOpenRouterImage({ model: openRouterModelId, prompt }, openRouterUserKey);
 
         if (response.data && response.data.length > 0) {
             const urls = response.data
@@ -174,5 +173,7 @@ export async function routeGptImage(
         throw new Error('OpenRouter response missing image data');
     }
 
-    throw new Error('No API key available for GPT image generation. Configure OPENAI_API_KEY, FAL_API_KEY, or log in with OpenRouter.');
+    throw new Error(
+        'No API key available for GPT image generation. Configure OPENAI_API_KEY, FAL_API_KEY, or log in with OpenRouter.',
+    );
 }

@@ -8,9 +8,7 @@ export type HistoryFilter = 'image' | 'video' | 'audio';
  * - 'generate': normal generation UI (preserved GenerationMode)
  * - 'history': dedicated history grid filtered by media type
  */
-export type AppView =
-    | { kind: 'generate' }
-    | { kind: 'history'; filter: HistoryFilter };
+export type AppView = { kind: 'generate' } | { kind: 'history'; filter: HistoryFilter };
 
 /**
  * Map an OutputType to a HistoryFilter.

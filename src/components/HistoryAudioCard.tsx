@@ -62,12 +62,7 @@ export const HistoryAudioCard: React.FC<HistoryAudioCardProps> = ({ entry, onRem
                 )
             )}
 
-            <PromptOverlay
-                prompt={entry.prompt}
-                modelName={entry.modelName}
-                timestamp={entry.timestamp}
-                standalone
-            />
+            <PromptOverlay prompt={entry.prompt} modelName={entry.modelName} timestamp={entry.timestamp} standalone />
         </div>
     );
 };

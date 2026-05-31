@@ -110,11 +110,10 @@ export const InputSection: React.FC<InputSectionProps> = ({
                         maxImages={getImageInputConfig(currentSelectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
-                    {activeTab === 'image-to-video'
-                        && isSeedanceImageToVideoModel(currentSelectedModel.endpointId) && (
+                    {activeTab === 'image-to-video' && isSeedanceImageToVideoModel(currentSelectedModel.endpointId) && (
                         <p className="upload-caption">
-                            First image is the start frame. The optional second image is used
-                            as the end frame for a transition.
+                            First image is the start frame. The optional second image is used as the end frame for a
+                            transition.
                         </p>
                     )}
                     {activeTab === 'reference-to-video' && (
@@ -145,10 +144,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
 
             <ModelConfigPanel selectedModel={currentSelectedModel} activeTab={activeTab} />
 
-            <PromptOptimizer
-                originalPrompt={promptText}
-                onPromptOptimized={(optimized) => setPromptText(optimized)}
-            />
+            <PromptOptimizer originalPrompt={promptText} onPromptOptimized={(optimized) => setPromptText(optimized)} />
 
             <label htmlFor="prompt-input">{getInputLabel()}</label>
             <TextareaAutosize

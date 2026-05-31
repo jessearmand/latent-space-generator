@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import type { ModelConfig, ImageModelCategory, VideoModelCategory, AudioModelCategory } from '../types/models';
 import {
     fetchImageGenerationModels,
@@ -18,18 +18,9 @@ import {
     getCachedAudioModels,
     cacheAudioModels,
 } from '../services/models';
-import {
-    getCuratedVideoModels,
-    filterModelsByQuery,
-} from '../services/videoModels';
-import {
-    getCuratedAudioModels,
-    filterAudioModelsByQuery,
-} from '../services/audioModels';
-import {
-    getCuratedImageModels,
-    filterImageModelsByQuery,
-} from '../services/imageModels';
+import { getCuratedVideoModels, filterModelsByQuery } from '../services/videoModels';
+import { getCuratedAudioModels, filterAudioModelsByQuery } from '../services/audioModels';
+import { getCuratedImageModels, filterImageModelsByQuery } from '../services/imageModels';
 
 interface ModelsContextType {
     // Image models
@@ -141,9 +132,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const restoreSelectedModel = useCallback((modelList: ModelConfig[], curatedList?: ModelConfig[]) => {
         const savedEndpointId = localStorage.getItem(SELECTED_MODEL_KEY);
         if (savedEndpointId) {
-            let saved = modelList.find(m => m.endpointId === savedEndpointId);
+            let saved = modelList.find((m) => m.endpointId === savedEndpointId);
             if (!saved && curatedList) {
-                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+                saved = curatedList.find((m) => m.endpointId === savedEndpointId);
             }
             if (saved) {
                 setSelectedModelState(saved);
@@ -173,10 +164,10 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         const savedEndpointId = localStorage.getItem(SELECTED_VIDEO_MODEL_KEY);
         if (savedEndpointId) {
             // First check in the provided list (all video models if loaded)
-            let saved = videoModelList.find(m => m.endpointId === savedEndpointId);
+            let saved = videoModelList.find((m) => m.endpointId === savedEndpointId);
             // Fall back to curated list
             if (!saved) {
-                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+                saved = curatedList.find((m) => m.endpointId === savedEndpointId);
             }
             if (saved) {
                 setSelectedVideoModelState(saved);
@@ -203,9 +194,9 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     const restoreSelectedAudioModel = useCallback((audioModelList: ModelConfig[], curatedList: ModelConfig[]) => {
         const savedEndpointId = localStorage.getItem(SELECTED_AUDIO_MODEL_KEY);
         if (savedEndpointId) {
-            let saved = audioModelList.find(m => m.endpointId === savedEndpointId);
+            let saved = audioModelList.find((m) => m.endpointId === savedEndpointId);
             if (!saved) {
-                saved = curatedList.find(m => m.endpointId === savedEndpointId);
+                saved = curatedList.find((m) => m.endpointId === savedEndpointId);
             }
             if (saved) {
                 setSelectedAudioModelState(saved);
@@ -219,53 +210,56 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     }, []);
 
     // Fetch all image models from API or cache (used by refreshModels)
-    const loadModels = useCallback(async (forceRefresh = false) => {
-        setIsLoadingAllImageModels(true);
-        setError(null);
+    const loadModels = useCallback(
+        async (forceRefresh = false) => {
+            setIsLoadingAllImageModels(true);
+            setError(null);
 
-        try {
-            // Try cache first unless force refresh
-            if (!forceRefresh) {
+            try {
+                // Try cache first unless force refresh
+                if (!forceRefresh) {
+                    const cached = getCachedModels();
+                    if (cached && cached.length > 0) {
+                        setAllImageModels(cached);
+                        restoreSelectedModel(cached, curatedImageModels);
+                        setIsLoadingAllImageModels(false);
+                        return;
+                    }
+                }
+
+                // Clear cache if force refresh
+                if (forceRefresh) {
+                    clearModelsCache();
+                }
+
+                // Fetch from API (routes through proxy)
+                const fetchedModels = await fetchImageGenerationModels();
+
+                if (fetchedModels.length === 0) {
+                    setError('No models available from API');
+                } else {
+                    setAllImageModels(fetchedModels);
+                    cacheModels(fetchedModels);
+                    restoreSelectedModel(fetchedModels, curatedImageModels);
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to load models';
+                setError(message);
+                console.error('Failed to load models:', err);
+
+                // Try to use cached data as fallback
                 const cached = getCachedModels();
                 if (cached && cached.length > 0) {
                     setAllImageModels(cached);
                     restoreSelectedModel(cached, curatedImageModels);
-                    setIsLoadingAllImageModels(false);
-                    return;
+                    setError(`${message} (using cached data)`);
                 }
+            } finally {
+                setIsLoadingAllImageModels(false);
             }
-
-            // Clear cache if force refresh
-            if (forceRefresh) {
-                clearModelsCache();
-            }
-
-            // Fetch from API (routes through proxy)
-            const fetchedModels = await fetchImageGenerationModels();
-
-            if (fetchedModels.length === 0) {
-                setError('No models available from API');
-            } else {
-                setAllImageModels(fetchedModels);
-                cacheModels(fetchedModels);
-                restoreSelectedModel(fetchedModels, curatedImageModels);
-            }
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to load models';
-            setError(message);
-            console.error('Failed to load models:', err);
-
-            // Try to use cached data as fallback
-            const cached = getCachedModels();
-            if (cached && cached.length > 0) {
-                setAllImageModels(cached);
-                restoreSelectedModel(cached, curatedImageModels);
-                setError(`${message} (using cached data)`);
-            }
-        } finally {
-            setIsLoadingAllImageModels(false);
-        }
-    }, [restoreSelectedModel, curatedImageModels]);
+        },
+        [restoreSelectedModel, curatedImageModels],
+    );
 
     // Note: Initial image model load is no longer needed since we use curated models by default
     // loadAllImageModels() is called when showAllImageModels is toggled on
@@ -286,7 +280,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         if (allVideoModels.length > 0 || isLoadingAllVideoModels) {
             console.log('[VideoModels] Skipping load - already loaded or loading', {
                 loaded: allVideoModels.length,
-                isLoading: isLoadingAllVideoModels
+                isLoading: isLoadingAllVideoModels,
             });
             return;
         }
@@ -331,31 +325,29 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     }, [allVideoModels.length, isLoadingAllVideoModels, curatedVideoModels, restoreSelectedVideoModel]);
 
     // Get filtered video models based on current settings
-    const getFilteredVideoModels = useCallback((category?: VideoModelCategory): ModelConfig[] => {
-        const sourceModels = showAllVideoModels ? allVideoModels : curatedVideoModels;
+    const getFilteredVideoModels = useCallback(
+        (category?: VideoModelCategory): ModelConfig[] => {
+            const sourceModels = showAllVideoModels ? allVideoModels : curatedVideoModels;
 
-        let filtered = category
-            ? sourceModels.filter(m => m.category === category)
-            : sourceModels;
+            let filtered = category ? sourceModels.filter((m) => m.category === category) : sourceModels;
 
-        // fal.ai's catalog categorizes Seedance reference-to-video under `image-to-video`,
-        // so the fetched-all path would otherwise return nothing for our `reference-to-video`
-        // UX category. Always seed it from the curated list so the user sees something.
-        if (category === 'reference-to-video' && showAllVideoModels) {
-            const curatedR2V = curatedVideoModels.filter(m => m.category === 'reference-to-video');
-            const fetchedIds = new Set(filtered.map(m => m.endpointId));
-            filtered = [
-                ...filtered,
-                ...curatedR2V.filter(m => !fetchedIds.has(m.endpointId)),
-            ];
-        }
+            // fal.ai's catalog categorizes Seedance reference-to-video under `image-to-video`,
+            // so the fetched-all path would otherwise return nothing for our `reference-to-video`
+            // UX category. Always seed it from the curated list so the user sees something.
+            if (category === 'reference-to-video' && showAllVideoModels) {
+                const curatedR2V = curatedVideoModels.filter((m) => m.category === 'reference-to-video');
+                const fetchedIds = new Set(filtered.map((m) => m.endpointId));
+                filtered = [...filtered, ...curatedR2V.filter((m) => !fetchedIds.has(m.endpointId))];
+            }
 
-        if (showAllVideoModels && videoSearchQuery) {
-            filtered = filterModelsByQuery(filtered, videoSearchQuery);
-        }
+            if (showAllVideoModels && videoSearchQuery) {
+                filtered = filterModelsByQuery(filtered, videoSearchQuery);
+            }
 
-        return filtered;
-    }, [showAllVideoModels, allVideoModels, curatedVideoModels, videoSearchQuery]);
+            return filtered;
+        },
+        [showAllVideoModels, allVideoModels, curatedVideoModels, videoSearchQuery],
+    );
 
     // Load all audio models from API (on demand)
     const loadAllAudioModels = useCallback(async () => {
@@ -363,7 +355,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         if (allAudioModels.length > 0 || isLoadingAllAudioModels) {
             console.log('[AudioModels] Skipping load - already loaded or loading', {
                 loaded: allAudioModels.length,
-                isLoading: isLoadingAllAudioModels
+                isLoading: isLoadingAllAudioModels,
             });
             return;
         }
@@ -406,19 +398,20 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     }, [allAudioModels.length, isLoadingAllAudioModels, curatedAudioModels, restoreSelectedAudioModel]);
 
     // Get filtered audio models based on current settings
-    const getFilteredAudioModels = useCallback((category?: AudioModelCategory): ModelConfig[] => {
-        const sourceModels = showAllAudioModels ? allAudioModels : curatedAudioModels;
+    const getFilteredAudioModels = useCallback(
+        (category?: AudioModelCategory): ModelConfig[] => {
+            const sourceModels = showAllAudioModels ? allAudioModels : curatedAudioModels;
 
-        let filtered = category
-            ? sourceModels.filter(m => m.category === category)
-            : sourceModels;
+            let filtered = category ? sourceModels.filter((m) => m.category === category) : sourceModels;
 
-        if (showAllAudioModels && audioSearchQuery) {
-            filtered = filterAudioModelsByQuery(filtered, audioSearchQuery);
-        }
+            if (showAllAudioModels && audioSearchQuery) {
+                filtered = filterAudioModelsByQuery(filtered, audioSearchQuery);
+            }
 
-        return filtered;
-    }, [showAllAudioModels, allAudioModels, curatedAudioModels, audioSearchQuery]);
+            return filtered;
+        },
+        [showAllAudioModels, allAudioModels, curatedAudioModels, audioSearchQuery],
+    );
 
     // Computed video models list (for convenience)
     const videoModels = useMemo(() => {
@@ -441,7 +434,7 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
         if (allImageModels.length > 0 || isLoadingAllImageModels) {
             console.log('[ImageModels] Skipping load - already loaded or loading', {
                 loaded: allImageModels.length,
-                isLoading: isLoadingAllImageModels
+                isLoading: isLoadingAllImageModels,
             });
             return;
         }
@@ -486,19 +479,20 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
     }, [allImageModels.length, isLoadingAllImageModels, restoreSelectedModel, curatedImageModels]);
 
     // Get filtered image models based on current settings
-    const getFilteredImageModels = useCallback((category?: ImageModelCategory): ModelConfig[] => {
-        const sourceModels = showAllImageModels ? allImageModels : curatedImageModels;
+    const getFilteredImageModels = useCallback(
+        (category?: ImageModelCategory): ModelConfig[] => {
+            const sourceModels = showAllImageModels ? allImageModels : curatedImageModels;
 
-        let filtered = category
-            ? sourceModels.filter(m => m.category === category)
-            : sourceModels;
+            let filtered = category ? sourceModels.filter((m) => m.category === category) : sourceModels;
 
-        if (showAllImageModels && imageSearchQuery) {
-            filtered = filterImageModelsByQuery(filtered, imageSearchQuery);
-        }
+            if (showAllImageModels && imageSearchQuery) {
+                filtered = filterImageModelsByQuery(filtered, imageSearchQuery);
+            }
 
-        return filtered;
-    }, [showAllImageModels, allImageModels, curatedImageModels, imageSearchQuery]);
+            return filtered;
+        },
+        [showAllImageModels, allImageModels, curatedImageModels, imageSearchQuery],
+    );
 
     // Restore audio model selection on mount (from curated models)
     useEffect(() => {

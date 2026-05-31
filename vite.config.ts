@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
     plugins: [react()],
@@ -11,10 +11,10 @@ export default defineConfig({
                 changeOrigin: true,
                 // Longer timeout for streaming responses (2 minutes)
                 timeout: 120000,
-            }
-        }
+            },
+        },
     },
     build: {
-        outDir: 'build'
-    }
-})
+        outDir: 'build',
+    },
+});

@@ -40,399 +40,412 @@ export function useVideoGeneration({
 
     // Reset cancelled flag on unmount to prevent state updates after cleanup
     useEffect(() => {
-        return () => { cancelledRef.current = true; };
+        return () => {
+            cancelledRef.current = true;
+        };
     }, []);
 
-    const generateVideo = useCallback(async (prompt: string, model: ModelConfig) => {
-        cancelledRef.current = false;
-        if (!prompt) {
-            setStatus('Please enter a text prompt.', 'error');
-            console.error('Prompt text is empty. Cannot generate video.');
-            return;
-        }
+    const generateVideo = useCallback(
+        async (prompt: string, model: ModelConfig) => {
+            cancelledRef.current = false;
+            if (!prompt) {
+                setStatus('Please enter a text prompt.', 'error');
+                console.error('Prompt text is empty. Cannot generate video.');
+                return;
+            }
 
-        const modelId = model.endpointId;
-        const modelName = model.displayName;
-        const isImageToVideo = activeTab === 'image-to-video';
-        const isVideoToVideo = activeTab === 'video-to-video';
-        const isReferenceToVideo = activeTab === 'reference-to-video';
+            const modelId = model.endpointId;
+            const modelName = model.displayName;
+            const isImageToVideo = activeTab === 'image-to-video';
+            const isVideoToVideo = activeTab === 'video-to-video';
+            const isReferenceToVideo = activeTab === 'reference-to-video';
 
-        // For image-to-video mode, require an uploaded image
-        if (isImageToVideo && uploadedImages.length === 0) {
-            setStatus('Please upload an image for image-to-video generation.', 'error');
-            return;
-        }
+            // For image-to-video mode, require an uploaded image
+            if (isImageToVideo && uploadedImages.length === 0) {
+                setStatus('Please upload an image for image-to-video generation.', 'error');
+                return;
+            }
 
-        // For video-to-video mode, require an uploaded video
-        if (isVideoToVideo && !uploadedVideoFile) {
-            setStatus('Please upload a video for video-to-video generation.', 'error');
-            return;
-        }
+            // For video-to-video mode, require an uploaded video
+            if (isVideoToVideo && !uploadedVideoFile) {
+                setStatus('Please upload a video for video-to-video generation.', 'error');
+                return;
+            }
 
-        // For reference-to-video mode, require at least one reference image
-        if (isReferenceToVideo && uploadedImages.length === 0) {
-            setStatus('Please upload at least one reference image for reference-to-video generation.', 'error');
-            return;
-        }
+            // For reference-to-video mode, require at least one reference image
+            if (isReferenceToVideo && uploadedImages.length === 0) {
+                setStatus('Please upload at least one reference image for reference-to-video generation.', 'error');
+                return;
+            }
 
-        setIsGenerating(true);
-        setVideoUrl(null); // Clear previous video
-        console.log(`Generating video with model: ${modelName}`);
+            setIsGenerating(true);
+            setVideoUrl(null); // Clear previous video
+            console.log(`Generating video with model: ${modelName}`);
 
-        setStatus(`Submitting request for video generation using ${modelName}...`);
-        console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
+            setStatus(`Submitting request for video generation using ${modelName}...`);
+            console.log(`Submitting request for model: ${modelName}, prompt: ${prompt.substring(0, 50)}...`);
 
-        let uploadedImageUrl: string | undefined;
-        let uploadedEndImageUrl: string | undefined;
-        let uploadedReferenceImageUrls: string[] = [];
-        let uploadedVideoUrl: string | undefined;
+            let uploadedImageUrl: string | undefined;
+            let uploadedEndImageUrl: string | undefined;
+            let uploadedReferenceImageUrls: string[] = [];
+            let uploadedVideoUrl: string | undefined;
 
-        // For image-to-video, upload the start frame (and optional end frame for seedance)
-        if (isImageToVideo && uploadedImages.length > 0) {
-            try {
-                setStatus(`Uploading image for ${modelName}...`);
-                uploadedImageUrl = await fal.storage.upload(uploadedImages[0]);
-                console.log('Image uploaded successfully:', uploadedImageUrl);
+            // For image-to-video, upload the start frame (and optional end frame for seedance)
+            if (isImageToVideo && uploadedImages.length > 0) {
+                try {
+                    setStatus(`Uploading image for ${modelName}...`);
+                    uploadedImageUrl = await fal.storage.upload(uploadedImages[0]);
+                    console.log('Image uploaded successfully:', uploadedImageUrl);
 
-                // Seedance i2v: optional second image becomes the end_image_url
-                if (isSeedanceModel(modelId) && uploadedImages.length >= 2) {
-                    setStatus(`Uploading end-frame image for ${modelName}...`);
-                    uploadedEndImageUrl = await fal.storage.upload(uploadedImages[1]);
-                    console.log('End-frame image uploaded successfully:', uploadedEndImageUrl);
+                    // Seedance i2v: optional second image becomes the end_image_url
+                    if (isSeedanceModel(modelId) && uploadedImages.length >= 2) {
+                        setStatus(`Uploading end-frame image for ${modelName}...`);
+                        uploadedEndImageUrl = await fal.storage.upload(uploadedImages[1]);
+                        console.log('End-frame image uploaded successfully:', uploadedEndImageUrl);
+                    }
+
+                    setStatus(`Image uploaded. Submitting request for ${modelName}...`);
+                } catch (uploadError: unknown) {
+                    const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                    setStatus(errorMsg, 'error');
+                    console.error(errorMsg);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+
+            // For reference-to-video, upload all reference images
+            if (isReferenceToVideo && uploadedImages.length > 0) {
+                try {
+                    setStatus(`Uploading ${uploadedImages.length} reference image(s) for ${modelName}...`);
+                    uploadedReferenceImageUrls = await Promise.all(
+                        uploadedImages.map((file) => fal.storage.upload(file)),
+                    );
+                    console.log('Reference images uploaded:', uploadedReferenceImageUrls);
+                    setStatus(`Reference images uploaded. Submitting request for ${modelName}...`);
+                } catch (uploadError: unknown) {
+                    const errorMsg = `Error uploading reference images: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                    setStatus(errorMsg, 'error');
+                    console.error(errorMsg);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+
+            // For video-to-video, upload the video first
+            if (isVideoToVideo && uploadedVideoFile) {
+                try {
+                    setStatus(`Uploading video for ${modelName}...`);
+                    uploadedVideoUrl = await fal.storage.upload(uploadedVideoFile);
+                    console.log('Video uploaded successfully:', uploadedVideoUrl);
+                    setStatus(`Video uploaded. Submitting request for ${modelName}...`);
+                } catch (uploadError: unknown) {
+                    const errorMsg = `Error uploading video: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
+                    setStatus(errorMsg, 'error');
+                    console.error(errorMsg);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+
+            // Build video generation input parameters
+            const input: Record<string, unknown> = {
+                prompt,
+            };
+
+            const modelIdLower = modelId.toLowerCase();
+            const isSeedance = isSeedanceModel(modelId);
+
+            if (isSeedance) {
+                // Seedance 2.0 has its own input shape (string `duration` enum, no cfg_scale,
+                // no guidance_scale, no fps). Build the payload here; the per-model branches
+                // below are gated behind `!isSeedance` so they don't fight with this.
+
+                // Resolution (Pro: 480p/720p/1080p; Fast: 480p/720p)
+                if (config.videoResolution) {
+                    input.resolution = config.videoResolution;
                 }
 
-                setStatus(`Image uploaded. Submitting request for ${modelName}...`);
-            } catch (uploadError: unknown) {
-                const errorMsg = `Error uploading image: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
-                setStatus(errorMsg, 'error');
-                console.error(errorMsg);
-                setIsGenerating(false);
-                return;
-            }
-        }
-
-        // For reference-to-video, upload all reference images
-        if (isReferenceToVideo && uploadedImages.length > 0) {
-            try {
-                setStatus(`Uploading ${uploadedImages.length} reference image(s) for ${modelName}...`);
-                uploadedReferenceImageUrls = await Promise.all(
-                    uploadedImages.map((file) => fal.storage.upload(file))
-                );
-                console.log('Reference images uploaded:', uploadedReferenceImageUrls);
-                setStatus(`Reference images uploaded. Submitting request for ${modelName}...`);
-            } catch (uploadError: unknown) {
-                const errorMsg = `Error uploading reference images: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
-                setStatus(errorMsg, 'error');
-                console.error(errorMsg);
-                setIsGenerating(false);
-                return;
-            }
-        }
-
-        // For video-to-video, upload the video first
-        if (isVideoToVideo && uploadedVideoFile) {
-            try {
-                setStatus(`Uploading video for ${modelName}...`);
-                uploadedVideoUrl = await fal.storage.upload(uploadedVideoFile);
-                console.log('Video uploaded successfully:', uploadedVideoUrl);
-                setStatus(`Video uploaded. Submitting request for ${modelName}...`);
-            } catch (uploadError: unknown) {
-                const errorMsg = `Error uploading video: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`;
-                setStatus(errorMsg, 'error');
-                console.error(errorMsg);
-                setIsGenerating(false);
-                return;
-            }
-        }
-
-        // Build video generation input parameters
-        const input: Record<string, unknown> = {
-            prompt,
-        };
-
-        const modelIdLower = modelId.toLowerCase();
-        const isSeedance = isSeedanceModel(modelId);
-
-        if (isSeedance) {
-            // Seedance 2.0 has its own input shape (string `duration` enum, no cfg_scale,
-            // no guidance_scale, no fps). Build the payload here; the per-model branches
-            // below are gated behind `!isSeedance` so they don't fight with this.
-
-            // Resolution (Pro: 480p/720p/1080p; Fast: 480p/720p)
-            if (config.videoResolution) {
-                input.resolution = config.videoResolution;
-            }
-
-            // Duration: seedance expects "auto" or a string "4".."15".
-            // Storage may have either a bare number ("5") or a legacy "5s" suffix.
-            if (config.videoDuration) {
-                const raw = config.videoDuration.trim();
-                input.duration = raw === 'auto' ? 'auto' : raw.replace(/s$/, '');
-            }
-
-            // Aspect ratio: pass through, including "auto" and "21:9".
-            if (config.videoAspectRatio) {
-                input.aspect_ratio = config.videoAspectRatio;
-            }
-
-            // Synchronized audio (default true on the API; we mirror the user's toggle).
-            input.generate_audio = config.generateAudio;
-
-            // Seed (optional integer).
-            if (config.videoSeed !== null) {
-                input.seed = config.videoSeed;
-            }
-
-            // Mode-specific image inputs.
-            if (isImageToVideo && uploadedImageUrl) {
-                input.image_url = uploadedImageUrl;
-                if (uploadedEndImageUrl) {
-                    input.end_image_url = uploadedEndImageUrl;
+                // Duration: seedance expects "auto" or a string "4".."15".
+                // Storage may have either a bare number ("5") or a legacy "5s" suffix.
+                if (config.videoDuration) {
+                    const raw = config.videoDuration.trim();
+                    input.duration = raw === 'auto' ? 'auto' : raw.replace(/s$/, '');
                 }
-            } else if (isReferenceToVideo && uploadedReferenceImageUrls.length > 0) {
-                input.image_urls = uploadedReferenceImageUrls;
-            }
-        } else {
-            // --- Non-seedance video models share the legacy parameter routing below ---
 
-            // Add image_url for image-to-video models
-            if (isImageToVideo && uploadedImageUrl) {
-                input.image_url = uploadedImageUrl;
-            }
+                // Aspect ratio: pass through, including "auto" and "21:9".
+                if (config.videoAspectRatio) {
+                    input.aspect_ratio = config.videoAspectRatio;
+                }
 
-            // Add video_url for video-to-video models
-            if (isVideoToVideo && uploadedVideoUrl) {
-                input.video_url = uploadedVideoUrl;
-            }
-
-            // Add duration (parse to number if model expects seconds)
-            if (config.videoDuration) {
-                const durationNum = parseInt(config.videoDuration.replace('s', ''), 10);
-                input.duration = durationNum || config.videoDuration;
-            }
-
-            // Add aspect ratio
-            if (config.videoAspectRatio) {
-                input.aspect_ratio = config.videoAspectRatio;
-            }
-
-            // Add resolution if supported
-            if (config.videoResolution) {
-                input.resolution = config.videoResolution;
-            }
-        }
-
-        // Model detection for specific parameters (legacy routing — skipped for seedance,
-        // which has its own input shape constructed above).
-        if (!isSeedance) {
-            const isKlingModel = modelIdLower.includes('kling');
-            const isVeoModel = modelIdLower.includes('veo');
-            const isLtx19bModel = modelIdLower.includes('ltx-2-19b');
-            const isLtxProFastModel = modelIdLower.includes('ltx-2') && !modelIdLower.includes('ltx-2-19b');
-            const isLtxModel = modelIdLower.includes('ltx-2');
-            const isGrokVideoModel = modelIdLower.includes('grok-imagine-video');
-            const isGrokVideoEdit = modelIdLower.includes('grok-imagine-video') && modelIdLower.includes('edit-video');
-            const supportsAudio = isVeoModel || isLtxModel;
-            const supportsGuidanceScale = isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
-
-            // V2V model detection
-            const isVideoToVideoMode = activeTab === 'video-to-video';
-            const isMMAudioModel = modelIdLower.includes('mmaudio');
-            const isBriaBgRemoval = modelIdLower.includes('bria') && modelIdLower.includes('background-removal');
-            const isLtx19bV2V = isLtx19bModel && modelIdLower.includes('video-to-video');
-            const isWanV2V = modelIdLower.includes('wan') && modelIdLower.includes('video-to-video');
-            const isHunyuanV2V = modelIdLower.includes('hunyuan') && modelIdLower.includes('video-to-video');
-            const isAnimateDiffV2V = modelIdLower.includes('animatediff') && modelIdLower.includes('video-to-video');
-
-            // Add CFG scale for Kling models (0-1 range)
-            if (isKlingModel) {
-                input.cfg_scale = config.videoCfgScale;
-            }
-
-            // Add guidance scale only for models that support it
-            if (supportsGuidanceScale && config.videoGuidanceScale > 0) {
-                input.guidance_scale = config.videoGuidanceScale;
-            }
-
-            // Add generate_audio for veo and ltx-2 models
-            if (supportsAudio) {
+                // Synchronized audio (default true on the API; we mirror the user's toggle).
                 input.generate_audio = config.generateAudio;
-            }
 
-            // Add fps for LTX-2 Pro/Fast models
-            if (isLtxProFastModel) {
-                input.fps = parseInt(config.videoFps, 10);
-            }
+                // Seed (optional integer).
+                if (config.videoSeed !== null) {
+                    input.seed = config.videoSeed;
+                }
 
-            // Grok Imagine Video specific parameters
-            if (isGrokVideoModel) {
-                // Grok uses continuous duration (1-15s), parse from config
+                // Mode-specific image inputs.
+                if (isImageToVideo && uploadedImageUrl) {
+                    input.image_url = uploadedImageUrl;
+                    if (uploadedEndImageUrl) {
+                        input.end_image_url = uploadedEndImageUrl;
+                    }
+                } else if (isReferenceToVideo && uploadedReferenceImageUrls.length > 0) {
+                    input.image_urls = uploadedReferenceImageUrls;
+                }
+            } else {
+                // --- Non-seedance video models share the legacy parameter routing below ---
+
+                // Add image_url for image-to-video models
+                if (isImageToVideo && uploadedImageUrl) {
+                    input.image_url = uploadedImageUrl;
+                }
+
+                // Add video_url for video-to-video models
+                if (isVideoToVideo && uploadedVideoUrl) {
+                    input.video_url = uploadedVideoUrl;
+                }
+
+                // Add duration (parse to number if model expects seconds)
                 if (config.videoDuration) {
                     const durationNum = parseInt(config.videoDuration.replace('s', ''), 10);
-                    input.duration = Math.min(15, Math.max(1, durationNum));
+                    input.duration = durationNum || config.videoDuration;
                 }
 
-                // Grok video resolution (480p or 720p only, or 'auto' for edit-video)
+                // Add aspect ratio
+                if (config.videoAspectRatio) {
+                    input.aspect_ratio = config.videoAspectRatio;
+                }
+
+                // Add resolution if supported
                 if (config.videoResolution) {
-                    const res = config.videoResolution;
-                    if (isGrokVideoEdit) {
-                        // Edit video supports auto/480p/720p
-                        input.resolution = (res === '480p' || res === '720p') ? res : 'auto';
-                    } else {
-                        // Text/image to video only supports 480p/720p
-                        input.resolution = (res === '480p' || res === '720p') ? res : '720p';
+                    input.resolution = config.videoResolution;
+                }
+            }
+
+            // Model detection for specific parameters (legacy routing — skipped for seedance,
+            // which has its own input shape constructed above).
+            if (!isSeedance) {
+                const isKlingModel = modelIdLower.includes('kling');
+                const isVeoModel = modelIdLower.includes('veo');
+                const isLtx19bModel = modelIdLower.includes('ltx-2-19b');
+                const isLtxProFastModel = modelIdLower.includes('ltx-2') && !modelIdLower.includes('ltx-2-19b');
+                const isLtxModel = modelIdLower.includes('ltx-2');
+                const isGrokVideoModel = modelIdLower.includes('grok-imagine-video');
+                const isGrokVideoEdit =
+                    modelIdLower.includes('grok-imagine-video') && modelIdLower.includes('edit-video');
+                const supportsAudio = isVeoModel || isLtxModel;
+                const supportsGuidanceScale =
+                    isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
+
+                // V2V model detection
+                const isVideoToVideoMode = activeTab === 'video-to-video';
+                const isMMAudioModel = modelIdLower.includes('mmaudio');
+                const isBriaBgRemoval = modelIdLower.includes('bria') && modelIdLower.includes('background-removal');
+                const isLtx19bV2V = isLtx19bModel && modelIdLower.includes('video-to-video');
+                const isWanV2V = modelIdLower.includes('wan') && modelIdLower.includes('video-to-video');
+                const isHunyuanV2V = modelIdLower.includes('hunyuan') && modelIdLower.includes('video-to-video');
+                const isAnimateDiffV2V =
+                    modelIdLower.includes('animatediff') && modelIdLower.includes('video-to-video');
+
+                // Add CFG scale for Kling models (0-1 range)
+                if (isKlingModel) {
+                    input.cfg_scale = config.videoCfgScale;
+                }
+
+                // Add guidance scale only for models that support it
+                if (supportsGuidanceScale && config.videoGuidanceScale > 0) {
+                    input.guidance_scale = config.videoGuidanceScale;
+                }
+
+                // Add generate_audio for veo and ltx-2 models
+                if (supportsAudio) {
+                    input.generate_audio = config.generateAudio;
+                }
+
+                // Add fps for LTX-2 Pro/Fast models
+                if (isLtxProFastModel) {
+                    input.fps = parseInt(config.videoFps, 10);
+                }
+
+                // Grok Imagine Video specific parameters
+                if (isGrokVideoModel) {
+                    // Grok uses continuous duration (1-15s), parse from config
+                    if (config.videoDuration) {
+                        const durationNum = parseInt(config.videoDuration.replace('s', ''), 10);
+                        input.duration = Math.min(15, Math.max(1, durationNum));
                     }
-                }
 
-                // Grok doesn't use guidance_scale, remove if accidentally set
-                delete input.guidance_scale;
-            }
-
-            // LTX-2 19B specific parameters
-            if (isLtx19bModel) {
-                input.num_frames = config.videoNumFrames;
-                input.video_size = config.videoOutputSize;
-                input.use_multiscale = config.videoUseMultiscale;
-                input.num_inference_steps = config.videoNumInferenceSteps;
-                input.acceleration = config.videoAcceleration;
-                input.enable_prompt_expansion = config.videoEnablePromptExpansion;
-
-                // Camera LoRA only if not 'none'
-                if (config.videoCameraLora !== 'none') {
-                    input.camera_lora = config.videoCameraLora;
-                    input.camera_lora_scale = config.videoCameraLoraScale;
-                }
-
-                // LTX-2 19B doesn't use duration/resolution
-                delete input.duration;
-                delete input.resolution;
-            }
-
-            // Add seed if set
-            if (config.videoSeed !== null) {
-                input.seed = config.videoSeed;
-            }
-
-            // Add negative prompt if set
-            if (config.videoNegativePrompt) {
-                input.negative_prompt = config.videoNegativePrompt;
-            }
-
-            // V2V model-specific parameters
-
-            // Video strength for V2V transformation
-            if (isVideoToVideoMode && (isLtx19bV2V || isWanV2V || isHunyuanV2V || isAnimateDiffV2V)) {
-                input.strength = config.videoStrength;
-            }
-
-            // Preprocessor for LTX-2 19B V2V
-            if (isLtx19bV2V && config.videoPreprocessor !== 'none') {
-                input.preprocessor = config.videoPreprocessor;
-            }
-
-            // MMAudio V2 parameters
-            if (isMMAudioModel) {
-                input.cfg_strength = config.mmAudioCfgStrength;
-                input.num_steps = config.mmAudioNumSteps;
-                // Duration is handled separately above
-            }
-
-            // Bria Background Removal parameters
-            if (isBriaBgRemoval) {
-                input.background_color = config.briaBgColor;
-                input.output_container_and_codec = config.briaOutputCodec;
-            }
-        }
-
-        try {
-            console.log(`Input sent to API for model ${modelName}:`, input);
-
-            // Step 1: Submit the request and get request ID
-            const submitResult = await fal.queue.submit(modelId, {
-                input: input,
-            });
-            const requestId = submitResult.request_id;
-            console.log(`Request submitted successfully. Request ID: ${requestId}`);
-            setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
-
-            // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
-            const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-            const pollStart = Date.now();
-
-            while (!cancelledRef.current) {
-                if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-                    setStatus('Video generation timed out after 10 minutes.', 'error');
-                    console.error(`Polling timed out for request ${requestId}`);
-                    break;
-                }
-
-                const statusResult = await fal.queue.status(modelId, {
-                    requestId,
-                    logs: true,
-                });
-                if (cancelledRef.current) break;
-
-                console.log(`Status update for request ID ${requestId}:`, statusResult.status);
-                if (statusResult.status === "IN_QUEUE" || statusResult.status === "IN_PROGRESS") {
-                    const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                    const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
-                    setStatus(`Request is ${statusResult.status}: ${latestLog}`);
-                    console.log(`Status logs:`, logs?.map((log) => log.message));
-                    await new Promise(resolve => setTimeout(resolve, 3000)); // Longer poll interval for video
-                } else if (statusResult.status === "COMPLETED") {
-                    const result = await fal.queue.result(modelId, {
-                        requestId,
-                    });
-                    console.log(`Request completed. Full result:`, result);
-
-                    // Video response can have different structures
-                    const data = result.data as Record<string, unknown>;
-                    let videoResultUrl: string | undefined;
-
-                    if (data.video) {
-                        if (typeof data.video === 'string') {
-                            videoResultUrl = data.video;
-                        } else if (typeof data.video === 'object' && data.video !== null) {
-                            const videoObj = data.video as { url?: string };
-                            videoResultUrl = videoObj.url;
+                    // Grok video resolution (480p or 720p only, or 'auto' for edit-video)
+                    if (config.videoResolution) {
+                        const res = config.videoResolution;
+                        if (isGrokVideoEdit) {
+                            // Edit video supports auto/480p/720p
+                            input.resolution = res === '480p' || res === '720p' ? res : 'auto';
+                        } else {
+                            // Text/image to video only supports 480p/720p
+                            input.resolution = res === '480p' || res === '720p' ? res : '720p';
                         }
-                    } else if (Array.isArray(data.videos) && data.videos.length > 0) {
-                        const firstVideo = data.videos[0] as { url?: string } | string;
-                        videoResultUrl = typeof firstVideo === 'string' ? firstVideo : firstVideo.url;
                     }
 
-                    if (videoResultUrl) {
-                        console.log(`Video generated successfully:`, videoResultUrl);
-                        setVideoUrl(videoResultUrl);
-                        setStatus(`Video generated successfully using ${modelName}!`, 'success');
-                    } else {
-                        setStatus('Video generation failed. No video URL found in result.', 'error');
-                        console.error('No video URL in result:', result);
+                    // Grok doesn't use guidance_scale, remove if accidentally set
+                    delete input.guidance_scale;
+                }
+
+                // LTX-2 19B specific parameters
+                if (isLtx19bModel) {
+                    input.num_frames = config.videoNumFrames;
+                    input.video_size = config.videoOutputSize;
+                    input.use_multiscale = config.videoUseMultiscale;
+                    input.num_inference_steps = config.videoNumInferenceSteps;
+                    input.acceleration = config.videoAcceleration;
+                    input.enable_prompt_expansion = config.videoEnablePromptExpansion;
+
+                    // Camera LoRA only if not 'none'
+                    if (config.videoCameraLora !== 'none') {
+                        input.camera_lora = config.videoCameraLora;
+                        input.camera_lora_scale = config.videoCameraLoraScale;
                     }
-                    break;
-                } else {
-                    const status = (statusResult as { status: string }).status;
-                    setStatus(`Request failed with status: ${status}`, 'error');
-                    console.error(`Request failed with status ${status}:`, statusResult);
-                    break;
+
+                    // LTX-2 19B doesn't use duration/resolution
+                    delete input.duration;
+                    delete input.resolution;
+                }
+
+                // Add seed if set
+                if (config.videoSeed !== null) {
+                    input.seed = config.videoSeed;
+                }
+
+                // Add negative prompt if set
+                if (config.videoNegativePrompt) {
+                    input.negative_prompt = config.videoNegativePrompt;
+                }
+
+                // V2V model-specific parameters
+
+                // Video strength for V2V transformation
+                if (isVideoToVideoMode && (isLtx19bV2V || isWanV2V || isHunyuanV2V || isAnimateDiffV2V)) {
+                    input.strength = config.videoStrength;
+                }
+
+                // Preprocessor for LTX-2 19B V2V
+                if (isLtx19bV2V && config.videoPreprocessor !== 'none') {
+                    input.preprocessor = config.videoPreprocessor;
+                }
+
+                // MMAudio V2 parameters
+                if (isMMAudioModel) {
+                    input.cfg_strength = config.mmAudioCfgStrength;
+                    input.num_steps = config.mmAudioNumSteps;
+                    // Duration is handled separately above
+                }
+
+                // Bria Background Removal parameters
+                if (isBriaBgRemoval) {
+                    input.background_color = config.briaBgColor;
+                    input.output_container_and_codec = config.briaOutputCodec;
                 }
             }
-        } catch (error: unknown) {
-            console.error('Video generation error:', error);
 
-            const parsedError = parseFalError(error);
+            try {
+                console.log(`Input sent to API for model ${modelName}:`, input);
 
-            const rawMessage = error instanceof Error ? error.message : String(error);
-            if (rawMessage.includes("401") || rawMessage.includes("Unauthorized")) {
-                console.error("Authentication error detected. The API key may be invalid or not applied correctly.");
-                setStatus('Authentication failed. Please check your API key.', 'error');
-            } else {
-                setStatus(parsedError, 'error');
+                // Step 1: Submit the request and get request ID
+                const submitResult = await fal.queue.submit(modelId, {
+                    input: input,
+                });
+                const requestId = submitResult.request_id;
+                console.log(`Request submitted successfully. Request ID: ${requestId}`);
+                setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
+
+                // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
+                const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+                const pollStart = Date.now();
+
+                while (!cancelledRef.current) {
+                    if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+                        setStatus('Video generation timed out after 10 minutes.', 'error');
+                        console.error(`Polling timed out for request ${requestId}`);
+                        break;
+                    }
+
+                    const statusResult = await fal.queue.status(modelId, {
+                        requestId,
+                        logs: true,
+                    });
+                    if (cancelledRef.current) break;
+
+                    console.log(`Status update for request ID ${requestId}:`, statusResult.status);
+                    if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
+                        const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
+                        const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
+                        setStatus(`Request is ${statusResult.status}: ${latestLog}`);
+                        console.log(
+                            `Status logs:`,
+                            logs?.map((log) => log.message),
+                        );
+                        await new Promise((resolve) => setTimeout(resolve, 3000)); // Longer poll interval for video
+                    } else if (statusResult.status === 'COMPLETED') {
+                        const result = await fal.queue.result(modelId, {
+                            requestId,
+                        });
+                        console.log(`Request completed. Full result:`, result);
+
+                        // Video response can have different structures
+                        const data = result.data as Record<string, unknown>;
+                        let videoResultUrl: string | undefined;
+
+                        if (data.video) {
+                            if (typeof data.video === 'string') {
+                                videoResultUrl = data.video;
+                            } else if (typeof data.video === 'object' && data.video !== null) {
+                                const videoObj = data.video as { url?: string };
+                                videoResultUrl = videoObj.url;
+                            }
+                        } else if (Array.isArray(data.videos) && data.videos.length > 0) {
+                            const firstVideo = data.videos[0] as { url?: string } | string;
+                            videoResultUrl = typeof firstVideo === 'string' ? firstVideo : firstVideo.url;
+                        }
+
+                        if (videoResultUrl) {
+                            console.log(`Video generated successfully:`, videoResultUrl);
+                            setVideoUrl(videoResultUrl);
+                            setStatus(`Video generated successfully using ${modelName}!`, 'success');
+                        } else {
+                            setStatus('Video generation failed. No video URL found in result.', 'error');
+                            console.error('No video URL in result:', result);
+                        }
+                        break;
+                    } else {
+                        const status = (statusResult as { status: string }).status;
+                        setStatus(`Request failed with status: ${status}`, 'error');
+                        console.error(`Request failed with status ${status}:`, statusResult);
+                        break;
+                    }
+                }
+            } catch (error: unknown) {
+                console.error('Video generation error:', error);
+
+                const parsedError = parseFalError(error);
+
+                const rawMessage = error instanceof Error ? error.message : String(error);
+                if (rawMessage.includes('401') || rawMessage.includes('Unauthorized')) {
+                    console.error(
+                        'Authentication error detected. The API key may be invalid or not applied correctly.',
+                    );
+                    setStatus('Authentication failed. Please check your API key.', 'error');
+                } else {
+                    setStatus(parsedError, 'error');
+                }
+            } finally {
+                setIsGenerating(false);
             }
-        } finally {
-            setIsGenerating(false);
-        }
-    }, [activeTab, uploadedImages, uploadedVideoFile, config, setStatus]);
+        },
+        [activeTab, uploadedImages, uploadedVideoFile, config, setStatus],
+    );
 
     const clearVideo = useCallback(() => {
         setVideoUrl(null);

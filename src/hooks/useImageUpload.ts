@@ -18,7 +18,7 @@ export function useImageUpload(): UseImageUploadReturn {
     // Generate preview URLs and handle cleanup
     useEffect(() => {
         if (uploadedImages.length > 0) {
-            const newPreviews = uploadedImages.map(file => URL.createObjectURL(file));
+            const newPreviews = uploadedImages.map((file) => URL.createObjectURL(file));
             setImagePreviews(newPreviews);
 
             // Cleanup: revoke object URLs when dependencies change

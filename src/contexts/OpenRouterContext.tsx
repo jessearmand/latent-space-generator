@@ -3,26 +3,12 @@
  * Handles fetching, caching, and selection of OpenRouter models for prompt optimization
  */
 
-import type React from "react";
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-    useMemo,
-    type ReactNode,
-} from "react";
-import type {
-    OpenRouterModel,
-    OpenRouterModelFilters,
-} from "../types/openrouter";
-import { filterModels, getUniqueProviders, isTextOutputModel } from "../types/openrouter";
-import {
-    getOpenRouterModels,
-    clearOpenRouterModelsCache,
-} from "../services/openrouter";
-import { useOpenRouterAuth } from "./OpenRouterAuthContext";
+import type React from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import type { OpenRouterModel, OpenRouterModelFilters } from '../types/openrouter';
+import { filterModels, getUniqueProviders, isTextOutputModel } from '../types/openrouter';
+import { getOpenRouterModels, clearOpenRouterModelsCache } from '../services/openrouter';
+import { useOpenRouterAuth } from './OpenRouterAuthContext';
 
 interface OpenRouterContextType {
     /** All available models */
@@ -54,8 +40,8 @@ interface OpenRouterProviderProps {
 }
 
 /** Storage key for selected model */
-const SELECTED_MODEL_KEY = "openrouter_selected_model";
-const FILTERS_KEY = "openrouter_model_filters";
+const SELECTED_MODEL_KEY = 'openrouter_selected_model';
+const FILTERS_KEY = 'openrouter_model_filters';
 
 export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children }) => {
     const { userApiKey } = useOpenRouterAuth();
@@ -117,9 +103,7 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
     // Compute available providers (derived from model IDs)
     const availableProviders = useMemo(() => {
         // Get providers from text-only models if textOnly filter is active
-        const modelsToCheck = filters.textOnly
-            ? models.filter(isTextOutputModel)
-            : models;
+        const modelsToCheck = filters.textOnly ? models.filter(isTextOutputModel) : models;
         return getUniqueProviders(modelsToCheck);
     }, [models, filters.textOnly]);
 
@@ -168,20 +152,20 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
                 const fetchedModels = await getOpenRouterModels(forceRefresh, userApiKey);
 
                 if (fetchedModels.length === 0) {
-                    setError("No models available");
+                    setError('No models available');
                 } else {
                     setModels(fetchedModels);
                     restoreSelectedModel(fetchedModels);
                 }
             } catch (err) {
-                const message = err instanceof Error ? err.message : "Failed to load models";
+                const message = err instanceof Error ? err.message : 'Failed to load models';
                 setError(message);
-                console.error("Failed to load OpenRouter models:", err);
+                console.error('Failed to load OpenRouter models:', err);
             } finally {
                 setIsLoading(false);
             }
         },
-        [restoreSelectedModel, userApiKey]
+        [restoreSelectedModel, userApiKey],
     );
 
     // Initial load on mount
@@ -217,7 +201,7 @@ export const OpenRouterProvider: React.FC<OpenRouterProviderProps> = ({ children
 export const useOpenRouter = (): OpenRouterContextType => {
     const context = useContext(OpenRouterContext);
     if (!context) {
-        throw new Error("useOpenRouter must be used within an OpenRouterProvider");
+        throw new Error('useOpenRouter must be used within an OpenRouterProvider');
     }
     return context;
 };

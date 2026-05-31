@@ -3,8 +3,8 @@
  * Keeps API keys server-side and handles CORS for browser requests
  */
 
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText } from "ai";
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { streamText } from 'ai';
 
 const FAL_API_KEY = process.env.FAL_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -27,7 +27,7 @@ Guidelines:
 
 // Format-specific output instructions
 const FORMAT_INSTRUCTIONS = {
-    plain: "",
+    plain: '',
     json: `
 
 Output Format:
@@ -58,8 +58,8 @@ Output ONLY the XML, no markdown code blocks or additional text.`,
 
 type PromptFormat = keyof typeof FORMAT_INSTRUCTIONS;
 
-function buildSystemPrompt(format: PromptFormat = "plain"): string {
-    return PROMPT_OPTIMIZATION_BASE + (FORMAT_INSTRUCTIONS[format] || "");
+function buildSystemPrompt(format: PromptFormat = 'plain'): string {
+    return PROMPT_OPTIMIZATION_BASE + (FORMAT_INSTRUCTIONS[format] || '');
 }
 
 // Regex to validate fal.ai domains (matches official fal proxy implementation)
@@ -68,10 +68,10 @@ const FAL_URL_REG_EXP = /(\.|^)fal\.(run|ai|dev)$/;
 
 // CORS headers for browser requests
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "http://localhost:3000",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-fal-target-url, x-fal-queue-priority, Authorization",
-    "Access-Control-Max-Age": "86400",
+    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, x-fal-target-url, x-fal-queue-priority, Authorization',
+    'Access-Control-Max-Age': '86400',
 };
 
 function isAllowedHost(url: string): boolean {
@@ -94,7 +94,7 @@ Bun.serve({
         console.log(`[Request] ${req.method} ${url.pathname} - Headers:`, Object.fromEntries(req.headers.entries()));
 
         // Handle CORS preflight requests
-        if (req.method === "OPTIONS") {
+        if (req.method === 'OPTIONS') {
             return new Response(null, {
                 status: 204,
                 headers: corsHeaders,
@@ -102,60 +102,63 @@ Bun.serve({
         }
 
         // Health check endpoint (under /api/ so Vite proxy forwards it)
-        if (url.pathname === "/health" || url.pathname === "/api/health") {
-            return new Response(JSON.stringify({
-                status: "ok",
-                keys: {
-                    fal: !!FAL_API_KEY,
-                    openai: !!OPENAI_API_KEY,
-                    openrouter: !!OPENROUTER_API_KEY,
+        if (url.pathname === '/health' || url.pathname === '/api/health') {
+            return new Response(
+                JSON.stringify({
+                    status: 'ok',
+                    keys: {
+                        fal: !!FAL_API_KEY,
+                        openai: !!OPENAI_API_KEY,
+                        openrouter: !!OPENROUTER_API_KEY,
+                    },
+                }),
+                {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 },
-            }), {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            );
         }
 
         // Main proxy endpoint
-        if (url.pathname === "/api/fal/proxy") {
-            const targetUrl = req.headers.get("x-fal-target-url");
+        if (url.pathname === '/api/fal/proxy') {
+            const targetUrl = req.headers.get('x-fal-target-url');
 
             // Validate target URL
             if (!targetUrl) {
-                return new Response(
-                    JSON.stringify({ error: "Missing x-fal-target-url header" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                return new Response(JSON.stringify({ error: 'Missing x-fal-target-url header' }), {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             if (!isAllowedHost(targetUrl)) {
-                return new Response(
-                    JSON.stringify({ error: "Target URL not allowed. Must be a fal.ai domain." }),
-                    { status: 412, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                return new Response(JSON.stringify({ error: 'Target URL not allowed. Must be a fal.ai domain.' }), {
+                    status: 412,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             if (!FAL_API_KEY) {
-                return new Response(
-                    JSON.stringify({ error: "FAL_API_KEY environment variable not set on server" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                return new Response(JSON.stringify({ error: 'FAL_API_KEY environment variable not set on server' }), {
+                    status: 500,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             try {
                 // Forward headers from client, excluding hop-by-hop headers
                 const forwardHeaders: HeadersInit = {
-                    "Authorization": `Key ${FAL_API_KEY}`,
+                    Authorization: `Key ${FAL_API_KEY}`,
                 };
 
                 // Preserve content-type if present
-                const contentType = req.headers.get("content-type");
+                const contentType = req.headers.get('content-type');
                 if (contentType) {
-                    forwardHeaders["Content-Type"] = contentType;
+                    forwardHeaders['Content-Type'] = contentType;
                 }
 
                 // Get request body for non-GET methods
                 let body: BodyInit | null = null;
-                if (req.method !== "GET" && req.method !== "HEAD") {
+                if (req.method !== 'GET' && req.method !== 'HEAD') {
                     body = await req.text();
                 }
 
@@ -176,33 +179,38 @@ Bun.serve({
                     status: response.status,
                     headers: {
                         ...corsHeaders,
-                        "Content-Type": response.headers.get("Content-Type") || "application/json",
+                        'Content-Type': response.headers.get('Content-Type') || 'application/json',
                     },
                 });
             } catch (error) {
-                console.error("[Proxy] Error:", error);
-                const message = error instanceof Error ? error.message : "Unknown error";
-                return new Response(
-                    JSON.stringify({ error: `Proxy error: ${message}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                console.error('[Proxy] Error:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return new Response(JSON.stringify({ error: `Proxy error: ${message}` }), {
+                    status: 502,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 
         // OpenAI Images API proxy endpoint
-        if (url.pathname === "/api/openai/images") {
-            if (req.method !== "POST") {
-                return new Response(
-                    JSON.stringify({ error: "Method not allowed" }),
-                    { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+        if (url.pathname === '/api/openai/images') {
+            if (req.method !== 'POST') {
+                return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+                    status: 405,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             try {
                 if (!OPENAI_API_KEY) {
                     return new Response(
-                        JSON.stringify({ error: "OPENAI_API_KEY environment variable not set on server" }),
-                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        JSON.stringify({
+                            error: 'OPENAI_API_KEY environment variable not set on server',
+                        }),
+                        {
+                            status: 500,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        },
                     );
                 }
 
@@ -224,11 +232,11 @@ Bun.serve({
 
                 console.log(`[OpenAI] Generating image with model: ${payload.model}`);
 
-                const response = await fetch("https://api.openai.com/v1/images/generations", {
-                    method: "POST",
+                const response = await fetch('https://api.openai.com/v1/images/generations', {
+                    method: 'POST',
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${OPENAI_API_KEY}`,
                     },
                     body: JSON.stringify(payload),
                 });
@@ -239,50 +247,55 @@ Bun.serve({
                     status: response.status,
                     headers: {
                         ...corsHeaders,
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                     },
                 });
             } catch (error) {
-                console.error("[OpenAI] Error:", error);
-                const message = error instanceof Error ? error.message : "Unknown error";
-                return new Response(
-                    JSON.stringify({ error: `OpenAI proxy error: ${message}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                console.error('[OpenAI] Error:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return new Response(JSON.stringify({ error: `OpenAI proxy error: ${message}` }), {
+                    status: 502,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 
         // OpenRouter Models API proxy endpoint
-        if (url.pathname === "/api/openrouter/models") {
-            if (req.method !== "GET") {
-                return new Response(
-                    JSON.stringify({ error: "Method not allowed" }),
-                    { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+        if (url.pathname === '/api/openrouter/models') {
+            if (req.method !== 'GET') {
+                return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+                    status: 405,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             // Use client-provided OAuth key (via Authorization header) or fall back to server env var
-            const authHeader = req.headers.get("authorization");
-            const userKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+            const authHeader = req.headers.get('authorization');
+            const userKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
             const apiKey = userKey || OPENROUTER_API_KEY;
 
             if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
-                    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    JSON.stringify({
+                        error: 'No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY.',
+                    }),
+                    {
+                        status: 401,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    },
                 );
             }
 
             try {
-                console.log(`[OpenRouter] Fetching user models (source: ${userKey ? "user OAuth" : "server key"})`);
+                console.log(`[OpenRouter] Fetching user models (source: ${userKey ? 'user OAuth' : 'server key'})`);
 
-                const response = await fetch("https://openrouter.ai/api/v1/models/user", {
-                    method: "GET",
+                const response = await fetch('https://openrouter.ai/api/v1/models/user', {
+                    method: 'GET',
                     headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
-                        "X-Title": "latent-space-generator",
+                        Authorization: `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'https://github.com/jessearmand/latent-space-generator',
+                        'X-Title': 'latent-space-generator',
                     },
                 });
 
@@ -292,58 +305,63 @@ Bun.serve({
                     status: response.status,
                     headers: {
                         ...corsHeaders,
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                     },
                 });
             } catch (error) {
-                console.error("[OpenRouter] Error fetching models:", error);
-                const message = error instanceof Error ? error.message : "Unknown error";
-                return new Response(
-                    JSON.stringify({ error: `OpenRouter models error: ${message}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                console.error('[OpenRouter] Error fetching models:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return new Response(JSON.stringify({ error: `OpenRouter models error: ${message}` }), {
+                    status: 502,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 
         // OpenRouter Completion API endpoint (streaming with Vercel AI SDK)
-        if (url.pathname === "/api/openrouter/completion") {
-            if (req.method !== "POST") {
-                return new Response(
-                    JSON.stringify({ error: "Method not allowed" }),
-                    { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+        if (url.pathname === '/api/openrouter/completion') {
+            if (req.method !== 'POST') {
+                return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+                    status: 405,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             try {
                 const body = await req.json();
-                const { prompt, model, format = "plain", openrouter_user_key } = body;
+                const { prompt, model, format = 'plain', openrouter_user_key } = body;
 
                 // Use user's OAuth key if provided, otherwise fall back to server key
                 const apiKey = openrouter_user_key || OPENROUTER_API_KEY;
 
                 if (!apiKey) {
                     return new Response(
-                        JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
-                        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        JSON.stringify({
+                            error: 'No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY.',
+                        }),
+                        {
+                            status: 401,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        },
                     );
                 }
 
                 if (!prompt) {
-                    return new Response(
-                        JSON.stringify({ error: "Missing prompt in request body" }),
-                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                    );
+                    return new Response(JSON.stringify({ error: 'Missing prompt in request body' }), {
+                        status: 400,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 if (!model) {
-                    return new Response(
-                        JSON.stringify({ error: "Missing model in request body" }),
-                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                    );
+                    return new Response(JSON.stringify({ error: 'Missing model in request body' }), {
+                        status: 400,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 // Validate format
-                const validFormat = (["plain", "json", "xml"].includes(format) ? format : "plain") as PromptFormat;
+                const validFormat = (['plain', 'json', 'xml'].includes(format) ? format : 'plain') as PromptFormat;
                 const systemPrompt = buildSystemPrompt(validFormat);
 
                 console.log(`[OpenRouter] Streaming completion with model: ${model}, format: ${validFormat}`);
@@ -351,8 +369,8 @@ Bun.serve({
                 const openrouter = createOpenRouter({
                     apiKey,
                     headers: {
-                        "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
-                        "X-Title": "latent-space-generator",
+                        'HTTP-Referer': 'https://github.com/jessearmand/latent-space-generator',
+                        'X-Title': 'latent-space-generator',
                     },
                 });
 
@@ -378,22 +396,22 @@ Bun.serve({
                     headers,
                 });
             } catch (error) {
-                console.error("[OpenRouter] Error:", error);
-                const message = error instanceof Error ? error.message : "Unknown error";
-                return new Response(
-                    JSON.stringify({ error: `OpenRouter completion error: ${message}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                console.error('[OpenRouter] Error:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return new Response(JSON.stringify({ error: `OpenRouter completion error: ${message}` }), {
+                    status: 502,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 
         // OpenRouter Image Generation API endpoint
-        if (url.pathname === "/api/openrouter/images") {
-            if (req.method !== "POST") {
-                return new Response(
-                    JSON.stringify({ error: "Method not allowed" }),
-                    { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+        if (url.pathname === '/api/openrouter/images') {
+            if (req.method !== 'POST') {
+                return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+                    status: 405,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
 
             try {
@@ -404,16 +422,21 @@ Bun.serve({
 
                 if (!apiKey) {
                     return new Response(
-                        JSON.stringify({ error: "No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY." }),
-                        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        JSON.stringify({
+                            error: 'No API key available. Please log in with OpenRouter or set OPENROUTER_API_KEY.',
+                        }),
+                        {
+                            status: 401,
+                            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        },
                     );
                 }
 
                 if (!prompt || !model) {
-                    return new Response(
-                        JSON.stringify({ error: "Missing prompt or model in request body" }),
-                        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                    );
+                    return new Response(JSON.stringify({ error: 'Missing prompt or model in request body' }), {
+                        status: 400,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 console.log(`[OpenRouter Images] Generating image with model: ${model}`);
@@ -422,10 +445,8 @@ Bun.serve({
                 // GPT models need plain string content; Gemini handles both formats
                 const requestBody: Record<string, unknown> = {
                     model,
-                    modalities: ["image", "text"],
-                    messages: [
-                        { role: "user", content: prompt },
-                    ],
+                    modalities: ['image', 'text'],
+                    messages: [{ role: 'user', content: prompt }],
                 };
 
                 // Add image config for models that support it (e.g. Gemini)
@@ -438,13 +459,13 @@ Bun.serve({
                     }
                 }
 
-                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${apiKey}`,
-                        "HTTP-Referer": "https://github.com/jessearmand/latent-space-generator",
-                        "X-Title": "latent-space-generator",
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${apiKey}`,
+                        'HTTP-Referer': 'https://github.com/jessearmand/latent-space-generator',
+                        'X-Title': 'latent-space-generator',
                     },
                     body: JSON.stringify(requestBody),
                 });
@@ -453,20 +474,20 @@ Bun.serve({
 
                 if (!response.ok) {
                     const errorMsg = responseData?.error?.message || `OpenRouter API error: ${response.status}`;
-                    return new Response(
-                        JSON.stringify({ error: errorMsg }),
-                        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                    );
+                    return new Response(JSON.stringify({ error: errorMsg }), {
+                        status: response.status,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 // Extract base64 images from OpenRouter response
                 // Response format: choices[0].message.images[].image_url.url
                 const choices = responseData?.choices;
                 if (!choices?.length) {
-                    return new Response(
-                        JSON.stringify({ error: "No choices in OpenRouter response" }),
-                        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                    );
+                    return new Response(JSON.stringify({ error: 'No choices in OpenRouter response' }), {
+                        status: 502,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 const message = choices[0]?.message;
@@ -491,18 +512,21 @@ Bun.serve({
                 // Fallback: check message.content array for image_url parts
                 if (extractedImages.length === 0 && Array.isArray(message?.content)) {
                     for (const part of message.content) {
-                        if (part.type === "image_url" && part.image_url?.url) {
+                        if (part.type === 'image_url' && part.image_url?.url) {
                             extractedImages.push({ b64_json: extractBase64(part.image_url.url) });
                         }
                     }
                 }
 
                 if (extractedImages.length === 0) {
-                    console.error("[OpenRouter Images] Could not extract image from response:", JSON.stringify(responseData).substring(0, 500));
-                    return new Response(
-                        JSON.stringify({ error: "No image data found in OpenRouter response" }),
-                        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    console.error(
+                        '[OpenRouter Images] Could not extract image from response:',
+                        JSON.stringify(responseData).substring(0, 500),
                     );
+                    return new Response(JSON.stringify({ error: 'No image data found in OpenRouter response' }), {
+                        status: 502,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
                 }
 
                 // Return normalized format matching OpenAI proxy response shape
@@ -511,27 +535,27 @@ Bun.serve({
                         created: Math.floor(Date.now() / 1000),
                         data: extractedImages,
                     }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
                 );
             } catch (error) {
-                console.error("[OpenRouter Images] Error:", error);
-                const message = error instanceof Error ? error.message : "Unknown error";
-                return new Response(
-                    JSON.stringify({ error: `OpenRouter image generation error: ${message}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                console.error('[OpenRouter Images] Error:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return new Response(JSON.stringify({ error: `OpenRouter image generation error: ${message}` }), {
+                    status: 502,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 
         // 404 for unknown routes
-        return new Response(
-            JSON.stringify({ error: "Not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: 'Not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
     },
 });
 
 console.log(`Proxy server running on http://localhost:${PORT}`);
-console.log(`FAL_API_KEY configured: ${FAL_API_KEY ? "Yes" : "No"}`);
-console.log(`OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? "Yes" : "No"}`);
-console.log(`OPENAI_API_KEY configured: ${OPENAI_API_KEY ? "Yes" : "No"}`);
+console.log(`FAL_API_KEY configured: ${FAL_API_KEY ? 'Yes' : 'No'}`);
+console.log(`OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? 'Yes' : 'No'}`);
+console.log(`OPENAI_API_KEY configured: ${OPENAI_API_KEY ? 'Yes' : 'No'}`);

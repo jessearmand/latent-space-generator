@@ -88,48 +88,48 @@ describe('getImageInputConfig', () => {
     });
 
     describe('WAN models (multi-image, no strength)', () => {
-        it.each([
-            'fal-ai/wan/v2.6/image-to-image',
-            'fal-ai/wan-pro/image',
-        ])('%s should have array format, no strength', (modelId) => {
-            const config = getImageInputConfig(modelId);
-            expect(config).toEqual({
-                paramName: 'image_urls',
-                isArray: true,
-                strengthParam: null,
-                maxImages: 4,
-            });
-        });
+        it.each(['fal-ai/wan/v2.6/image-to-image', 'fal-ai/wan-pro/image'])(
+            '%s should have array format, no strength',
+            (modelId) => {
+                const config = getImageInputConfig(modelId);
+                expect(config).toEqual({
+                    paramName: 'image_urls',
+                    isArray: true,
+                    strengthParam: null,
+                    maxImages: 4,
+                });
+            },
+        );
     });
 
     describe('Seedance image-to-video (start frame + optional end frame)', () => {
-        it.each([
-            'bytedance/seedance-2.0/image-to-video',
-            'bytedance/seedance-2.0/fast/image-to-video',
-        ])('%s should expose 2 image slots, no strength', (modelId) => {
-            const config = getImageInputConfig(modelId);
-            expect(config).toEqual({
-                paramName: 'image_url',
-                isArray: false,
-                strengthParam: null,
-                maxImages: 2,
-            });
-        });
+        it.each(['bytedance/seedance-2.0/image-to-video', 'bytedance/seedance-2.0/fast/image-to-video'])(
+            '%s should expose 2 image slots, no strength',
+            (modelId) => {
+                const config = getImageInputConfig(modelId);
+                expect(config).toEqual({
+                    paramName: 'image_url',
+                    isArray: false,
+                    strengthParam: null,
+                    maxImages: 2,
+                });
+            },
+        );
     });
 
     describe('Seedance reference-to-video (up to 9 reference images)', () => {
-        it.each([
-            'bytedance/seedance-2.0/reference-to-video',
-            'bytedance/seedance-2.0/fast/reference-to-video',
-        ])('%s should expose 9 image slots in array form', (modelId) => {
-            const config = getImageInputConfig(modelId);
-            expect(config).toEqual({
-                paramName: 'image_urls',
-                isArray: true,
-                strengthParam: null,
-                maxImages: 9,
-            });
-        });
+        it.each(['bytedance/seedance-2.0/reference-to-video', 'bytedance/seedance-2.0/fast/reference-to-video'])(
+            '%s should expose 9 image slots in array form',
+            (modelId) => {
+                const config = getImageInputConfig(modelId);
+                expect(config).toEqual({
+                    paramName: 'image_urls',
+                    isArray: true,
+                    strengthParam: null,
+                    maxImages: 9,
+                });
+            },
+        );
     });
 
     describe('Non-seedance image-to-video models still default to single slot', () => {

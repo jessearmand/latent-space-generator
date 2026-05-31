@@ -71,16 +71,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
     const isAudioTab = isAudioCategory(filterByCategory);
 
     // Use the appropriate selection based on tab type
-    const currentSelectedModel = isAudioTab
-        ? selectedAudioModel
-        : isVideoTab
-        ? selectedVideoModel
-        : selectedModel;
+    const currentSelectedModel = isAudioTab ? selectedAudioModel : isVideoTab ? selectedVideoModel : selectedModel;
     const setCurrentSelectedModel = isAudioTab
         ? setSelectedAudioModel
         : isVideoTab
-        ? setSelectedVideoModel
-        : setSelectedModel;
+          ? setSelectedVideoModel
+          : setSelectedModel;
 
     // Memoize filtered models to prevent unnecessary re-renders
     const filteredModels = useMemo(() => {
@@ -94,7 +90,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         }
         // Use image models with filtering
         return getFilteredImageModels(filterByCategory as ImageModelCategory);
-    }, [isAudioTab, isVideoTab, filterByCategory, getFilteredVideoModels, getFilteredAudioModels, getFilteredImageModels]);
+    }, [
+        isAudioTab,
+        isVideoTab,
+        filterByCategory,
+        getFilteredVideoModels,
+        getFilteredAudioModels,
+        getFilteredImageModels,
+    ]);
 
     // Track previous values to detect actual changes
     const prevFilterRef = useRef(filterByCategory);
@@ -110,7 +113,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
         // Auto-select when filter or search changes and current selection is not in filtered list
         if ((filterChanged || modelsChanged) && filteredModels.length > 0) {
             const isInFiltered = currentSelectedModel
-                ? filteredModels.some(m => m.endpointId === currentSelectedModel.endpointId)
+                ? filteredModels.some((m) => m.endpointId === currentSelectedModel.endpointId)
                 : false;
             if (!isInFiltered) {
                 setCurrentSelectedModel(filteredModels[0]);
@@ -121,7 +124,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const endpointId = e.target.value;
         // Search in filteredModels first (works for both image and video)
-        const model = filteredModels.find(m => m.endpointId === endpointId);
+        const model = filteredModels.find((m) => m.endpointId === endpointId);
         if (model) {
             setCurrentSelectedModel(model);
         }
@@ -165,20 +168,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
     const isCurrentlyLoading = isAudioTab
         ? isLoadingAllAudioModels
         : isVideoTab
-        ? isLoadingAllVideoModels
-        : isLoadingAllImageModels;
+          ? isLoadingAllVideoModels
+          : isLoadingAllImageModels;
 
     // Get the appropriate "show all" and search state
-    const showAllModels = isAudioTab
-        ? showAllAudioModels
-        : isVideoTab
-        ? showAllVideoModels
-        : showAllImageModels;
-    const searchQuery = isAudioTab
-        ? audioSearchQuery
-        : isVideoTab
-        ? videoSearchQuery
-        : imageSearchQuery;
+    const showAllModels = isAudioTab ? showAllAudioModels : isVideoTab ? showAllVideoModels : showAllImageModels;
+    const searchQuery = isAudioTab ? audioSearchQuery : isVideoTab ? videoSearchQuery : imageSearchQuery;
 
     if (isCurrentlyLoading && filteredModels.length === 0) {
         return (
@@ -223,14 +218,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
                     />
                 )}
 
-                {isCurrentlyLoading && (
-                    <span className="loading-indicator">Loading all models...</span>
-                )}
+                {isCurrentlyLoading && <span className="loading-indicator">Loading all models...</span>}
             </div>
 
-            {error && !isVideoTab && !isAudioTab && (
-                <p className="model-error">{error}</p>
-            )}
+            {error && !isVideoTab && !isAudioTab && <p className="model-error">{error}</p>}
 
             <select
                 id="model-selector"
@@ -241,9 +232,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ className, filterB
             >
                 {filteredModels.length === 0 ? (
                     <option value="">
-                        {showAllModels && searchQuery
-                            ? 'No matching models'
-                            : 'No models available'}
+                        {showAllModels && searchQuery ? 'No matching models' : 'No models available'}
                     </option>
                 ) : (
                     filteredModels.map((model) => (

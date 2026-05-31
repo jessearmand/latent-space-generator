@@ -1,11 +1,7 @@
 import type { ConfigState } from '../config';
 import { getImageInputConfig } from './modelParams';
 
-export function buildGrokImageInput(
-    prompt: string,
-    config: ConfigState,
-    imageUrl?: string,
-): Record<string, unknown> {
+export function buildGrokImageInput(prompt: string, config: ConfigState, imageUrl?: string): Record<string, unknown> {
     const input: Record<string, unknown> = {
         prompt,
         num_images: config.grokNumImages,
@@ -56,10 +52,7 @@ export function buildGeminiImageInput(
     return input;
 }
 
-export function buildGptImageInput(
-    prompt: string,
-    config: ConfigState,
-): Record<string, unknown> {
+export function buildGptImageInput(prompt: string, config: ConfigState): Record<string, unknown> {
     return {
         prompt,
         image_size: config.gptImageSize,
@@ -79,13 +72,17 @@ export function buildGenericImageInput(
     const isQwenLayered = modelId.includes('qwen-image-layered');
     const isQwenModel = modelId.includes('qwen-image');
 
-    const layerParams = isQwenLayered ? {
-        num_layers: config.numLayers,
-    } : {};
+    const layerParams = isQwenLayered
+        ? {
+              num_layers: config.numLayers,
+          }
+        : {};
 
-    const accelerationParams = isQwenModel ? {
-        acceleration: config.acceleration,
-    } : {};
+    const accelerationParams = isQwenModel
+        ? {
+              acceleration: config.acceleration,
+          }
+        : {};
 
     const input: Record<string, unknown> = {
         prompt,
@@ -116,11 +113,7 @@ export function buildImageInputParams(
 
     const imageConfig = getImageInputConfig(modelId);
     return {
-        [imageConfig.paramName]: imageConfig.isArray
-            ? uploadedImageUrls
-            : uploadedImageUrls[0],
-        ...(imageConfig.strengthParam
-            ? { [imageConfig.strengthParam]: config.imagePromptStrength }
-            : {}),
+        [imageConfig.paramName]: imageConfig.isArray ? uploadedImageUrls : uploadedImageUrls[0],
+        ...(imageConfig.strengthParam ? { [imageConfig.strengthParam]: config.imagePromptStrength } : {}),
     };
 }

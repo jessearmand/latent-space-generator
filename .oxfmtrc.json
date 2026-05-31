@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": ["package.json", "**/*.md", "**/*.mdx"],
+  "printWidth": 120,
+  "sortPackageJson": false,
+  "tabWidth": 2,
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "options": {
+        "singleQuote": true,
+        "tabWidth": 4
+      }
+    }
+  ]
+}

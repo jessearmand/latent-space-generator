@@ -109,16 +109,14 @@ describe('Sidebar component', () => {
         // Click Images history item
         const imagesItem = screen.getByText('Images');
         fireEvent.click(imagesItem);
-        expect(defaultProps.onViewChange).toHaveBeenCalledWith({ kind: 'history', filter: 'image' });
+        expect(defaultProps.onViewChange).toHaveBeenCalledWith({
+            kind: 'history',
+            filter: 'image',
+        });
     });
 
     it('highlights history item when activeView is history', () => {
-        render(
-            <Sidebar
-                {...defaultProps}
-                activeView={{ kind: 'history', filter: 'video' }}
-            />
-        );
+        render(<Sidebar {...defaultProps} activeView={{ kind: 'history', filter: 'video' }} />);
         // Expand history section
         const historyHeader = getButton('Generation History');
         fireEvent.click(historyHeader);
@@ -264,7 +262,10 @@ describe('Sidebar component', () => {
             audiosItem.focus();
             fireEvent.keyDown(audiosItem, { key: 'Enter' });
 
-            expect(defaultProps.onViewChange).toHaveBeenCalledWith({ kind: 'history', filter: 'audio' });
+            expect(defaultProps.onViewChange).toHaveBeenCalledWith({
+                kind: 'history',
+                filter: 'audio',
+            });
         });
     });
 

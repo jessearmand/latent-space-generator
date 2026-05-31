@@ -6,8 +6,29 @@
 import type React from 'react';
 import { useConfig } from '../config';
 import type { ModelConfig } from '../types/models';
-import { MINIMAX_VOICES, MINIMAX_EMOTIONS, MINIMAX_LANGUAGE_BOOST, QWEN3_TTS_VOICES, QWEN3_TTS_LANGUAGES, ELEVENLABS_VOICES, PERSONAPLEX_VOICES } from '../types/audio';
-import { isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel } from '../services/audioModels';
+import {
+    MINIMAX_VOICES,
+    MINIMAX_EMOTIONS,
+    MINIMAX_LANGUAGE_BOOST,
+    QWEN3_TTS_VOICES,
+    QWEN3_TTS_LANGUAGES,
+    ELEVENLABS_VOICES,
+    PERSONAPLEX_VOICES,
+} from '../types/audio';
+import {
+    isMusicModel,
+    isSFXModel,
+    isBeatovenModel,
+    isAudioUnderstandingModel,
+    isMinimaxSpeechModel,
+    isQwen3TTSModel,
+    isQwen3VoiceDesignModel,
+    isElevenLabsTTSModel,
+    isElevenLabsSFXModel,
+    isElevenLabsMusicModel,
+    isElevenLabsAudioIsolationModel,
+    isPersonaPlexModel,
+} from '../services/audioModels';
 
 interface AudioConfigOptionsProps {
     selectedModel: ModelConfig;
@@ -176,7 +197,9 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                             id="qwen-style-prompt"
                             value={config.qwenTtsStylePrompt}
                             onChange={(e) => config.setQwenTtsStylePrompt(e.target.value)}
-                            placeholder={isQwen3VoiceDesign ? 'Describe the voice style...' : 'Optional tone/style guidance...'}
+                            placeholder={
+                                isQwen3VoiceDesign ? 'Describe the voice style...' : 'Optional tone/style guidance...'
+                            }
                             rows={2}
                             className="negative-prompt-textarea"
                         />
@@ -220,8 +243,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
                     <div className="form-group">
                         <label htmlFor="chatterbox-temperature">
-                            Temperature:{' '}
-                            <span className="range-value">{config.chatterboxTemperature.toFixed(1)}</span>
+                            Temperature: <span className="range-value">{config.chatterboxTemperature.toFixed(1)}</span>
                         </label>
                         <input
                             type="range"
@@ -286,7 +308,8 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
                     <div className="form-group">
                         <label htmlFor="elevenlabs-similarity">
-                            Similarity Boost: <span className="range-value">{config.elevenLabsSimilarityBoost.toFixed(2)}</span>
+                            Similarity Boost:{' '}
+                            <span className="range-value">{config.elevenLabsSimilarityBoost.toFixed(2)}</span>
                         </label>
                         <input
                             type="range"
@@ -335,7 +358,8 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
             {isElevenLabsSFX && (
                 <div className="form-group">
                     <label htmlFor="elevenlabs-prompt-influence">
-                        Prompt Influence: <span className="range-value">{config.elevenLabsPromptInfluence.toFixed(2)}</span>
+                        Prompt Influence:{' '}
+                        <span className="range-value">{config.elevenLabsPromptInfluence.toFixed(2)}</span>
                     </label>
                     <input
                         type="range"
@@ -359,8 +383,8 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                             type="checkbox"
                             checked={config.elevenLabsForceInstrumental}
                             onChange={(e) => config.setElevenLabsForceInstrumental(e.target.checked)}
-                        />
-                        {' '}Force Instrumental
+                        />{' '}
+                        Force Instrumental
                     </label>
                 </div>
             )}
@@ -368,9 +392,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
             {/* ElevenLabs Audio Isolation info */}
             {isElevenLabsAudioIsolation && (
                 <div className="form-group">
-                    <p className="config-hint">
-                        Upload an audio file to isolate vocals from the mix.
-                    </p>
+                    <p className="config-hint">Upload an audio file to isolate vocals from the mix.</p>
                 </div>
             )}
 
@@ -411,9 +433,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
             {/* Mirelo SFX info */}
             {isMirelo && (
                 <div className="form-group">
-                    <p className="config-hint">
-                        Upload a video file to generate synced sound effects.
-                    </p>
+                    <p className="config-hint">Upload a video file to generate synced sound effects.</p>
                 </div>
             )}
 
@@ -432,15 +452,9 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                         value={config.audioDuration}
                         onChange={(e) => config.setAudioDuration(parseInt(e.target.value, 10))}
                     />
-                    {isBeatovenMusic && (
-                        <span className="hint"> (5-150s for Beatoven Music)</span>
-                    )}
-                    {isBeatovenSFX && (
-                        <span className="hint"> (1-35s for Beatoven SFX)</span>
-                    )}
-                    {isElevenLabsSFX && (
-                        <span className="hint"> (0.5-22s for ElevenLabs SFX)</span>
-                    )}
+                    {isBeatovenMusic && <span className="hint"> (5-150s for Beatoven Music)</span>}
+                    {isBeatovenSFX && <span className="hint"> (1-35s for Beatoven SFX)</span>}
+                    {isElevenLabsSFX && <span className="hint"> (0.5-22s for ElevenLabs SFX)</span>}
                 </div>
             )}
 
@@ -449,8 +463,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                 <>
                     <div className="form-group">
                         <label htmlFor="beatoven-refinement">
-                            Refinement:{' '}
-                            <span className="range-value">{config.beatovenRefinement}</span>
+                            Refinement: <span className="range-value">{config.beatovenRefinement}</span>
                         </label>
                         <input
                             type="range"
@@ -466,8 +479,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
 
                     <div className="form-group">
                         <label htmlFor="beatoven-creativity">
-                            Creativity:{' '}
-                            <span className="range-value">{config.beatovenCreativity}</span>
+                            Creativity: <span className="range-value">{config.beatovenCreativity}</span>
                         </label>
                         <input
                             type="range"
@@ -499,9 +511,7 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
             {isAudioUnderstanding && (
                 <>
                     <div className="form-group">
-                        <p className="config-hint">
-                            Upload an audio file and ask a question about its content.
-                        </p>
+                        <p className="config-hint">Upload an audio file and ask a question about its content.</p>
                     </div>
                     <div className="form-group">
                         <label htmlFor="audio-detailed-analysis">
@@ -510,8 +520,8 @@ export const AudioConfigOptions: React.FC<AudioConfigOptionsProps> = ({ selected
                                 type="checkbox"
                                 checked={config.audioDetailedAnalysis}
                                 onChange={(e) => config.setAudioDetailedAnalysis(e.target.checked)}
-                            />
-                            {' '}Detailed Analysis
+                            />{' '}
+                            Detailed Analysis
                         </label>
                     </div>
                 </>

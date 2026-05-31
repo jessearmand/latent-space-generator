@@ -54,9 +54,7 @@ function buildUrl(path: string, params: ModelsQueryParams): string {
 }
 
 /** Fetch models with given parameters via proxy */
-async function fetchModelsPage(
-    params: ModelsQueryParams
-): Promise<ModelsApiResponse> {
+async function fetchModelsPage(params: ModelsQueryParams): Promise<ModelsApiResponse> {
     const targetUrl = buildUrl('/models', params);
     console.log('[ModelsAPI] Fetching:', targetUrl);
 
@@ -88,9 +86,7 @@ async function fetchModelsPage(
 }
 
 /** Fetch all models for a given category, handling pagination */
-async function fetchAllModelsForCategory(
-    category: ModelCategory
-): Promise<FalModel[]> {
+async function fetchAllModelsForCategory(category: ModelCategory): Promise<FalModel[]> {
     const allModels: FalModel[] = [];
     let cursor: string | undefined;
     let hasMore = true;
@@ -108,7 +104,7 @@ async function fetchAllModelsForCategory(
         hasMore = response.has_more;
     }
 
-    return allModels.filter(m => !isBlocklisted(m.endpoint_id));
+    return allModels.filter((m) => !isBlocklisted(m.endpoint_id));
 }
 
 /** Fetch all image generation models (text-to-image and image-to-image) */

@@ -215,10 +215,7 @@ export const CURATED_IMAGE_TO_IMAGE_MODELS: ModelConfig[] = [
 ];
 
 /** All curated image models */
-export const CURATED_IMAGE_MODELS: ModelConfig[] = [
-    ...CURATED_TEXT_TO_IMAGE_MODELS,
-    ...CURATED_IMAGE_TO_IMAGE_MODELS,
-];
+export const CURATED_IMAGE_MODELS: ModelConfig[] = [...CURATED_TEXT_TO_IMAGE_MODELS, ...CURATED_IMAGE_TO_IMAGE_MODELS];
 
 /**
  * Get curated image models, optionally filtered by category
@@ -250,9 +247,9 @@ export function filterImageModelsByQuery(models: ModelConfig[], query: string): 
 
     const lowerQuery = query.toLowerCase().trim();
 
-    return models.filter(model =>
-        model.displayName.toLowerCase().includes(lowerQuery) ||
-        model.endpointId.toLowerCase().includes(lowerQuery)
+    return models.filter(
+        (model) =>
+            model.displayName.toLowerCase().includes(lowerQuery) || model.endpointId.toLowerCase().includes(lowerQuery),
     );
 }
 

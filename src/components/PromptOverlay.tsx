@@ -28,11 +28,7 @@ export const PromptOverlay: React.FC<PromptOverlayProps> = ({
 
     return (
         <div className={`prompt-overlay ${standalone ? 'prompt-overlay--standalone' : ''}`}>
-            <p
-                className="prompt-overlay-text"
-                style={{ WebkitLineClamp: maxLines }}
-                title={prompt}
-            >
+            <p className="prompt-overlay-text" style={{ WebkitLineClamp: maxLines }} title={prompt}>
                 {prompt}
             </p>
             <div className="prompt-overlay-meta">

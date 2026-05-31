@@ -16,11 +16,7 @@ interface VideoUploadZoneProps {
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 const ACCEPTED_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi'];
 
-export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
-    uploadedFile,
-    onFileChange,
-    disabled = false,
-}) => {
+export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({ uploadedFile, onFileChange, disabled = false }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,9 +41,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
         (file: File) => {
             // Validate file type
             const isValidType = ACCEPTED_VIDEO_TYPES.includes(file.type);
-            const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
-                file.name.toLowerCase().endsWith(ext)
-            );
+            const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext));
 
             if (!isValidType && !hasValidExtension) {
                 console.error('Invalid video file type:', file.type);
@@ -63,7 +57,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
 
             onFileChange(file);
         },
-        [videoPreviewUrl, onFileChange]
+        [videoPreviewUrl, onFileChange],
     );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -91,7 +85,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                 handleFile(files[0]);
             }
         },
-        [disabled, handleFile]
+        [disabled, handleFile],
     );
 
     const handleInputChange = useCallback(
@@ -101,7 +95,7 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                 handleFile(files[0]);
             }
         },
-        [handleFile]
+        [handleFile],
     );
 
     const handleRemove = useCallback(() => {
@@ -125,7 +119,9 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
 
     return (
         <div className="video-upload-zone-container">
-            <label htmlFor={inputId} className="video-upload-label">Upload Video File:</label>
+            <label htmlFor={inputId} className="video-upload-label">
+                Upload Video File:
+            </label>
 
             {!uploadedFile ? (
                 <button
@@ -140,12 +136,8 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                 >
                     <div className="video-upload-content">
                         <span className="video-upload-icon">🎬</span>
-                        <span className="video-upload-text">
-                            Drag & drop a video file here, or click to select
-                        </span>
-                        <span className="video-upload-hint">
-                            Supported: MP4, WebM, MOV, AVI
-                        </span>
+                        <span className="video-upload-text">Drag & drop a video file here, or click to select</span>
+                        <span className="video-upload-hint">Supported: MP4, WebM, MOV, AVI</span>
                     </div>
                 </button>
             ) : (
@@ -153,24 +145,13 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({
                     <div className="video-preview-info">
                         <span className="video-preview-icon">🎬</span>
                         <span className="video-preview-name">{uploadedFile.name}</span>
-                        <span className="video-preview-size">
-                            ({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
+                        <span className="video-preview-size">({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                     {videoPreviewUrl && (
                         /* oxlint-disable-next-line jsx-a11y/media-has-caption -- Uploaded previews do not ship with caption tracks. */
-                        <video
-                            src={videoPreviewUrl}
-                            controls
-                            className="video-preview-player"
-                        />
+                        <video src={videoPreviewUrl} controls className="video-preview-player" />
                     )}
-                    <button
-                        type="button"
-                        className="video-remove-btn"
-                        onClick={handleRemove}
-                        disabled={disabled}
-                    >
+                    <button type="button" className="video-remove-btn" onClick={handleRemove} disabled={disabled}>
                         Remove
                     </button>
                 </div>

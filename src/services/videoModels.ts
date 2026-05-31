@@ -415,8 +415,8 @@ export function filterModelsByQuery(models: ModelConfig[], query: string): Model
 
     const lowerQuery = query.toLowerCase().trim();
 
-    return models.filter(model =>
-        model.displayName.toLowerCase().includes(lowerQuery) ||
-        model.endpointId.toLowerCase().includes(lowerQuery)
+    return models.filter(
+        (model) =>
+            model.displayName.toLowerCase().includes(lowerQuery) || model.endpointId.toLowerCase().includes(lowerQuery),
     );
 }

@@ -225,8 +225,7 @@ export function filterAudioModelsByQuery(models: ModelConfig[], query: string): 
 
     return models.filter(
         (model) =>
-            model.displayName.toLowerCase().includes(lowerQuery) ||
-            model.endpointId.toLowerCase().includes(lowerQuery)
+            model.displayName.toLowerCase().includes(lowerQuery) || model.endpointId.toLowerCase().includes(lowerQuery),
     );
 }
 
@@ -235,11 +234,7 @@ export function filterAudioModelsByQuery(models: ModelConfig[], query: string): 
  */
 export function isTTSModel(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
-    return (
-        lowerEndpoint.includes('speech') ||
-        lowerEndpoint.includes('tts') ||
-        lowerEndpoint.includes('chatterbox')
-    );
+    return lowerEndpoint.includes('speech') || lowerEndpoint.includes('tts') || lowerEndpoint.includes('chatterbox');
 }
 
 /**
@@ -255,10 +250,7 @@ export function isMusicModel(endpointId: string): boolean {
  */
 export function isSFXModel(endpointId: string): boolean {
     const lowerEndpoint = endpointId.toLowerCase();
-    return (
-        lowerEndpoint.includes('sound-effect') ||
-        lowerEndpoint.includes('sfx')
-    );
+    return lowerEndpoint.includes('sound-effect') || lowerEndpoint.includes('sfx');
 }
 
 /**

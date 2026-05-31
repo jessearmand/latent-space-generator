@@ -63,8 +63,8 @@ export interface OpenRouterModel {
  * show duplicate `anthropic` / `~anthropic` entries for the same provider.
  */
 export function getProviderFromId(modelId: string): string {
-    const prefix = modelId.split("/")[0] || "unknown";
-    return prefix.startsWith("~") ? prefix.slice(1) : prefix;
+    const prefix = modelId.split('/')[0] || 'unknown';
+    return prefix.startsWith('~') ? prefix.slice(1) : prefix;
 }
 
 export interface OpenRouterModelsResponse {
@@ -76,25 +76,25 @@ export interface OpenRouterModelsResponse {
  * Based on OpenRouter's model categorization
  */
 export type OpenRouterModelGroup =
-    | "Router"
-    | "Media"
-    | "Other"
-    | "GPT"
-    | "Claude"
-    | "Gemini"
-    | "Grok"
-    | "Cohere"
-    | "Nova"
-    | "Qwen"
-    | "Yi"
-    | "DeepSeek"
-    | "Mistral"
-    | "Llama2"
-    | "Llama3"
-    | "Llama4"
-    | "PaLM"
-    | "RWKV"
-    | "Qwen3";
+    | 'Router'
+    | 'Media'
+    | 'Other'
+    | 'GPT'
+    | 'Claude'
+    | 'Gemini'
+    | 'Grok'
+    | 'Cohere'
+    | 'Nova'
+    | 'Qwen'
+    | 'Yi'
+    | 'DeepSeek'
+    | 'Mistral'
+    | 'Llama2'
+    | 'Llama3'
+    | 'Llama4'
+    | 'PaLM'
+    | 'RWKV'
+    | 'Qwen3';
 
 /**
  * Filter state for model selection
@@ -116,16 +116,13 @@ export interface OpenRouterModelFilters {
  * Check if a model supports text output
  */
 export function isTextOutputModel(model: OpenRouterModel): boolean {
-    return model.architecture.output_modalities.includes("text");
+    return model.architecture.output_modalities.includes('text');
 }
 
 /**
  * Filter models by criteria
  */
-export function filterModels(
-    models: OpenRouterModel[],
-    filters: OpenRouterModelFilters
-): OpenRouterModel[] {
+export function filterModels(models: OpenRouterModel[], filters: OpenRouterModelFilters): OpenRouterModel[] {
     // Normalize the filter the same way model providers are normalized, so a
     // persisted localStorage value like `~anthropic` (from before the alias
     // collapse landed) still matches the canonical `anthropic` bucket.

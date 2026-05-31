@@ -6,7 +6,23 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import type { StatusType } from './useStatusMessage';
-import { isTTSModel, isMusicModel, isSFXModel, isBeatovenModel, isAudioUnderstandingModel, isMinimaxSpeechModel, isMinimaxSpeech28Model, isQwen3TTSModel, isQwen3VoiceDesignModel, isElevenLabsTTSModel, isElevenLabsSFXModel, isElevenLabsMusicModel, isElevenLabsAudioIsolationModel, isPersonaPlexModel, isPromptOptionalForAudioModel } from '../services/audioModels';
+import {
+    isTTSModel,
+    isMusicModel,
+    isSFXModel,
+    isBeatovenModel,
+    isAudioUnderstandingModel,
+    isMinimaxSpeechModel,
+    isMinimaxSpeech28Model,
+    isQwen3TTSModel,
+    isQwen3VoiceDesignModel,
+    isElevenLabsTTSModel,
+    isElevenLabsSFXModel,
+    isElevenLabsMusicModel,
+    isElevenLabsAudioIsolationModel,
+    isPersonaPlexModel,
+    isPromptOptionalForAudioModel,
+} from '../services/audioModels';
 
 export interface UseAudioGenerationParams {
     activeTab: GenerationMode;
@@ -62,7 +78,7 @@ export function useAudioGeneration({
                     isAudioUnderstanding
                         ? 'Please upload an audio file to analyze.'
                         : 'Please upload an audio file for audio-to-audio generation.',
-                    'error'
+                    'error',
                 );
                 return;
             }
@@ -205,7 +221,8 @@ export function useAudioGeneration({
             if (isElevenLabsTTS) {
                 input.voice = config.elevenLabsVoice;
                 if (config.elevenLabsStability !== 0.5) input.stability = config.elevenLabsStability;
-                if (config.elevenLabsSimilarityBoost !== 0.75) input.similarity_boost = config.elevenLabsSimilarityBoost;
+                if (config.elevenLabsSimilarityBoost !== 0.75)
+                    input.similarity_boost = config.elevenLabsSimilarityBoost;
                 if (config.elevenLabsStyle !== 0) input.style = config.elevenLabsStyle;
                 if (config.elevenLabsSpeed !== 1) input.speed = config.elevenLabsSpeed;
             }
@@ -312,7 +329,10 @@ export function useAudioGeneration({
                         const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
                         const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
                         setStatus(`Request is ${statusResult.status}: ${latestLog}`);
-                        console.log(`Status logs:`, logs?.map((log) => log.message));
+                        console.log(
+                            `Status logs:`,
+                            logs?.map((log) => log.message),
+                        );
                         await new Promise((resolve) => setTimeout(resolve, 2000));
                     } else if (statusResult.status === 'COMPLETED') {
                         const result = await fal.queue.result(modelId, { requestId });
@@ -374,7 +394,7 @@ export function useAudioGeneration({
                 const rawMessage = error instanceof Error ? error.message : String(error);
                 if (rawMessage.includes('401') || rawMessage.includes('Unauthorized')) {
                     console.error(
-                        'Authentication error detected. The API key may be invalid or not applied correctly.'
+                        'Authentication error detected. The API key may be invalid or not applied correctly.',
                     );
                     setStatus('Authentication failed. Please check your API key.', 'error');
                 } else {
@@ -384,7 +404,7 @@ export function useAudioGeneration({
                 setIsGenerating(false);
             }
         },
-        [activeTab, uploadedAudioFile, uploadedVideoFile, config, setStatus]
+        [activeTab, uploadedAudioFile, uploadedVideoFile, config, setStatus],
     );
 
     const clearAudio = useCallback(() => {

@@ -39,9 +39,7 @@ export interface OpenAIErrorResponse {
  * Generate image using OpenAI's GPT Image models directly
  * API key is injected server-side by the proxy
  */
-export async function generateOpenAIImage(
-    params: OpenAIImageParams
-): Promise<OpenAIImageResponse> {
+export async function generateOpenAIImage(params: OpenAIImageParams): Promise<OpenAIImageResponse> {
     const response = await fetch(OPENAI_PROXY_URL, {
         method: 'POST',
         headers: {

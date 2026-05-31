@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { isPromptOptionalForAudioModel } from './audioModels';
 
 describe('isPromptOptionalForAudioModel', () => {
-    it.each([
-        'fal-ai/personaplex',
-        'fal-ai/elevenlabs/audio-isolation',
-        'FAL-AI/ELEVENLABS/AUDIO-ISOLATION',
-    ])('returns true for prompt-optional model %s', (modelId) => {
-        expect(isPromptOptionalForAudioModel(modelId)).toBe(true);
-    });
+    it.each(['fal-ai/personaplex', 'fal-ai/elevenlabs/audio-isolation', 'FAL-AI/ELEVENLABS/AUDIO-ISOLATION'])(
+        'returns true for prompt-optional model %s',
+        (modelId) => {
+            expect(isPromptOptionalForAudioModel(modelId)).toBe(true);
+        },
+    );
 
     it.each([
         'fal-ai/minimax/speech-02-hd',

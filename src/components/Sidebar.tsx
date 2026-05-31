@@ -151,9 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     historyBadgeCounts,
     disabled = false,
 }) => {
-    const [expandedSections, setExpandedSections] = useState<Set<string>>(() =>
-        getInitialExpandedSections(activeMode)
-    );
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(() => getInitialExpandedSections(activeMode));
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
     const nodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -206,7 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             setFocusedIndex(clamped);
             nodeRefs.current[clamped]?.focus();
         },
-        [visibleNodes.length]
+        [visibleNodes.length],
     );
 
     const toggleSection = useCallback((sectionId: string) => {
@@ -304,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.preventDefault();
             }
         },
-        [disabled, visibleNodes, expandedSections, moveFocus, toggleSection, activateMode]
+        [disabled, visibleNodes, expandedSections, moveFocus, toggleSection, activateMode],
     );
 
     /** Check if a mode item is currently active */
@@ -351,7 +349,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onKeyDown={handleTreeKeyDown}
                             onFocus={() => setFocusedIndex(sectionRefIndex)}
                             tabIndex={focusedIndex === sectionRefIndex ? 0 : -1}
-                            ref={(el) => { nodeRefs.current[sectionRefIndex] = el; }}
+                            ref={(el) => {
+                                nodeRefs.current[sectionRefIndex] = el;
+                            }}
                             disabled={disabled}
                         >
                             <span className="sidebar-section-icon">{isExpanded ? '\u25BC' : '\u25B6'}</span>
@@ -359,18 +359,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </button>
 
                         {isExpanded && (
-                            <div
-                                role="group"
-                                className="sidebar-mode-list"
-                            >
+                            <div role="group" className="sidebar-mode-list">
                                 {section.modes.map((mode) => {
                                     const isActive = isModeActive(mode.id, section.isHistory === true);
                                     const modeRefIndex = refIndex++;
 
                                     // Badge count for history items
-                                    const badgeCount = section.isHistory && historyBadgeCounts
-                                        ? historyBadgeCounts[historyModeToFilter[mode.id] as HistoryFilter]
-                                        : undefined;
+                                    const badgeCount =
+                                        section.isHistory && historyBadgeCounts
+                                            ? historyBadgeCounts[historyModeToFilter[mode.id] as HistoryFilter]
+                                            : undefined;
 
                                     return (
                                         <button
@@ -384,7 +382,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             onKeyDown={handleTreeKeyDown}
                                             onFocus={() => setFocusedIndex(modeRefIndex)}
                                             tabIndex={focusedIndex === modeRefIndex ? 0 : -1}
-                                            ref={(el) => { nodeRefs.current[modeRefIndex] = el; }}
+                                            ref={(el) => {
+                                                nodeRefs.current[modeRefIndex] = el;
+                                            }}
                                             disabled={disabled}
                                         >
                                             {mode.label}

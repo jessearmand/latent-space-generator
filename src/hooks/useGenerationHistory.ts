@@ -1,11 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { OutputType } from '../types/models';
 import type { GenerationMode } from '../components/GenerationTabs';
-import {
-    type HistoryEntry,
-    MAX_HISTORY_ENTRIES,
-    generateHistoryId,
-} from '../types/history';
+import { type HistoryEntry, MAX_HISTORY_ENTRIES, generateHistoryId } from '../types/history';
 import { type HistoryFilter, outputTypeToHistoryFilter } from '../types/appView';
 
 export interface AddToHistoryParams {
@@ -67,5 +63,12 @@ export function useGenerationHistory(): UseGenerationHistoryReturn {
         [history],
     );
 
-    return { history, addToHistory, removeHistoryEntry, clearHistory, clearHistoryByFilter, getCountByFilter };
+    return {
+        history,
+        addToHistory,
+        removeHistoryEntry,
+        clearHistory,
+        clearHistoryByFilter,
+        getCountByFilter,
+    };
 }

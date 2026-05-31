@@ -3,21 +3,21 @@
  * Routes through local proxy server to keep API keys secure
  */
 
-import type { OpenRouterModel, OpenRouterModelsResponse } from "../types/openrouter";
+import type { OpenRouterModel, OpenRouterModelsResponse } from '../types/openrouter';
 
-const PROXY_URL = "http://localhost:3001/api/openrouter/models";
+const PROXY_URL = 'http://localhost:3001/api/openrouter/models';
 
 /** Fetch models from OpenRouter API via proxy */
 export async function fetchOpenRouterModels(userApiKey?: string | null): Promise<OpenRouterModel[]> {
     const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
     };
     if (userApiKey) {
         headers.Authorization = `Bearer ${userApiKey}`;
     }
 
     const response = await fetch(PROXY_URL, {
-        method: "GET",
+        method: 'GET',
         headers,
     });
 
@@ -31,7 +31,7 @@ export async function fetchOpenRouterModels(userApiKey?: string | null): Promise
 }
 
 /** Cache key for localStorage */
-const CACHE_KEY = "openrouter_models_cache";
+const CACHE_KEY = 'openrouter_models_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheEntry {
@@ -81,7 +81,10 @@ export function clearOpenRouterModelsCache(): void {
  * Get models with caching
  * Tries cache first, then fetches from API
  */
-export async function getOpenRouterModels(forceRefresh = false, userApiKey?: string | null): Promise<OpenRouterModel[]> {
+export async function getOpenRouterModels(
+    forceRefresh = false,
+    userApiKey?: string | null,
+): Promise<OpenRouterModel[]> {
     // Try cache first unless forcing refresh
     if (!forceRefresh) {
         const cached = getCachedOpenRouterModels();

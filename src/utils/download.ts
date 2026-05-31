@@ -14,9 +14,7 @@ export async function downloadImage(url: string, filename?: string): Promise<voi
             blob = dataUrlToBlob(url);
             // Data URLs don't have filenames, so generate one
             const extension = getExtensionFromMimeType(blob.type);
-            resolvedFilename = filename
-                ? `${filename}.${extension}`
-                : `${generateFilename()}.${extension}`;
+            resolvedFilename = filename ? `${filename}.${extension}` : `${generateFilename()}.${extension}`;
         } else {
             // Handle HTTP URLs (from fal.ai models)
             const response = await fetch(url);
