@@ -100,6 +100,14 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'bytedance/seedance-2.5/text-to-video',
+        displayName: 'Seedance 2.5',
+        category: 'text-to-video',
+        description: "ByteDance's latest T2V — up to 30s clips with native audio, 480p/720p",
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
         endpointId: 'bytedance/seedance-2.0/fast/text-to-video',
         displayName: 'Seedance 2.0 Fast',
         category: 'text-to-video',
@@ -200,6 +208,14 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'LTX-2 Pro I2V',
         category: 'image-to-video',
         description: 'Transform images into videos with audio, up to 2160p',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.5/image-to-video',
+        displayName: 'Seedance 2.5 I2V',
+        category: 'image-to-video',
+        description: "ByteDance's latest I2V — animates a still up to 30s, optional end-frame morph",
         supportsImageInput: true,
         outputType: 'video',
     },
@@ -384,12 +400,12 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
     return [];
 }
 
-/** Detect ByteDance Seedance 2.0 endpoints (any tier, any sub-task). */
+/** Detect ByteDance Seedance 2.x endpoints (any version, any tier, any sub-task). */
 export function isSeedanceModel(endpointId: string): boolean {
     return endpointId.toLowerCase().includes('seedance-2');
 }
 
-/** Detect the Seedance Fast tier specifically (caps at 720p). */
+/** Detect the Seedance 2.0 Fast tier specifically (caps at 720p; 2.5 has no tiers). */
 export function isSeedanceFastModel(endpointId: string): boolean {
     return endpointId.toLowerCase().includes('seedance-2.0/fast');
 }

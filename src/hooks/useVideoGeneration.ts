@@ -5,6 +5,7 @@ import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
+import { getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import type { StatusType } from './useStatusMessage';
 
@@ -155,34 +156,38 @@ export function useVideoGeneration({
 
             const modelIdLower = modelId.toLowerCase();
             const isSeedance = isSeedanceModel(modelId);
+            // Capability profile (currently Seedance 2.5) declares per-endpoint schema
+            // differences: seed legality and a possibly pinned aspect ratio.
+            const profile = getVideoCapabilityProfile(modelId);
 
             if (isSeedance) {
-                // Seedance 2.0 has its own input shape (string `duration` enum, no cfg_scale,
+                // Seedance 2.x has its own input shape (string `duration` enum, no cfg_scale,
                 // no guidance_scale, no fps). Build the payload here; the per-model branches
                 // below are gated behind `!isSeedance` so they don't fight with this.
 
-                // Resolution (Pro: 480p/720p/1080p; Fast: 480p/720p)
+                // Resolution (2.0 Pro: 480p/720p/1080p; 2.0 Fast and all 2.5: 480p/720p)
                 if (config.videoResolution) {
                     input.resolution = config.videoResolution;
                 }
 
-                // Duration: seedance expects "auto" or a string "4".."15".
+                // Duration: seedance expects "auto" or a string ("4".."15" on 2.0, up to "30" on 2.5).
                 // Storage may have either a bare number ("5") or a legacy "5s" suffix.
                 if (config.videoDuration) {
                     const raw = config.videoDuration.trim();
                     input.duration = raw === 'auto' ? 'auto' : raw.replace(/s$/, '');
                 }
 
-                // Aspect ratio: pass through, including "auto" and "21:9".
+                // Aspect ratio: pass through, including "auto" and "21:9". A profile may
+                // pin it (Seedance 2.5 i2v only accepts "auto").
                 if (config.videoAspectRatio) {
-                    input.aspect_ratio = config.videoAspectRatio;
+                    input.aspect_ratio = profile?.forcedAspectRatio ?? config.videoAspectRatio;
                 }
 
                 // Synchronized audio (default true on the API; we mirror the user's toggle).
                 input.generate_audio = config.generateAudio;
 
-                // Seed (optional integer).
-                if (config.videoSeed !== null) {
+                // Seed (optional integer; Seedance 2.5 exposes it on text-to-video only).
+                if (config.videoSeed !== null && (profile?.supportsSeed ?? true)) {
                     input.seed = config.videoSeed;
                 }
 

@@ -6,6 +6,7 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useConfig } from '../config';
+import { getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import type { ModelConfig } from '../types/models';
 
 interface VideoConfigOptionsProps {
@@ -16,6 +17,10 @@ interface VideoConfigOptionsProps {
 export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selectedModel, isVideoToVideo = false }) => {
     const config = useConfig();
     const modelId = selectedModel.endpointId.toLowerCase();
+
+    // Endpoints with a capability profile get their options/field visibility from
+    // declared schema data; everything else uses the legacy detection below.
+    const profile = getVideoCapabilityProfile(selectedModel.endpointId);
 
     // Model detection helpers
     const isKlingModel = modelId.includes('kling');
@@ -28,10 +33,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
     const isSeedance = modelId.includes('seedance-2');
     const isSeedanceFast = modelId.includes('seedance-2.0/fast');
-    const supportsAudio = isVeoModel || isLtxModel || isSeedance;
-    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't
-    const supportsGuidanceScale =
-        isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
+    const supportsAudio = profile ? profile.supportsGenerateAudio : isVeoModel || isLtxModel || isSeedance;
+    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't.
+    // No profiled endpoint exposes guidance_scale so far.
+    const supportsGuidanceScale = profile
+        ? false
+        : isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
+    // Seed and negative prompt: profiles declare these; legacy models keep the old rules
+    // (seed always shown, negative prompt hidden for Seedance 2.0 which lacks it).
+    const supportsSeed = profile ? profile.supportsSeed : true;
+    const supportsNegativePrompt = profile ? profile.supportsNegativePrompt : !isSeedance;
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -49,6 +60,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
 
     // Different models support different durations
     const getDurationOptions = (): string[] => {
+        // Capability-profile endpoints declare their duration enum directly.
+        if (profile) {
+            return profile.durations;
+        }
+
         // Seedance 2.0 — "auto" lets the model decide; otherwise 4-15 seconds.
         // Stored as bare number strings ("4", "5", ..., "15") to match the API enum.
         if (isSeedance) {
@@ -86,6 +102,13 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
 
     // Different models support different aspect ratios
     const getAspectRatioOptions = (): string[] => {
+        // Capability-profile endpoints declare their aspect ratio enum; a forced
+        // ratio (e.g. Seedance 2.5 i2v pins "auto") collapses to a single option
+        // and hides the selector.
+        if (profile) {
+            return profile.forcedAspectRatio ? [profile.forcedAspectRatio] : profile.aspectRatios;
+        }
+
         // Seedance 2.0 — "auto" infers from prompt/image; supports 21:9 ultrawide.
         if (isSeedance) {
             return ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'];
@@ -122,6 +145,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
 
     // Different models support different resolutions
     const getResolutionOptions = (): string[] => {
+        // Capability-profile endpoints declare their resolution enum directly.
+        if (profile) {
+            return profile.resolutions;
+        }
+
         // Seedance 2.0 — Fast tier caps at 720p; Pro tier adds 1080p.
         // 720p first so the validate-and-reset effect lands on a sensible default.
         if (isSeedance) {
@@ -201,20 +229,23 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </select>
             </div>
 
-            <div className="form-group">
-                <label htmlFor="video-aspect-ratio">Aspect Ratio:</label>
-                <select
-                    id="video-aspect-ratio"
-                    value={config.videoAspectRatio}
-                    onChange={(e) => config.setVideoAspectRatio(e.target.value)}
-                >
-                    {aspectRatioOptions.map((ratio) => (
-                        <option key={ratio} value={ratio}>
-                            {ratio}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {/* Hidden when the endpoint pins a single ratio (e.g. i2v follows the input image) */}
+            {aspectRatioOptions.length > 1 && (
+                <div className="form-group">
+                    <label htmlFor="video-aspect-ratio">Aspect Ratio:</label>
+                    <select
+                        id="video-aspect-ratio"
+                        value={config.videoAspectRatio}
+                        onChange={(e) => config.setVideoAspectRatio(e.target.value)}
+                    >
+                        {aspectRatioOptions.map((ratio) => (
+                            <option key={ratio} value={ratio}>
+                                {ratio}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {resolutionOptions.length > 1 && (
                 <div className="form-group">
@@ -423,18 +454,21 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </>
             )}
 
-            <div className="form-group">
-                <label htmlFor="video-seed">Seed (leave blank for random):</label>
-                <input
-                    id="video-seed"
-                    type="number"
-                    value={config.videoSeed !== null ? config.videoSeed : ''}
-                    onChange={(e) => config.setVideoSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
-                />
-            </div>
+            {/* Hidden for endpoints whose input schema has no seed (e.g. Seedance 2.5 i2v/r2v) */}
+            {supportsSeed && (
+                <div className="form-group">
+                    <label htmlFor="video-seed">Seed (leave blank for random):</label>
+                    <input
+                        id="video-seed"
+                        type="number"
+                        value={config.videoSeed !== null ? config.videoSeed : ''}
+                        onChange={(e) => config.setVideoSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
+                    />
+                </div>
+            )}
 
-            {/* Seedance 2.0 doesn't expose negative_prompt in its schema, hide the field. */}
-            {!isSeedance && (
+            {/* Seedance doesn't expose negative_prompt in its schema, hide the field. */}
+            {supportsNegativePrompt && (
                 <div className="form-group">
                     <label htmlFor="video-negative-prompt">Negative Prompt:</label>
                     <textarea

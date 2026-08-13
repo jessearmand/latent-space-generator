@@ -92,8 +92,9 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
     // Limit to 8 images to stay within the 9 MP budget (8 input + 1 output = 9 MP).
     const manyImagesModels = [/flux-2-pro\/edit/, /flux-2\/edit/, /flux-2\/flash\/edit/];
 
-    // Video model overrides (Seedance 2.0)
-    // - reference-to-video: array of up to 9 reference images
+    // Video model overrides (Seedance 2.x)
+    // - reference-to-video: array of reference images (9 on 2.0; 30 on 2.5, whose
+    //   video/audio reference slots are future work)
     // - image-to-video: single primary `image_url`, but a 2nd slot maps to `end_image_url`
     //   in the hook, so we expose 2 upload slots while keeping paramName='image_url'.
     const lower = modelId.toLowerCase();
@@ -103,7 +104,7 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
             paramName: 'image_urls',
             isArray: true,
             strengthParam: null,
-            maxImages: 9,
+            maxImages: lower.includes('seedance-2.5') ? 30 : 9,
         };
     }
     if (isSeedance && lower.includes('image-to-video')) {

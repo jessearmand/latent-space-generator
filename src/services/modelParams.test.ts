@@ -103,7 +103,11 @@ describe('getImageInputConfig', () => {
     });
 
     describe('Seedance image-to-video (start frame + optional end frame)', () => {
-        it.each(['bytedance/seedance-2.0/image-to-video', 'bytedance/seedance-2.0/fast/image-to-video'])(
+        it.each([
+            'bytedance/seedance-2.0/image-to-video',
+            'bytedance/seedance-2.0/fast/image-to-video',
+            'bytedance/seedance-2.5/image-to-video',
+        ])(
             '%s should expose 2 image slots, no strength',
             (modelId) => {
                 const config = getImageInputConfig(modelId);
@@ -130,6 +134,18 @@ describe('getImageInputConfig', () => {
                 });
             },
         );
+    });
+
+    describe('Seedance 2.5 reference-to-video (up to 30 reference images)', () => {
+        it('bytedance/seedance-2.5/reference-to-video should expose 30 image slots in array form', () => {
+            const config = getImageInputConfig('bytedance/seedance-2.5/reference-to-video');
+            expect(config).toEqual({
+                paramName: 'image_urls',
+                isArray: true,
+                strengthParam: null,
+                maxImages: 30,
+            });
+        });
     });
 
     describe('Non-seedance image-to-video models still default to single slot', () => {
