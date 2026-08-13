@@ -10,7 +10,6 @@ import { ImageUploadZone } from './ImageUploadZone';
 import { VideoUploadZone } from './VideoUploadZone';
 import { AudioUploadZone } from './AudioUploadZone';
 import { getImageInputConfig } from '../services/modelParams';
-import { isSeedanceImageToVideoModel } from '../services/videoModels';
 
 export interface InputSectionProps {
     activeTab: GenerationMode;
@@ -110,7 +109,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
                         maxImages={getImageInputConfig(currentSelectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
-                    {activeTab === 'image-to-video' && isSeedanceImageToVideoModel(currentSelectedModel.endpointId) && (
+                    {activeTab === 'image-to-video' &&
+                        getImageInputConfig(currentSelectedModel.endpointId).maxImages >= 2 && (
                         <p className="upload-caption">
                             First image is the start frame. The optional second image is used as the end frame for a
                             transition.

@@ -136,6 +136,18 @@ describe('getImageInputConfig', () => {
         );
     });
 
+    describe('MiniMax H3 image-to-video (first frame + optional last frame)', () => {
+        it('minimax/h3/image-to-video should expose 2 image slots, no strength', () => {
+            const config = getImageInputConfig('minimax/h3/image-to-video');
+            expect(config).toEqual({
+                paramName: 'image_url',
+                isArray: false,
+                strengthParam: null,
+                maxImages: 2,
+            });
+        });
+    });
+
     describe('Seedance 2.5 reference-to-video (up to 30 reference images)', () => {
         it('bytedance/seedance-2.5/reference-to-video should expose 30 image slots in array form', () => {
             const config = getImageInputConfig('bytedance/seedance-2.5/reference-to-video');

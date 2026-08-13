@@ -20,13 +20,19 @@
 export interface VideoCapabilityProfile {
     /** `duration` enum values exactly as the API expects them; first entry is the default. */
     durations: string[];
+    /** How `duration` is serialized: the enum string as-is, or parsed to integer seconds. */
+    durationFormat: 'string' | 'integer';
     /** `resolution` enum values; first entry is the default. */
     resolutions: string[];
-    /** `aspect_ratio` enum values; first entry is the default. */
+    /**
+     * `aspect_ratio` enum values; first entry is the default. An empty array
+     * means the endpoint has no `aspect_ratio` input at all (e.g. i2v endpoints
+     * that follow the input image) — hide the selector and send nothing.
+     */
     aspectRatios: string[];
     /**
      * When set, always send `aspect_ratio` as this value and hide the selector
-     * (e.g. i2v endpoints that derive the ratio from the input image).
+     * (e.g. i2v endpoints whose schema pins the ratio).
      */
     forcedAspectRatio?: string;
     /** Whether the input schema has `seed`. */
@@ -35,6 +41,10 @@ export interface VideoCapabilityProfile {
     supportsNegativePrompt: boolean;
     /** Whether the input schema has `generate_audio`. */
     supportsGenerateAudio: boolean;
+    /** Whether the input schema has `enable_prompt_expansion`. */
+    supportsPromptExpansion: boolean;
+    /** Whether the input schema has `enable_safety_checker`. */
+    supportsSafetyChecker: boolean;
 }
 
 /**
@@ -45,11 +55,34 @@ export interface VideoCapabilityProfile {
 function seedance25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
     return {
         durations: ['auto', ...Array.from({ length: 27 }, (_, i) => String(i + 4))],
+        durationFormat: 'string',
         resolutions: ['720p', '480p'],
         aspectRatios: ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
         supportsSeed: false,
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
+        supportsPromptExpansion: false,
+        supportsSafetyChecker: false,
+        ...overrides,
+    };
+}
+
+/**
+ * Shared MiniMax H3 schema: integer duration 5-15s (default 5), resolution
+ * 768P/2K/4K (default 2K), seed, prompt-expansion and safety-checker toggles.
+ * Audio is always generated natively — there is no `generate_audio` input.
+ */
+function minimaxH3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
+    return {
+        durations: Array.from({ length: 11 }, (_, i) => String(i + 5)),
+        durationFormat: 'integer',
+        resolutions: ['2K', '768P', '4K'],
+        aspectRatios: ['16:9', '21:9', '4:3', '1:1', '3:4', '9:16'],
+        supportsSeed: true,
+        supportsNegativePrompt: false,
+        supportsGenerateAudio: false,
+        supportsPromptExpansion: true,
+        supportsSafetyChecker: true,
         ...overrides,
     };
 }
@@ -62,6 +95,13 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     'bytedance/seedance-2.5/image-to-video': seedance25Profile({ forcedAspectRatio: 'auto' }),
     // R2V (image references only for now; video/audio references are future work).
     'bytedance/seedance-2.5/reference-to-video': seedance25Profile({}),
+
+    'minimax/h3/text-to-video': minimaxH3Profile({}),
+    // H3 i2v has no aspect_ratio input — the output follows the start frame.
+    // It accepts optional `image_url` and `end_image_url` keyframes.
+    'minimax/h3/image-to-video': minimaxH3Profile({ aspectRatios: [] }),
+    // H3 reference-to-video is multimodal (reference_image_urls/video_urls/audio_urls)
+    // and needs role-aware upload state — deferred, so no profile yet.
 };
 
 /**

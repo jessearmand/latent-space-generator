@@ -194,20 +194,22 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
 
-    // Validate and reset config values when model changes if current values are not supported
+    // Validate and reset config values when model changes if current values are not
+    // supported. An empty option list means the endpoint has no such input at all
+    // (e.g. H3 i2v has no aspect_ratio) — leave the stored value alone.
     useEffect(() => {
         // Check if current duration is valid for this model, reset to first option if not
-        if (!durationOptions.includes(config.videoDuration)) {
+        if (durationOptions.length > 0 && !durationOptions.includes(config.videoDuration)) {
             config.setVideoDuration(durationOptions[0]);
         }
 
         // Check if current aspect ratio is valid for this model, reset to first option if not
-        if (!aspectRatioOptions.includes(config.videoAspectRatio)) {
+        if (aspectRatioOptions.length > 0 && !aspectRatioOptions.includes(config.videoAspectRatio)) {
             config.setVideoAspectRatio(aspectRatioOptions[0]);
         }
 
         // Check if current resolution is valid for this model, reset to first option if not
-        if (!resolutionOptions.includes(config.videoResolution)) {
+        if (resolutionOptions.length > 0 && !resolutionOptions.includes(config.videoResolution)) {
             config.setVideoResolution(resolutionOptions[0]);
         }
     }, [durationOptions, aspectRatioOptions, resolutionOptions, config]);
@@ -261,6 +263,32 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                             </option>
                         ))}
                     </select>
+                </div>
+            )}
+
+            {/* Prompt expansion / safety checker toggles for profiled endpoints (MiniMax H3) */}
+            {profile?.supportsPromptExpansion && (
+                <div className="form-group">
+                    <label htmlFor="video-enable-prompt-expansion">Prompt Expansion:</label>
+                    <input
+                        id="video-enable-prompt-expansion"
+                        type="checkbox"
+                        checked={config.videoEnablePromptExpansion}
+                        onChange={(e) => config.setVideoEnablePromptExpansion(e.target.checked)}
+                    />
+                    <span className="hint"> (auto-enhance prompt with a vision language model)</span>
+                </div>
+            )}
+
+            {profile?.supportsSafetyChecker && (
+                <div className="form-group">
+                    <label htmlFor="video-enable-safety-checker">Safety Checker:</label>
+                    <input
+                        id="video-enable-safety-checker"
+                        type="checkbox"
+                        checked={config.enableSafetyChecker}
+                        onChange={(e) => config.setEnableSafetyChecker(e.target.checked)}
+                    />
                 </div>
             )}
 

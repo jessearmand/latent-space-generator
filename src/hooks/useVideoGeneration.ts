@@ -5,6 +5,7 @@ import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
+import { getImageInputConfig } from '../services/modelParams';
 import { getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import type { StatusType } from './useStatusMessage';
@@ -98,8 +99,9 @@ export function useVideoGeneration({
                     uploadedImageUrl = await fal.storage.upload(uploadedImages[0]);
                     console.log('Image uploaded successfully:', uploadedImageUrl);
 
-                    // Seedance i2v: optional second image becomes the end_image_url
-                    if (isSeedanceModel(modelId) && uploadedImages.length >= 2) {
+                    // I2V endpoints with a second upload slot (Seedance, MiniMax H3):
+                    // the optional second image becomes the end_image_url
+                    if (getImageInputConfig(modelId).maxImages >= 2 && uploadedImages.length >= 2) {
                         setStatus(`Uploading end-frame image for ${modelName}...`);
                         uploadedEndImageUrl = await fal.storage.upload(uploadedImages[1]);
                         console.log('End-frame image uploaded successfully:', uploadedEndImageUrl);
@@ -156,38 +158,91 @@ export function useVideoGeneration({
 
             const modelIdLower = modelId.toLowerCase();
             const isSeedance = isSeedanceModel(modelId);
-            // Capability profile (currently Seedance 2.5) declares per-endpoint schema
-            // differences: seed legality and a possibly pinned aspect ratio.
+            // Capability profile (Seedance 2.5, MiniMax H3): declares which fields the
+            // endpoint's schema accepts, so the payload is built from data instead of
+            // per-model conditionals. Unprofiled endpoints use the legacy branches.
             const profile = getVideoCapabilityProfile(modelId);
 
-            if (isSeedance) {
-                // Seedance 2.x has its own input shape (string `duration` enum, no cfg_scale,
-                // no guidance_scale, no fps). Build the payload here; the per-model branches
-                // below are gated behind `!isSeedance` so they don't fight with this.
-
-                // Resolution (2.0 Pro: 480p/720p/1080p; 2.0 Fast and all 2.5: 480p/720p)
+            if (profile) {
                 if (config.videoResolution) {
                     input.resolution = config.videoResolution;
                 }
 
-                // Duration: seedance expects "auto" or a string ("4".."15" on 2.0, up to "30" on 2.5).
+                // Duration comes from the profile's enum. Storage may hold a legacy
+                // "5s" suffix from other models; strip it before serializing.
+                if (config.videoDuration) {
+                    const raw = config.videoDuration.trim().replace(/s$/, '');
+                    if (profile.durationFormat === 'integer') {
+                        const seconds = parseInt(raw, 10);
+                        if (!Number.isNaN(seconds)) {
+                            input.duration = seconds;
+                        }
+                    } else {
+                        input.duration = raw;
+                    }
+                }
+
+                // Aspect ratio: omitted entirely when the schema has no such input
+                // (empty enum); a profile may pin it (Seedance 2.5 i2v only accepts "auto").
+                if (profile.forcedAspectRatio) {
+                    input.aspect_ratio = profile.forcedAspectRatio;
+                } else if (profile.aspectRatios.length > 0 && config.videoAspectRatio) {
+                    input.aspect_ratio = config.videoAspectRatio;
+                }
+
+                if (profile.supportsGenerateAudio) {
+                    input.generate_audio = config.generateAudio;
+                }
+                if (profile.supportsSeed && config.videoSeed !== null) {
+                    input.seed = config.videoSeed;
+                }
+                if (profile.supportsNegativePrompt && config.videoNegativePrompt) {
+                    input.negative_prompt = config.videoNegativePrompt;
+                }
+                if (profile.supportsPromptExpansion) {
+                    input.enable_prompt_expansion = config.videoEnablePromptExpansion;
+                }
+                if (profile.supportsSafetyChecker) {
+                    input.enable_safety_checker = config.enableSafetyChecker;
+                }
+
+                // Mode-specific image inputs (start frame + optional end frame).
+                if (isImageToVideo && uploadedImageUrl) {
+                    input.image_url = uploadedImageUrl;
+                    if (uploadedEndImageUrl) {
+                        input.end_image_url = uploadedEndImageUrl;
+                    }
+                } else if (isReferenceToVideo && uploadedReferenceImageUrls.length > 0) {
+                    // Only Seedance 2.5 r2v is profiled today; it takes `image_urls`.
+                    input.image_urls = uploadedReferenceImageUrls;
+                }
+            } else if (isSeedance) {
+                // Seedance 2.0 has its own input shape (string `duration` enum, no cfg_scale,
+                // no guidance_scale, no fps). Build the payload here; the per-model branches
+                // below are gated so they don't fight with this.
+
+                // Resolution (Pro: 480p/720p/1080p; Fast: 480p/720p)
+                if (config.videoResolution) {
+                    input.resolution = config.videoResolution;
+                }
+
+                // Duration: seedance expects "auto" or a string "4".."15".
                 // Storage may have either a bare number ("5") or a legacy "5s" suffix.
                 if (config.videoDuration) {
                     const raw = config.videoDuration.trim();
                     input.duration = raw === 'auto' ? 'auto' : raw.replace(/s$/, '');
                 }
 
-                // Aspect ratio: pass through, including "auto" and "21:9". A profile may
-                // pin it (Seedance 2.5 i2v only accepts "auto").
+                // Aspect ratio: pass through, including "auto" and "21:9".
                 if (config.videoAspectRatio) {
-                    input.aspect_ratio = profile?.forcedAspectRatio ?? config.videoAspectRatio;
+                    input.aspect_ratio = config.videoAspectRatio;
                 }
 
                 // Synchronized audio (default true on the API; we mirror the user's toggle).
                 input.generate_audio = config.generateAudio;
 
-                // Seed (optional integer; Seedance 2.5 exposes it on text-to-video only).
-                if (config.videoSeed !== null && (profile?.supportsSeed ?? true)) {
+                // Seed (optional integer).
+                if (config.videoSeed !== null) {
                     input.seed = config.videoSeed;
                 }
 
@@ -230,9 +285,9 @@ export function useVideoGeneration({
                 }
             }
 
-            // Model detection for specific parameters (legacy routing — skipped for seedance,
-            // which has its own input shape constructed above).
-            if (!isSeedance) {
+            // Model detection for specific parameters (legacy routing — skipped for
+            // profiled endpoints and seedance, whose input shapes are built above).
+            if (!isSeedance && !profile) {
                 const isKlingModel = modelIdLower.includes('kling');
                 const isVeoModel = modelIdLower.includes('veo');
                 const isLtx19bModel = modelIdLower.includes('ltx-2-19b');

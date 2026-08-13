@@ -44,6 +44,14 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'minimax/h3/text-to-video',
+        displayName: 'MiniMax H3',
+        category: 'text-to-video',
+        description: 'Frontier T2V with native stereo audio, 2K default up to 4K, 5-15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/minimax/hailuo-02/standard/text-to-video',
         displayName: 'MiniMax Hailuo 02',
         category: 'text-to-video',
@@ -176,6 +184,14 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'Veo 2 I2V',
         category: 'image-to-video',
         description: 'Creates videos from images with realistic motion',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'minimax/h3/image-to-video',
+        displayName: 'MiniMax H3 I2V',
+        category: 'image-to-video',
+        description: 'Animates a first frame (optional last frame) into 2K video with native audio',
         supportsImageInput: true,
         outputType: 'video',
     },
@@ -403,21 +419,6 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
 /** Detect ByteDance Seedance 2.x endpoints (any version, any tier, any sub-task). */
 export function isSeedanceModel(endpointId: string): boolean {
     return endpointId.toLowerCase().includes('seedance-2');
-}
-
-/** Detect the Seedance 2.0 Fast tier specifically (caps at 720p; 2.5 has no tiers). */
-export function isSeedanceFastModel(endpointId: string): boolean {
-    return endpointId.toLowerCase().includes('seedance-2.0/fast');
-}
-
-/** Detect Seedance reference-to-video endpoints (Pro and Fast). */
-export function isSeedanceReferenceModel(endpointId: string): boolean {
-    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('reference-to-video');
-}
-
-/** Detect Seedance image-to-video endpoints (Pro and Fast). */
-export function isSeedanceImageToVideoModel(endpointId: string): boolean {
-    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('image-to-video');
 }
 
 /**
