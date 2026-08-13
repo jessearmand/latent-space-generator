@@ -35,7 +35,8 @@ export interface ConfigState {
     // Model-specific video settings
     generateAudio: boolean; // For veo3.1 and ltx-2 models
     videoCfgScale: number; // CFG scale for kling models (0-1 range)
-    videoFps: string; // FPS for ltx-2 Pro/Fast models (25 or 50)
+    videoFps: string; // FPS for LTX Pro/Fast models (profile endpoints declare the enum)
+    videoCameraMotion: string; // Optional camera_motion for LTX 2.5 models ('none' omits it)
     // Advanced video settings (used by ltx-2-19b and potentially other models)
     videoNumFrames: number; // 9-481, default 121
     videoOutputSize: string; // landscape_4_3, portrait_3_4, square, etc.
@@ -132,6 +133,7 @@ interface ConfigContextType extends ConfigState {
     setGenerateAudio: (value: boolean) => void;
     setVideoCfgScale: (value: number) => void;
     setVideoFps: (value: string) => void;
+    setVideoCameraMotion: (value: string) => void;
     // Advanced video setters
     setVideoNumFrames: (value: number) => void;
     setVideoOutputSize: (value: string) => void;
@@ -266,6 +268,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         parseFloat(localStorage.getItem('VIDEO_CFG_SCALE') || '0.5'),
     ); // Kling default
     const [videoFps, setVideoFps] = useState<string>(localStorage.getItem('VIDEO_FPS') || '25'); // LTX-2 Pro/Fast default
+    const [videoCameraMotion, setVideoCameraMotion] = useState<string>(
+        localStorage.getItem('VIDEO_CAMERA_MOTION') || 'none',
+    ); // LTX 2.5 optional camera motion
     // Advanced video settings (used by ltx-2-19b and potentially other models)
     const [videoNumFrames, setVideoNumFrames] = useState<number>(
         parseInt(localStorage.getItem('VIDEO_NUM_FRAMES') || '121', 10),
@@ -429,6 +434,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('GENERATE_AUDIO', generateAudio.toString());
         localStorage.setItem('VIDEO_CFG_SCALE', videoCfgScale.toString());
         localStorage.setItem('VIDEO_FPS', videoFps);
+        localStorage.setItem('VIDEO_CAMERA_MOTION', videoCameraMotion);
         // Advanced video settings persistence
         localStorage.setItem('VIDEO_NUM_FRAMES', videoNumFrames.toString());
         localStorage.setItem('VIDEO_OUTPUT_SIZE', videoOutputSize);
@@ -518,6 +524,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         generateAudio,
         videoCfgScale,
         videoFps,
+        videoCameraMotion,
         videoNumFrames,
         videoOutputSize,
         videoUseMultiscale,
@@ -625,6 +632,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 setVideoCfgScale,
                 videoFps,
                 setVideoFps,
+                videoCameraMotion,
+                setVideoCameraMotion,
                 // Advanced video settings
                 videoNumFrames,
                 setVideoNumFrames,

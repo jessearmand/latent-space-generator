@@ -111,11 +111,11 @@ export const InputSection: React.FC<InputSectionProps> = ({
                     />
                     {activeTab === 'image-to-video' &&
                         getImageInputConfig(currentSelectedModel.endpointId).maxImages >= 2 && (
-                        <p className="upload-caption">
-                            First image is the start frame. The optional second image is used as the end frame for a
-                            transition.
-                        </p>
-                    )}
+                            <p className="upload-caption">
+                                First image is the start frame. The optional second image is used as the end frame for a
+                                transition.
+                            </p>
+                        )}
                     {activeTab === 'reference-to-video' && (
                         <p className="upload-caption">
                             Reference images are addressable as @Image1, @Image2, … in the prompt.

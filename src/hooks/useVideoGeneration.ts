@@ -190,6 +190,19 @@ export function useVideoGeneration({
                     input.aspect_ratio = config.videoAspectRatio;
                 }
 
+                // FPS: integer field, only on endpoints whose schema declares an enum (LTX).
+                if (profile.fpsValues.length > 0 && config.videoFps) {
+                    const fps = parseInt(config.videoFps, 10);
+                    if (!Number.isNaN(fps)) {
+                        input.fps = fps;
+                    }
+                }
+
+                // camera_motion is optional server-side; 'none' means omit it.
+                if (profile.cameraMotions.length > 0 && config.videoCameraMotion !== 'none') {
+                    input.camera_motion = config.videoCameraMotion;
+                }
+
                 if (profile.supportsGenerateAudio) {
                     input.generate_audio = config.generateAudio;
                 }

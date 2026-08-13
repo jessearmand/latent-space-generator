@@ -107,18 +107,15 @@ describe('getImageInputConfig', () => {
             'bytedance/seedance-2.0/image-to-video',
             'bytedance/seedance-2.0/fast/image-to-video',
             'bytedance/seedance-2.5/image-to-video',
-        ])(
-            '%s should expose 2 image slots, no strength',
-            (modelId) => {
-                const config = getImageInputConfig(modelId);
-                expect(config).toEqual({
-                    paramName: 'image_url',
-                    isArray: false,
-                    strengthParam: null,
-                    maxImages: 2,
-                });
-            },
-        );
+        ])('%s should expose 2 image slots, no strength', (modelId) => {
+            const config = getImageInputConfig(modelId);
+            expect(config).toEqual({
+                paramName: 'image_url',
+                isArray: false,
+                strengthParam: null,
+                maxImages: 2,
+            });
+        });
     });
 
     describe('Seedance reference-to-video (up to 9 reference images)', () => {
@@ -134,6 +131,23 @@ describe('getImageInputConfig', () => {
                 });
             },
         );
+    });
+
+    describe('LTX 2.5/2.3 image-to-video (start frame + optional end frame)', () => {
+        it.each([
+            'lightricks/ltx-2.5/image-to-video/pro',
+            'lightricks/ltx-2.5/image-to-video/fast',
+            'fal-ai/ltx-2.3/image-to-video',
+            'fal-ai/ltx-2.3/image-to-video/fast',
+        ])('%s should expose 2 image slots, no strength', (modelId) => {
+            const config = getImageInputConfig(modelId);
+            expect(config).toEqual({
+                paramName: 'image_url',
+                isArray: false,
+                strengthParam: null,
+                maxImages: 2,
+            });
+        });
     });
 
     describe('MiniMax H3 image-to-video (first frame + optional last frame)', () => {

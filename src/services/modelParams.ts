@@ -116,6 +116,17 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         };
     }
 
+    // LTX 2.5/2.3 i2v: start frame + optional end frame (`end_image_url` in the
+    // hook), same two-slot shape as Seedance i2v. Legacy ltx-2 i2v stays 1 slot.
+    if ((lower.includes('ltx-2.5') || lower.includes('ltx-2.3')) && lower.includes('image-to-video')) {
+        return {
+            paramName: 'image_url',
+            isArray: false,
+            strengthParam: null,
+            maxImages: 2,
+        };
+    }
+
     // MiniMax H3 i2v: first frame + optional last frame (`end_image_url` in the hook),
     // same two-slot shape as Seedance i2v.
     if (lower.includes('minimax/h3') && lower.includes('image-to-video')) {

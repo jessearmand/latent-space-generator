@@ -35,6 +35,17 @@ export interface VideoCapabilityProfile {
      * (e.g. i2v endpoints whose schema pins the ratio).
      */
     forcedAspectRatio?: string;
+    /**
+     * `fps` enum values; first entry is the default. An empty array means the
+     * endpoint has no `fps` input. Sent to the API as an integer.
+     */
+    fpsValues: string[];
+    /**
+     * `camera_motion` enum values. An empty array means the endpoint has no
+     * `camera_motion` input. The field is optional server-side, so the UI adds
+     * a "none" choice that omits it from the payload.
+     */
+    cameraMotions: string[];
     /** Whether the input schema has `seed`. */
     supportsSeed: boolean;
     /** Whether the input schema has `negative_prompt`. */
@@ -58,6 +69,8 @@ function seedance25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCap
         durationFormat: 'string',
         resolutions: ['720p', '480p'],
         aspectRatios: ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+        fpsValues: [],
+        cameraMotions: [],
         supportsSeed: false,
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
@@ -78,6 +91,8 @@ function minimaxH3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapa
         durationFormat: 'integer',
         resolutions: ['2K', '768P', '4K'],
         aspectRatios: ['16:9', '21:9', '4:3', '1:1', '3:4', '9:16'],
+        fpsValues: [],
+        cameraMotions: [],
         supportsSeed: true,
         supportsNegativePrompt: false,
         supportsGenerateAudio: false,
@@ -86,6 +101,72 @@ function minimaxH3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapa
         ...overrides,
     };
 }
+
+/** Optional camera motion enum shared by all LTX 2.5 endpoints (absent on 2.3). */
+const LTX_25_CAMERA_MOTIONS = [
+    'dolly_in',
+    'dolly_out',
+    'dolly_left',
+    'dolly_right',
+    'jib_up',
+    'jib_down',
+    'static',
+    'focus_shift',
+];
+
+/**
+ * Shared LTX 2.5 schema (lightricks/ltx-2.5): string duration enum with "auto"
+ * default, synchronized audio, camera motion, no seed/negative_prompt. The
+ * Pro/Fast tiers differ in durations, resolutions, and fps — Fast extends to
+ * 20s, adds 1440p/2160p, and adds 48 fps.
+ */
+function ltx25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
+    return {
+        durations: ['auto', '6', '8', '10'],
+        durationFormat: 'string',
+        resolutions: ['1080p', '720p'],
+        aspectRatios: ['16:9', '9:16'],
+        fpsValues: ['25', '24', '50'],
+        cameraMotions: LTX_25_CAMERA_MOTIONS,
+        supportsSeed: false,
+        supportsNegativePrompt: false,
+        supportsGenerateAudio: true,
+        supportsPromptExpansion: false,
+        supportsSafetyChecker: false,
+        ...overrides,
+    };
+}
+
+const LTX_25_FAST_DURATIONS = ['auto', '6', '8', '10', '12', '14', '16', '18', '20'];
+const LTX_25_FAST_RESOLUTIONS = ['1080p', '720p', '1440p', '2160p'];
+
+/**
+ * Shared LTX 2.3 schema (fal-ai/ltx-2.3): no "auto" duration (default "6"),
+ * resolutions start at 1080p (no 720p), no camera_motion, no seed. Fast tier
+ * extends durations to 20s, but 12s+ requires 25 fps at 1080p (server-side
+ * constraint the schema documents in prose only).
+ */
+function ltx23Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
+    return {
+        durations: ['6', '8', '10'],
+        durationFormat: 'string',
+        resolutions: ['1080p', '1440p', '2160p'],
+        aspectRatios: ['16:9', '9:16'],
+        fpsValues: ['25', '24', '48', '50'],
+        cameraMotions: [],
+        supportsSeed: false,
+        supportsNegativePrompt: false,
+        supportsGenerateAudio: true,
+        supportsPromptExpansion: false,
+        supportsSafetyChecker: false,
+        ...overrides,
+    };
+}
+
+const LTX_23_FAST_DURATIONS = ['6', '8', '10', '12', '14', '16', '18', '20'];
+
+/** I2V endpoints in both LTX families add "auto" (follow the input image) as the default ratio. */
+const LTX_I2V_ASPECT_RATIOS = ['auto', '16:9', '9:16'];
 
 const PROFILES: Record<string, VideoCapabilityProfile> = {
     // T2V is the only Seedance 2.5 endpoint whose input schema exposes `seed`.
@@ -102,6 +183,33 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     'minimax/h3/image-to-video': minimaxH3Profile({ aspectRatios: [] }),
     // H3 reference-to-video is multimodal (reference_image_urls/video_urls/audio_urls)
     // and needs role-aware upload state — deferred, so no profile yet.
+
+    'lightricks/ltx-2.5/text-to-video/pro': ltx25Profile({}),
+    'lightricks/ltx-2.5/text-to-video/fast': ltx25Profile({
+        durations: LTX_25_FAST_DURATIONS,
+        resolutions: LTX_25_FAST_RESOLUTIONS,
+        fpsValues: ['25', '24', '48', '50'],
+    }),
+    // I2V supports an optional end frame (`end_image_url`) for transitions.
+    'lightricks/ltx-2.5/image-to-video/pro': ltx25Profile({ aspectRatios: LTX_I2V_ASPECT_RATIOS }),
+    'lightricks/ltx-2.5/image-to-video/fast': ltx25Profile({
+        durations: LTX_25_FAST_DURATIONS,
+        resolutions: LTX_25_FAST_RESOLUTIONS,
+        fpsValues: ['25', '24', '48', '50'],
+        aspectRatios: LTX_I2V_ASPECT_RATIOS,
+    }),
+    // LTX 2.5 audio-to-video (pro/fast) needs an audio-input-to-video-output
+    // mode the app doesn't have — deferred, so no profile yet.
+
+    'fal-ai/ltx-2.3/text-to-video': ltx23Profile({}),
+    'fal-ai/ltx-2.3/text-to-video/fast': ltx23Profile({ durations: LTX_23_FAST_DURATIONS }),
+    'fal-ai/ltx-2.3/image-to-video': ltx23Profile({ aspectRatios: LTX_I2V_ASPECT_RATIOS }),
+    'fal-ai/ltx-2.3/image-to-video/fast': ltx23Profile({
+        durations: LTX_23_FAST_DURATIONS,
+        aspectRatios: LTX_I2V_ASPECT_RATIOS,
+    }),
+    // LTX 2.3 audio-to-video, extend-video, and retake-video need dedicated
+    // input shapes (audio upload / video_url + mode/context) — deferred.
 };
 
 /**

@@ -190,9 +190,20 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         return ['720p'];
     };
 
+    // FPS: profile endpoints declare their enum (empty = no fps input); legacy
+    // LTX-2 Pro/Fast keeps its historical 25/50 choice. Note the legacy substring
+    // check also matches 'ltx-2.5'/'ltx-2.3', so the profile must win here.
+    const getFpsOptions = (): string[] => {
+        if (profile) {
+            return profile.fpsValues;
+        }
+        return isLtxProFastModel ? ['25', '50'] : [];
+    };
+
     const durationOptions = getDurationOptions();
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
+    const fpsOptions = getFpsOptions();
 
     // Validate and reset config values when model changes if current values are not
     // supported. An empty option list means the endpoint has no such input at all
@@ -212,7 +223,12 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         if (resolutionOptions.length > 0 && !resolutionOptions.includes(config.videoResolution)) {
             config.setVideoResolution(resolutionOptions[0]);
         }
-    }, [durationOptions, aspectRatioOptions, resolutionOptions, config]);
+
+        // Check if current fps is valid for this model, reset to first option if not
+        if (fpsOptions.length > 0 && !fpsOptions.includes(config.videoFps)) {
+            config.setVideoFps(fpsOptions[0]);
+        }
+    }, [durationOptions, aspectRatioOptions, resolutionOptions, fpsOptions, config]);
 
     return (
         <>
@@ -306,15 +322,40 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </div>
             )}
 
-            {/* FPS option for LTX-2 Pro/Fast models (not 19B which uses float fps via num_frames) */}
-            {isLtxProFastModel && (
+            {/* FPS option for LTX Pro/Fast models (not 19B which uses float fps via num_frames) */}
+            {fpsOptions.length > 0 && (
                 <div className="form-group">
                     <label htmlFor="video-fps">Frame Rate:</label>
                     <select id="video-fps" value={config.videoFps} onChange={(e) => config.setVideoFps(e.target.value)}>
-                        <option value="25">25 fps (standard)</option>
-                        <option value="50">50 fps (smooth)</option>
+                        {fpsOptions.map((fps) => (
+                            <option key={fps} value={fps}>
+                                {fps} fps
+                            </option>
+                        ))}
                     </select>
                     <span className="hint"> (higher fps = smoother motion)</span>
+                </div>
+            )}
+
+            {/* Optional camera motion for profiled endpoints that declare it (LTX 2.5) */}
+            {profile && profile.cameraMotions.length > 0 && (
+                <div className="form-group">
+                    <label htmlFor="video-camera-motion">Camera Motion:</label>
+                    <select
+                        id="video-camera-motion"
+                        value={config.videoCameraMotion}
+                        onChange={(e) => config.setVideoCameraMotion(e.target.value)}
+                    >
+                        <option value="none">None</option>
+                        {profile.cameraMotions.map((motion) => (
+                            <option key={motion} value={motion}>
+                                {motion
+                                    .split('_')
+                                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ')}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             )}
 
