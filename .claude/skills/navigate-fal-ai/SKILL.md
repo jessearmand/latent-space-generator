@@ -129,7 +129,7 @@ Adding a new video model is an **11-file checklist** — wider than audio becaus
    `getImageInputConfig` is the **single source of truth for `maxImages`** across image-to-image, image-to-video, and reference-to-video. Extend it when the new model takes 2+ image inputs. Keep `paramName='image_url'` for the primary slot even when `maxImages > 1` and the extra slots map to other fields (e.g. `end_image_url`); the hook handles the routing. Add a focused test in `modelParams.test.ts`.
 
 4. **Capability profile — `src/services/videoModelCapabilities.ts`**
-   `getVideoCapabilityProfile(endpointId)` returns a `VideoCapabilityProfile` declaring per-endpoint durations, resolutions, aspect ratios, and seed support. Add a profile when the new model's options differ per endpoint (e.g. seedance t2v vs i2v vs r2v), instead of hard-coding option lists in the UI. Add a test in `videoModelCapabilities.test.ts`.
+   `getVideoCapabilityProfile(endpointId)` returns a `VideoCapabilityProfile` declaring the endpoint's full input contract: duration enum + serialization format (`durationFormat: 'string' | 'integer'`), resolution/aspect/fps enums (empty array = the input doesn't exist), camera motion, a forced aspect ratio (pin + hide the selector), duration-dependent constraints (`longDurationConstraint`, e.g. LTX 2.3 Fast 12s+ requires 25 fps at 1080p — checked via `activeLongDurationConstraint()`), and optional-field flags (`supportsSeed`, `supportsNegativePrompt`, `supportsGenerateAudio`, `supportsPromptExpansion`, `supportsSafetyChecker`). Add a profile when the new model's options differ per endpoint (e.g. seedance t2v vs i2v vs r2v), instead of hard-coding option lists in the UI. Add a test in `videoModelCapabilities.test.ts`.
 
 5. **Model filtering — `src/contexts/ModelsContext.tsx`**
    `getFilteredVideoModels` filters by `m.category === category`. If fal.ai's catalog labels your model under a *different* category than the UX category you want to expose (e.g. seedance r2v ships labeled as `image-to-video`), seed the curated list back in for the "Show all models" path so the UX category isn't empty.
@@ -162,10 +162,10 @@ Adding a new video model is an **11-file checklist** — wider than audio becaus
 
 ## Adding a New Model Category
 
-1. Update `ImageModelCategory` type in `src/types/models.ts`
-2. Add category to parallel fetch in `src/services/models.ts:fetchImageGenerationModels()`
-3. Update `normalizeModel()` if new category needs special `supportsImageInput` logic
-4. Add model-specific config options in `ModelConfigPanel.tsx` if needed
+1. Update the relevant category type in `src/types/models.ts` (`ImageModelCategory`, `VideoModelCategory`, or `AudioModelCategory`) and the derived helpers (`getOutputType`, `getSupports*Input`)
+2. Add the category to its catalog-fetch path in `src/services/models.ts` (e.g. `fetchImageGenerationModels()` for image categories) and to the matching curated list + `getCurated*Models()` helper
+3. Update `normalizeModel()` if the new category needs special input-support logic or recategorization by endpoint suffix (as reference-to-video does)
+4. Add model-specific config options in the category's config component (`ModelConfigPanel.tsx` for images, `VideoConfigOptions.tsx` for video, `AudioConfigOptions.tsx` for audio)
 
 ## Adding a New API Provider
 

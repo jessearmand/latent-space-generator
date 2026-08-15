@@ -6,7 +6,7 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import { getImageInputConfig } from '../services/modelParams';
-import { getVideoCapabilityProfile } from '../services/videoModelCapabilities';
+import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import type { StatusType } from './useStatusMessage';
 
@@ -195,6 +195,17 @@ export function useVideoGeneration({
                     const fps = parseInt(config.videoFps, 10);
                     if (!Number.isNaN(fps)) {
                         input.fps = fps;
+                    }
+                }
+
+                // Long durations can pin fps/resolution (LTX 2.3 Fast: 12s+ only
+                // runs at 25 fps, 1080p). The UI collapses the selectors too, but
+                // normalize here so a stale stored combination can't reach the API.
+                const durationConstraint = activeLongDurationConstraint(profile, config.videoDuration);
+                if (durationConstraint) {
+                    input.resolution = durationConstraint.resolution;
+                    if (profile.fpsValues.length > 0) {
+                        input.fps = parseInt(durationConstraint.fps, 10);
                     }
                 }
 

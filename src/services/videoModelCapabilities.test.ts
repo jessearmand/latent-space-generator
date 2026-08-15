@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getVideoCapabilityProfile } from './videoModelCapabilities';
+import { activeLongDurationConstraint, getVideoCapabilityProfile } from './videoModelCapabilities';
 
 describe('getVideoCapabilityProfile', () => {
     describe('Seedance 2.5 endpoints', () => {
@@ -191,6 +191,52 @@ describe('getVideoCapabilityProfile', () => {
             expect(getVideoCapabilityProfile('fal-ai/ltx-2.3/extend-video')).toBeUndefined();
             expect(getVideoCapabilityProfile('fal-ai/ltx-2.3/retake-video')).toBeUndefined();
             expect(getVideoCapabilityProfile('fal-ai/ltx-2.3/audio-to-video')).toBeUndefined();
+        });
+
+        describe('Fast long-duration constraint (12s+ requires 25 fps at 1080p)', () => {
+            it.each(['fal-ai/ltx-2.3/text-to-video/fast', 'fal-ai/ltx-2.3/image-to-video/fast'])(
+                '%s declares the constraint',
+                (endpointId) => {
+                    const profile = getVideoCapabilityProfile(endpointId);
+                    expect(profile?.longDurationConstraint).toEqual({
+                        minDurationSeconds: 12,
+                        fps: '25',
+                        resolution: '1080p',
+                    });
+                },
+            );
+
+            it.each([
+                // The base tier caps at 10s; the 2.5 Fast schema documents no restriction.
+                'fal-ai/ltx-2.3/text-to-video',
+                'fal-ai/ltx-2.3/image-to-video',
+                'lightricks/ltx-2.5/text-to-video/fast',
+                'lightricks/ltx-2.5/image-to-video/fast',
+            ])('%s has no long-duration constraint', (endpointId) => {
+                expect(getVideoCapabilityProfile(endpointId)?.longDurationConstraint).toBeUndefined();
+            });
+
+            it('activates only for durations at or past the threshold', () => {
+                const fast = getVideoCapabilityProfile('fal-ai/ltx-2.3/text-to-video/fast');
+                expect(fast).toBeDefined();
+                if (!fast) return;
+
+                expect(activeLongDurationConstraint(fast, '12')).toEqual({
+                    minDurationSeconds: 12,
+                    fps: '25',
+                    resolution: '1080p',
+                });
+                expect(activeLongDurationConstraint(fast, '20')).not.toBeNull();
+                expect(activeLongDurationConstraint(fast, '10')).toBeNull();
+                expect(activeLongDurationConstraint(fast, '6')).toBeNull();
+                // Non-numeric durations (e.g. "auto" on other models) never constrain.
+                expect(activeLongDurationConstraint(fast, 'auto')).toBeNull();
+
+                const unconstrained = getVideoCapabilityProfile('lightricks/ltx-2.5/text-to-video/fast');
+                expect(unconstrained).toBeDefined();
+                if (!unconstrained) return;
+                expect(activeLongDurationConstraint(unconstrained, '20')).toBeNull();
+            });
         });
     });
 

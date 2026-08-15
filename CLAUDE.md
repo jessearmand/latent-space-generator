@@ -88,7 +88,7 @@ server/index.ts  — Bun proxy server (API key injection, domain whitelist)
 Non-obvious services:
 - `services/falQueue.ts` — shared `submitAndPollFalQueue()` used by all fal.ai generation hooks
 - `services/modelParams.ts` — `getImageInputConfig()`: single source of truth for how many image inputs a model accepts
-- `services/videoModelCapabilities.ts` — `getVideoCapabilityProfile()`: per-endpoint durations, resolutions, aspect ratios, seed support
+- `services/videoModelCapabilities.ts` — `getVideoCapabilityProfile()`: per-endpoint duration/resolution/aspect/fps enums (with serialization format), camera motion, forced aspect ratios, duration-dependent fps/resolution constraints, and optional-field flags (seed, negative prompt, audio, prompt expansion, safety checker)
 - `services/imageRouting.ts` / `imageInputBuilders.ts` — backend cascade routing and per-family input construction for image models
 - `services/deprecatedModels.ts` — blocklist of models hidden from the catalog
 

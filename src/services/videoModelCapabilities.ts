@@ -56,6 +56,34 @@ export interface VideoCapabilityProfile {
     supportsPromptExpansion: boolean;
     /** Whether the input schema has `enable_safety_checker`. */
     supportsSafetyChecker: boolean;
+    /**
+     * Duration-dependent constraint: when the selected duration is
+     * `minDurationSeconds` or longer, only this fps/resolution pair is
+     * accepted (LTX 2.3 Fast: 12s+ runs at 25 fps, 1080p only).
+     */
+    longDurationConstraint?: {
+        minDurationSeconds: number;
+        fps: string;
+        resolution: string;
+    };
+}
+
+/**
+ * The fps/resolution pair the profile requires for the given duration, or
+ * null when the duration is unconstrained ("auto", below the threshold, or
+ * the profile declares no constraint). UI option lists and the payload
+ * builder both consult this so invalid combinations can't be submitted.
+ */
+export function activeLongDurationConstraint(
+    profile: VideoCapabilityProfile,
+    duration: string,
+): { fps: string; resolution: string } | null {
+    const constraint = profile.longDurationConstraint;
+    if (!constraint) {
+        return null;
+    }
+    const seconds = parseFloat(duration);
+    return Number.isFinite(seconds) && seconds >= constraint.minDurationSeconds ? constraint : null;
 }
 
 /**
@@ -165,6 +193,15 @@ function ltx23Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabili
 
 const LTX_23_FAST_DURATIONS = ['6', '8', '10', '12', '14', '16', '18', '20'];
 
+// Per the LTX 2.3 Fast schema: "Durations longer than 10 seconds (12, 14, 16,
+// 18, 20) are only supported with 25 FPS and 1080p resolution." The 2.5 Fast
+// schema documents no such restriction.
+const LTX_23_FAST_LONG_DURATION_CONSTRAINT = {
+    minDurationSeconds: 12,
+    fps: '25',
+    resolution: '1080p',
+};
+
 /** I2V endpoints in both LTX families add "auto" (follow the input image) as the default ratio. */
 const LTX_I2V_ASPECT_RATIOS = ['auto', '16:9', '9:16'];
 
@@ -202,11 +239,15 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     // mode the app doesn't have — deferred, so no profile yet.
 
     'fal-ai/ltx-2.3/text-to-video': ltx23Profile({}),
-    'fal-ai/ltx-2.3/text-to-video/fast': ltx23Profile({ durations: LTX_23_FAST_DURATIONS }),
+    'fal-ai/ltx-2.3/text-to-video/fast': ltx23Profile({
+        durations: LTX_23_FAST_DURATIONS,
+        longDurationConstraint: LTX_23_FAST_LONG_DURATION_CONSTRAINT,
+    }),
     'fal-ai/ltx-2.3/image-to-video': ltx23Profile({ aspectRatios: LTX_I2V_ASPECT_RATIOS }),
     'fal-ai/ltx-2.3/image-to-video/fast': ltx23Profile({
         durations: LTX_23_FAST_DURATIONS,
         aspectRatios: LTX_I2V_ASPECT_RATIOS,
+        longDurationConstraint: LTX_23_FAST_LONG_DURATION_CONSTRAINT,
     }),
     // LTX 2.3 audio-to-video, extend-video, and retake-video need dedicated
     // input shapes (audio upload / video_url + mode/context) — deferred.

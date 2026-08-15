@@ -6,7 +6,7 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useConfig } from '../config';
-import { getVideoCapabilityProfile } from '../services/videoModelCapabilities';
+import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import type { ModelConfig } from '../types/models';
 
 interface VideoConfigOptionsProps {
@@ -143,11 +143,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         return ['16:9', '9:16', '1:1'];
     };
 
+    // Long durations can pin fps/resolution (LTX 2.3 Fast: 12s+ requires
+    // 25 fps at 1080p) — collapsing the option lists below makes the
+    // validate-and-reset effect snap stored values to the required pair.
+    const durationConstraint = profile ? activeLongDurationConstraint(profile, config.videoDuration) : null;
+
     // Different models support different resolutions
     const getResolutionOptions = (): string[] => {
         // Capability-profile endpoints declare their resolution enum directly.
         if (profile) {
-            return profile.resolutions;
+            return durationConstraint ? [durationConstraint.resolution] : profile.resolutions;
         }
 
         // Seedance 2.0 — Fast tier caps at 720p; Pro tier adds 1080p.
@@ -195,6 +200,9 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     // check also matches 'ltx-2.5'/'ltx-2.3', so the profile must win here.
     const getFpsOptions = (): string[] => {
         if (profile) {
+            if (durationConstraint && profile.fpsValues.length > 0) {
+                return [durationConstraint.fps];
+            }
             return profile.fpsValues;
         }
         return isLtxProFastModel ? ['25', '50'] : [];
@@ -245,6 +253,13 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                         </option>
                     ))}
                 </select>
+                {durationConstraint && (
+                    <span className="hint">
+                        {' '}
+                        ({profile?.longDurationConstraint?.minDurationSeconds}s and longer run at{' '}
+                        {durationConstraint.fps} fps, {durationConstraint.resolution})
+                    </span>
+                )}
             </div>
 
             {/* Hidden when the endpoint pins a single ratio (e.g. i2v follows the input image) */}
