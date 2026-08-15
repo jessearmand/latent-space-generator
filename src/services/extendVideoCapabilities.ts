@@ -36,8 +36,19 @@ export interface ExtendCapabilityProfile {
     aspectRatios: string[];
     /** Whether the input schema has `generate_audio`. */
     supportsGenerateAudio: boolean;
-    /** Whether the input schema has integer `safety_tolerance` (0-4, default 2). */
-    supportsSafetyTolerance: boolean;
+    /**
+     * `safety_tolerance` levels in ascending order; empty = no such input.
+     * FLUX takes integers 0-4, Veo takes the digits as strings "1"-"6" —
+     * `safetyToleranceFormat` picks the wire type.
+     */
+    safetyToleranceValues: number[];
+    safetyToleranceFormat: 'integer' | 'string';
+    /** Whether the input schema has `negative_prompt`. */
+    supportsNegativePrompt: boolean;
+    /** Whether the input schema has `seed`. */
+    supportsSeed: boolean;
+    /** Whether the input schema has `auto_fix` (rewrite prompts that fail content policy). */
+    supportsAutoFix: boolean;
     /** Whether `prompt` is required (FLUX) or optional (LTX 2.3 Pro). */
     promptRequired: boolean;
     /** Minimum source clip length in seconds, or null when unconstrained (Grok: 2s). */
@@ -78,7 +89,11 @@ function flux3ExtendProfile(overrides: Partial<ExtendCapabilityProfile>): Extend
         resolutions: ['720p', '1080p'],
         aspectRatios: FLUX_3_EXTEND_ASPECT_RATIOS,
         supportsGenerateAudio: true,
-        supportsSafetyTolerance: true,
+        safetyToleranceValues: [0, 1, 2, 3, 4],
+        safetyToleranceFormat: 'integer',
+        supportsNegativePrompt: false,
+        supportsSeed: false,
+        supportsAutoFix: false,
         promptRequired: true,
         sourceMinSeconds: null,
         sourceMaxSeconds: 15,
@@ -86,6 +101,41 @@ function flux3ExtendProfile(overrides: Partial<ExtendCapabilityProfile>): Extend
         sourceMimeTypes: ['video/mp4'],
         isDraft: false,
         ...overrides,
+    };
+}
+
+/**
+ * Shared Veo 3.1 extend schema (fast and standard tiers are identical; only
+ * pricing differs). Duration and resolution are unconstrained strings in the
+ * schema — the extension is a fixed "7s" per pass (min === max, so the field
+ * is omitted and the server default applies). The source must itself be a
+ * Veo-created 720p/1080p clip in 16:9 or 9:16, chaining up to 30s total.
+ */
+function veo31ExtendProfile(): ExtendCapabilityProfile {
+    return {
+        durationMin: 7,
+        durationMax: 7,
+        durationStep: 1,
+        supportsAutoDuration: false,
+        supportsMode: false,
+        supportsContext: false,
+        resolutions: ['720p', '1080p'],
+        aspectRatios: ['auto', '16:9', '9:16'],
+        supportsGenerateAudio: true,
+        safetyToleranceValues: [1, 2, 3, 4, 5, 6],
+        safetyToleranceFormat: 'string',
+        supportsNegativePrompt: true,
+        supportsSeed: true,
+        supportsAutoFix: true,
+        promptRequired: true,
+        sourceMinSeconds: null,
+        sourceMaxSeconds: null,
+        // The real constraint is provenance (a Veo-created clip), which
+        // can't be checked client-side — no size or container gates.
+        sourceMaxBytes: null,
+        sourceMimeTypes: [],
+        sourceNote: 'Veo-created · 720p/1080p · 16:9 or 9:16',
+        isDraft: false,
     };
 }
 
@@ -102,7 +152,11 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         resolutions: [],
         aspectRatios: [],
         supportsGenerateAudio: false,
-        supportsSafetyTolerance: false,
+        safetyToleranceValues: [],
+        safetyToleranceFormat: 'integer',
+        supportsNegativePrompt: false,
+        supportsSeed: false,
+        supportsAutoFix: false,
         promptRequired: false,
         sourceMinSeconds: null,
         sourceMaxSeconds: null,
@@ -134,7 +188,11 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         resolutions: [],
         aspectRatios: [],
         supportsGenerateAudio: false,
-        supportsSafetyTolerance: false,
+        safetyToleranceValues: [],
+        safetyToleranceFormat: 'integer',
+        supportsNegativePrompt: false,
+        supportsSeed: false,
+        supportsAutoFix: false,
         promptRequired: true,
         sourceMinSeconds: 2,
         sourceMaxSeconds: 15,
@@ -143,9 +201,11 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         sourceNote: 'MP4 (H.264/H.265/AV1)',
         isDraft: false,
     },
+    // Veo 3.1 extend: fast and standard share one schema (pricing differs).
+    'fal-ai/veo3.1/extend-video': veo31ExtendProfile(),
+    'fal-ai/veo3.1/fast/extend-video': veo31ExtendProfile(),
     // fal-ai/ltx-2.3-quality and ltx-2.3-22b extend are frame-based APIs
     // (num_frames/num_context_frames, 19B-style knobs) — deferred.
-    // fal-ai/veo3.1 extend lands in the next stack layer.
 };
 
 /**

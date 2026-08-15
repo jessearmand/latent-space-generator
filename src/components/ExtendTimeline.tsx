@@ -121,7 +121,7 @@ export const ExtendTimeline: React.FC<ExtendTimelineProps> = ({
                         max={maxSec}
                         step={stepSec}
                         value={extSec}
-                        disabled={durationAuto}
+                        disabled={durationAuto || minSec === maxSec}
                         onChange={(e) => onExtChange(parseFloat(e.target.value))}
                         aria-label="Extension length in seconds"
                     />

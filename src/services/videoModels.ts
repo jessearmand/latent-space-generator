@@ -482,6 +482,22 @@ export const CURATED_EXTEND_VIDEO_MODELS: ModelConfig[] = [
         supportsImageInput: false,
         outputType: 'video',
     },
+    {
+        endpointId: 'fal-ai/veo3.1/extend-video',
+        displayName: 'Veo 3.1 Extend',
+        category: 'extend-video',
+        description: 'Extend Veo-created clips by 7s per pass, up to 30s total',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/veo3.1/fast/extend-video',
+        displayName: 'Veo 3.1 Fast Extend',
+        category: 'extend-video',
+        description: 'Fast tier of Veo 3.1 extend — same 7s passes at lower cost',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
 ];
 
 /** All curated video models */

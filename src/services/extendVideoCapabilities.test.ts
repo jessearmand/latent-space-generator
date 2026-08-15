@@ -27,7 +27,7 @@ describe('getExtendCapabilityProfile', () => {
             expect(profile?.resolutions).toEqual([]);
             expect(profile?.aspectRatios).toEqual([]);
             expect(profile?.supportsGenerateAudio).toBe(false);
-            expect(profile?.supportsSafetyTolerance).toBe(false);
+            expect(profile?.safetyToleranceValues).toEqual([]);
             expect(profile?.promptRequired).toBe(false);
 
             expect(profile?.sourceMaxSeconds).toBeNull();
@@ -52,10 +52,14 @@ describe('getExtendCapabilityProfile', () => {
                 expect(profile?.supportsMode).toBe(false);
                 expect(profile?.supportsContext).toBe(false);
 
-                // Aspect enum includes 2:1 (and not 9:21); audio and safety tolerance exist
+                // Aspect enum includes 2:1 (and not 9:21); audio and integer
+                // safety tolerance 0-4 exist; no negative_prompt/seed/auto_fix
                 expect(profile?.aspectRatios).toEqual(['auto', '21:9', '2:1', '16:9', '4:3', '1:1', '3:4', '9:16']);
                 expect(profile?.supportsGenerateAudio).toBe(true);
-                expect(profile?.supportsSafetyTolerance).toBe(true);
+                expect(profile?.safetyToleranceValues).toEqual([0, 1, 2, 3, 4]);
+                expect(profile?.safetyToleranceFormat).toBe('integer');
+                expect(profile?.supportsNegativePrompt).toBe(false);
+                expect(profile?.supportsSeed).toBe(false);
                 expect(profile?.promptRequired).toBe(true);
             },
         );
@@ -93,7 +97,7 @@ describe('getExtendCapabilityProfile', () => {
             expect(profile?.resolutions).toEqual([]);
             expect(profile?.aspectRatios).toEqual([]);
             expect(profile?.supportsGenerateAudio).toBe(false);
-            expect(profile?.supportsSafetyTolerance).toBe(false);
+            expect(profile?.safetyToleranceValues).toEqual([]);
             expect(profile?.promptRequired).toBe(true);
 
             // Source must be an MP4 between 2 and 15 seconds
@@ -102,13 +106,47 @@ describe('getExtendCapabilityProfile', () => {
         });
     });
 
+    describe('Veo 3.1 extend', () => {
+        it.each(['fal-ai/veo3.1/extend-video', 'fal-ai/veo3.1/fast/extend-video'])(
+            '%s declares the shared Veo schema (fast and standard differ only in price)',
+            (endpointId) => {
+                const profile = getExtendCapabilityProfile(endpointId);
+                expect(profile).toBeDefined();
+
+                // Fixed 7s per pass: min === max means the duration field is
+                // omitted and the server default ("7s") applies.
+                expect(profile?.durationMin).toBe(7);
+                expect(profile?.durationMax).toBe(7);
+                expect(profile?.supportsAutoDuration).toBe(false);
+
+                // End-only, no context; resolution and 3-value aspect enum exist
+                expect(profile?.supportsMode).toBe(false);
+                expect(profile?.supportsContext).toBe(false);
+                expect(profile?.resolutions).toEqual(['720p', '1080p']);
+                expect(profile?.aspectRatios).toEqual(['auto', '16:9', '9:16']);
+
+                // Audio, string safety tolerance "1"-"6", negative prompt,
+                // seed, and auto_fix; prompt required
+                expect(profile?.supportsGenerateAudio).toBe(true);
+                expect(profile?.safetyToleranceValues).toEqual([1, 2, 3, 4, 5, 6]);
+                expect(profile?.safetyToleranceFormat).toBe('string');
+                expect(profile?.supportsNegativePrompt).toBe(true);
+                expect(profile?.supportsSeed).toBe(true);
+                expect(profile?.supportsAutoFix).toBe(true);
+                expect(profile?.promptRequired).toBe(true);
+
+                // Source constraint is provenance/format, not a duration cap
+                expect(profile?.sourceMaxSeconds).toBeNull();
+                expect(profile?.sourceNote).toContain('Veo-created');
+            },
+        );
+    });
+
     describe('unprofiled extend endpoints', () => {
         it.each([
-            // Frame-based LTX variants and the veo3.1 stack layer are deferred.
+            // Frame-based LTX variants are deferred.
             'fal-ai/ltx-2.3-quality/extend-video',
             'fal-ai/ltx-2.3-22b/extend-video',
-            'fal-ai/veo3.1/extend-video',
-            'fal-ai/veo3.1/fast/extend-video',
             'fal-ai/ltx-2.3/retake-video',
         ])('%s has no profile yet', (endpointId) => {
             expect(getExtendCapabilityProfile(endpointId)).toBeUndefined();

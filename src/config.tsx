@@ -54,8 +54,9 @@ export interface ConfigState {
     extendMode: string; // 'end' | 'start' (LTX only)
     extendContext: number; // LTX only: seconds of source context (1-20)
     extendContextAuto: boolean; // LTX only: omit `context` to maximize it
-    extendAspectRatio: string; // FLUX only: 'auto', '21:9', '2:1', ...
-    extendSafetyTolerance: number; // FLUX only: 0 (strict) - 4 (permissive)
+    extendAspectRatio: string; // FLUX/Veo: 'auto', '21:9', '2:1', ...
+    extendSafetyTolerance: number; // FLUX 0-4 / Veo 1-6 (clamped per profile)
+    extendAutoFix: boolean; // Veo only: rewrite prompts that fail content policy
     // Audio generation settings
     audioOutputFormat: string; // 'mp3' | 'wav' | 'flac' | 'pcm'
     audioSeed: number | null; // Seed for reproducibility
@@ -161,6 +162,7 @@ interface ConfigContextType extends ConfigState {
     setExtendContextAuto: (value: boolean) => void;
     setExtendAspectRatio: (value: string) => void;
     setExtendSafetyTolerance: (value: number) => void;
+    setExtendAutoFix: (value: boolean) => void;
     // Audio generation setters
     setAudioOutputFormat: (value: string) => void;
     setAudioSeed: (value: number | null) => void;
@@ -334,6 +336,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const [extendSafetyTolerance, setExtendSafetyTolerance] = useState<number>(
         parseInt(localStorage.getItem('EXTEND_SAFETY_TOLERANCE') || '2', 10),
     );
+    const [extendAutoFix, setExtendAutoFix] = useState<boolean>(localStorage.getItem('EXTEND_AUTO_FIX') === 'true');
     // Audio generation settings
     const [audioOutputFormat, setAudioOutputFormat] = useState<string>(
         localStorage.getItem('AUDIO_OUTPUT_FORMAT') || 'mp3',
@@ -490,6 +493,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('EXTEND_CONTEXT_AUTO', extendContextAuto.toString());
         localStorage.setItem('EXTEND_ASPECT_RATIO', extendAspectRatio);
         localStorage.setItem('EXTEND_SAFETY_TOLERANCE', extendSafetyTolerance.toString());
+        localStorage.setItem('EXTEND_AUTO_FIX', extendAutoFix.toString());
         // Audio generation persistence
         localStorage.setItem('AUDIO_OUTPUT_FORMAT', audioOutputFormat);
         localStorage.setItem('AUDIO_SEED', audioSeed !== null ? audioSeed.toString() : 'null');
@@ -585,6 +589,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         extendContextAuto,
         extendAspectRatio,
         extendSafetyTolerance,
+        extendAutoFix,
         audioOutputFormat,
         audioSeed,
         ttsVoiceId,
@@ -720,6 +725,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 setExtendAspectRatio,
                 extendSafetyTolerance,
                 setExtendSafetyTolerance,
+                extendAutoFix,
+                setExtendAutoFix,
                 // Audio generation
                 audioOutputFormat,
                 setAudioOutputFormat,

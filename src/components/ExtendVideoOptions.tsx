@@ -63,6 +63,8 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
     }
 
     const durationAuto = profile.supportsAutoDuration && config.extendDurationAuto;
+    // A single-value duration range (Veo's fixed 7s pass) has nothing to choose.
+    const durationFixed = profile.durationMin === profile.durationMax;
     const contextAuto = !profile.supportsContext || config.extendContextAuto;
     const mode = profile.supportsMode && config.extendMode === 'start' ? 'start' : 'end';
     const extSec = snapExtendDuration(profile, config.extendDuration);
@@ -204,7 +206,9 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     <div className="extend-control-row">
                         <label htmlFor="extend-duration">
                             Extension Duration:{' '}
-                            <span className="extend-value">{durationAuto ? 'auto' : fmt(extSec)}</span>
+                            <span className="extend-value">
+                                {durationAuto ? 'auto' : fmt(durationFixed ? profile.durationMax : extSec)}
+                            </span>
                         </label>
                         {profile.supportsAutoDuration && (
                             <div className="extend-toggle">
@@ -225,23 +229,27 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                             </div>
                         )}
                     </div>
-                    <input
-                        id="extend-duration"
-                        type="range"
-                        min={profile.durationMin}
-                        max={profile.durationMax}
-                        step={profile.durationStep}
-                        value={extSec}
-                        disabled={durationAuto}
-                        onChange={(e) => config.setExtendDuration(parseFloat(e.target.value))}
-                        className="extend-range"
-                    />
+                    {!durationFixed && (
+                        <input
+                            id="extend-duration"
+                            type="range"
+                            min={profile.durationMin}
+                            max={profile.durationMax}
+                            step={profile.durationStep}
+                            value={extSec}
+                            disabled={durationAuto}
+                            onChange={(e) => config.setExtendDuration(parseFloat(e.target.value))}
+                            className="extend-range"
+                        />
+                    )}
                     <span className="hint">
-                        {durationAuto
-                            ? `(auto — the model picks the length, ${profile.durationMin}–${profile.durationMax}s)`
-                            : `(${profile.durationMin}–${profile.durationMax}s per pass, ${
-                                  profile.durationStep === 1 ? 'whole seconds' : `${profile.durationStep}s steps`
-                              })`}
+                        {durationFixed
+                            ? `(fixed ${profile.durationMax}s per pass)`
+                            : durationAuto
+                              ? `(auto — the model picks the length, ${profile.durationMin}–${profile.durationMax}s)`
+                              : `(${profile.durationMin}–${profile.durationMax}s per pass, ${
+                                    profile.durationStep === 1 ? 'whole seconds' : `${profile.durationStep}s steps`
+                                })`}
                     </span>
                 </div>
 
@@ -332,21 +340,67 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     </div>
                 )}
 
-                {profile.supportsSafetyTolerance && (
+                {profile.safetyToleranceValues.length > 0 && (
                     <div className="form-group">
                         <label htmlFor="extend-safety-tolerance">Safety Tolerance:</label>
                         <select
                             id="extend-safety-tolerance"
-                            value={config.extendSafetyTolerance}
+                            value={Math.min(
+                                Math.max(config.extendSafetyTolerance, profile.safetyToleranceValues[0]),
+                                profile.safetyToleranceValues[profile.safetyToleranceValues.length - 1],
+                            )}
                             onChange={(e) => config.setExtendSafetyTolerance(parseInt(e.target.value, 10))}
                         >
-                            {[0, 1, 2, 3, 4].map((level) => (
+                            {profile.safetyToleranceValues.map((level) => (
                                 <option key={level} value={level}>
                                     {level}
                                 </option>
                             ))}
                         </select>
-                        <span className="hint"> (0 = strictest, 4 = most permissive)</span>
+                        <span className="hint">
+                            {' '}
+                            ({profile.safetyToleranceValues[0]} = strictest,{' '}
+                            {profile.safetyToleranceValues[profile.safetyToleranceValues.length - 1]} = most permissive)
+                        </span>
+                    </div>
+                )}
+
+                {profile.supportsNegativePrompt && (
+                    <div className="form-group">
+                        <label htmlFor="extend-negative-prompt">Negative Prompt:</label>
+                        <textarea
+                            id="extend-negative-prompt"
+                            value={config.videoNegativePrompt}
+                            onChange={(e) => config.setVideoNegativePrompt(e.target.value)}
+                            placeholder="Content to avoid (e.g., blur, distort, low quality)"
+                            rows={2}
+                            className="negative-prompt-textarea"
+                        />
+                    </div>
+                )}
+
+                {profile.supportsSeed && (
+                    <div className="form-group">
+                        <label htmlFor="extend-seed">Seed (leave blank for random):</label>
+                        <input
+                            id="extend-seed"
+                            type="number"
+                            value={config.videoSeed !== null ? config.videoSeed : ''}
+                            onChange={(e) => config.setVideoSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
+                        />
+                    </div>
+                )}
+
+                {profile.supportsAutoFix && (
+                    <div className="form-group">
+                        <label htmlFor="extend-auto-fix">Auto-Fix Prompt:</label>
+                        <input
+                            id="extend-auto-fix"
+                            type="checkbox"
+                            checked={config.extendAutoFix}
+                            onChange={(e) => config.setExtendAutoFix(e.target.checked)}
+                        />
+                        <span className="hint"> (rewrite prompts that fail content-policy checks)</span>
                     </div>
                 )}
             </div>

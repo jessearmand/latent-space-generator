@@ -232,10 +232,13 @@ export function useVideoGeneration({
                 }
 
                 if (extendProfile) {
-                    // Duration: FLUX defaults to "auto" (omit the field); LTX always
-                    // takes explicit float seconds. Whole-second endpoints get integers.
+                    // Duration: FLUX defaults to "auto" and Veo has a single fixed
+                    // length (min === max) — omit the field in both cases so the
+                    // server default applies. LTX always takes explicit float
+                    // seconds; whole-second endpoints get integers.
                     const durationAuto = extendProfile.supportsAutoDuration && config.extendDurationAuto;
-                    if (!durationAuto) {
+                    const durationFixed = extendProfile.durationMin === extendProfile.durationMax;
+                    if (!durationAuto && !durationFixed) {
                         // Snap to the profile step so the payload matches what
                         // the panel displays (fractional carry-over from another
                         // model must not round differently here).
@@ -267,8 +270,29 @@ export function useVideoGeneration({
                         input.generate_audio = config.generateAudio;
                     }
 
-                    if (extendProfile.supportsSafetyTolerance) {
-                        input.safety_tolerance = Math.min(Math.max(config.extendSafetyTolerance, 0), 4);
+                    // Safety tolerance: clamp the stored level into the endpoint's
+                    // range; FLUX takes an integer, Veo the digit as a string.
+                    if (extendProfile.safetyToleranceValues.length > 0) {
+                        const values = extendProfile.safetyToleranceValues;
+                        const clamped = Math.min(
+                            Math.max(config.extendSafetyTolerance, values[0]),
+                            values[values.length - 1],
+                        );
+                        input.safety_tolerance =
+                            extendProfile.safetyToleranceFormat === 'string' ? String(clamped) : clamped;
+                    }
+
+                    if (extendProfile.supportsNegativePrompt && config.videoNegativePrompt) {
+                        input.negative_prompt = config.videoNegativePrompt;
+                    }
+
+                    if (extendProfile.supportsSeed && config.videoSeed !== null) {
+                        input.seed = config.videoSeed;
+                    }
+
+                    // auto_fix defaults to false server-side; only send when enabled.
+                    if (extendProfile.supportsAutoFix && config.extendAutoFix) {
+                        input.auto_fix = true;
                     }
                 }
             } else if (profile) {
