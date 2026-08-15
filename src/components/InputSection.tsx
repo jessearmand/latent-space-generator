@@ -107,7 +107,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
     const extendPromptMissing = isExtendVideo && !extendPromptOptional && !promptText.trim();
 
     // Probe the source clip once here (shared with ExtendVideoOptions below)
-    // so a clip violating the model's source constraints (duration ceiling,
+    // so a clip violating the model's source constraints (duration bounds,
     // file size, container) disables Generate instead of only warning.
     // Unknown metadata doesn't block — the hook revalidates before upload.
     const extendVideoMeta = useVideoFileMetadata(isExtendVideo ? uploadedVideoFile : null);
@@ -116,6 +116,12 @@ export const InputSection: React.FC<InputSectionProps> = ({
         extendProfile !== undefined &&
         uploadedVideoFile !== null &&
         checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta?.duration ?? null).blocked;
+    const extendSourceTooShort =
+        isExtendVideo &&
+        extendProfile !== undefined &&
+        extendProfile.sourceMinSeconds !== null &&
+        extendVideoMeta !== null &&
+        extendVideoMeta.duration < extendProfile.sourceMinSeconds;
 
     return (
         <div className="input-section">
@@ -205,7 +211,12 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 className="generate-btn"
                 onClick={handleGenerate}
                 disabled={
-                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceBlocked
+                    !currentSelectedModel ||
+                    modelsLoading ||
+                    isGenerating ||
+                    extendPromptMissing ||
+                    extendSourceBlocked ||
+                    extendSourceTooShort
                 }
             >
                 {getGenerateButtonText()}

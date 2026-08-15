@@ -96,12 +96,12 @@ export function useVideoGeneration({
             }
 
             // Extend mode: reject sources violating the model's constraints
-            // (duration ceiling, file size, container) before paying for a
+            // (duration bounds, file size, container) before paying for a
             // storage upload. The UI disables Generate too, but revalidate
             // here in case its metadata probe lagged or failed.
             if (isExtendVideo && extendProfile && uploadedVideoFile) {
                 let sourceDuration: number | null = null;
-                if (extendProfile.sourceMaxSeconds !== null) {
+                if (extendProfile.sourceMinSeconds !== null || extendProfile.sourceMaxSeconds !== null) {
                     try {
                         sourceDuration = (await probeVideoFile(uploadedVideoFile)).duration;
                     } catch {
@@ -112,6 +112,17 @@ export function useVideoGeneration({
                 if (sourceCheck.tooLong && sourceDuration !== null) {
                     setStatus(
                         `Source clip is ${sourceDuration.toFixed(1)}s — over the ${extendProfile.sourceMaxSeconds}s limit for ${modelName}.`,
+                        'error',
+                    );
+                    return;
+                }
+                if (
+                    sourceDuration !== null &&
+                    extendProfile.sourceMinSeconds !== null &&
+                    sourceDuration < extendProfile.sourceMinSeconds
+                ) {
+                    setStatus(
+                        `Source clip is ${sourceDuration.toFixed(1)}s — under the ${extendProfile.sourceMinSeconds}s minimum for ${modelName}.`,
                         'error',
                     );
                     return;
