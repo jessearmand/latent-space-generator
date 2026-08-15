@@ -48,8 +48,9 @@ export interface ExtendCapabilityProfile {
     sourceMaxBytes: number | null;
     /**
      * Accepted source container MIME types (e.g. ['video/mp4']); empty =
-     * unconstrained. Codec requirements inside a container can't be checked
-     * client-side — the API stays the final validator there.
+     * unconstrained. Codec requirements inside a container (Grok's
+     * H.264/H.265/AV1) can't be checked client-side — `sourceNote` carries
+     * them for display only.
      */
     sourceMimeTypes: string[];
     /** Extra source constraint shown on the accepted chip (e.g. "MP4 · ≤ 50 MiB"). */
@@ -176,6 +177,7 @@ function matchesContainer(file: Pick<File, 'type' | 'name'>, required: string[])
 }
 
 export interface ExtendSourceCheck {
+    tooShort: boolean;
     tooLong: boolean;
     tooLarge: boolean;
     wrongContainer: boolean;
@@ -190,7 +192,7 @@ export interface ExtendSourceCheck {
 
 /**
  * Validate a source clip against everything the profile can check
- * client-side: duration ceiling (when known), file size, and container.
+ * client-side: duration bounds (when known), file size, and container.
  * Codecs are not inspected — the API remains the final validator there.
  * Shared by the chips, the Generate gating, and the hook's pre-upload check
  * so the three never disagree.
@@ -200,12 +202,15 @@ export function checkExtendSource(
     file: Pick<File, 'size' | 'type' | 'name'>,
     durationSeconds: number | null,
 ): ExtendSourceCheck {
+    const tooShort =
+        profile.sourceMinSeconds !== null && durationSeconds !== null && durationSeconds < profile.sourceMinSeconds;
     const tooLong =
         profile.sourceMaxSeconds !== null && durationSeconds !== null && durationSeconds > profile.sourceMaxSeconds;
     const tooLarge = profile.sourceMaxBytes !== null && file.size > profile.sourceMaxBytes;
     const wrongContainer = profile.sourceMimeTypes.length > 0 && !matchesContainer(file, profile.sourceMimeTypes);
-    const blocked = tooLong || tooLarge || wrongContainer;
+    const blocked = tooShort || tooLong || tooLarge || wrongContainer;
     return {
+        tooShort,
         tooLong,
         tooLarge,
         wrongContainer,
@@ -217,4 +222,16 @@ export function checkExtendSource(
 /** Human label for a source size limit, honoring the unit the docs use. */
 export function formatSourceMaxBytes(bytes: number): string {
     return bytes % (1024 * 1024) === 0 ? `${bytes / (1024 * 1024)} MiB` : `${bytes / 1_000_000} MB`;
+}
+
+/**
+ * Clamp a persisted extension length into the profile's bounds and snap it
+ * to the slider step, so a fractional value carried over from another model
+ * (LTX allows 2.5s) can't display one number while a whole-second endpoint
+ * is sent another.
+ */
+export function snapExtendDuration(profile: ExtendCapabilityProfile, seconds: number): number {
+    const clamped = Math.min(Math.max(seconds, profile.durationMin), profile.durationMax);
+    const snapped = Math.round(clamped / profile.durationStep) * profile.durationStep;
+    return Math.min(Math.max(snapped, profile.durationMin), profile.durationMax);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkExtendSource, getExtendCapabilityProfile } from './extendVideoCapabilities';
+import { checkExtendSource, getExtendCapabilityProfile, snapExtendDuration } from './extendVideoCapabilities';
 
 const sourceFile = (overrides: Partial<Pick<File, 'size' | 'type' | 'name'>> = {}) => ({
     size: 1_000_000,
@@ -128,6 +128,11 @@ describe('getExtendCapabilityProfile', () => {
         expect(draft?.sourceMaxBytes).toBe(50 * 1024 * 1024);
         expect(draft?.sourceMimeTypes).toEqual(['video/mp4']);
 
+        // Grok: MP4 container required, no documented size cap.
+        const grok = getExtendCapabilityProfile('xai/grok-imagine-video/extend-video');
+        expect(grok?.sourceMaxBytes).toBeNull();
+        expect(grok?.sourceMimeTypes).toEqual(['video/mp4']);
+
         // LTX 2.3 Pro: no file-level constraints documented.
         const ltx = getExtendCapabilityProfile('fal-ai/ltx-2.3/extend-video');
         expect(ltx?.sourceMaxBytes).toBeNull();
@@ -136,13 +141,14 @@ describe('getExtendCapabilityProfile', () => {
 });
 
 describe('checkExtendSource', () => {
+    const grok = getExtendCapabilityProfile('xai/grok-imagine-video/extend-video')!;
     const flux = getExtendCapabilityProfile('blackforestlabs/flux-3/extend-video')!;
-    const draft = getExtendCapabilityProfile('blackforestlabs/flux-3/extend-video/draft')!;
     const ltx = getExtendCapabilityProfile('fal-ai/ltx-2.3/extend-video')!;
 
     it('accepts an MP4 within all bounds', () => {
-        const check = checkExtendSource(flux, sourceFile(), 8);
+        const check = checkExtendSource(grok, sourceFile(), 8);
         expect(check).toEqual({
+            tooShort: false,
             tooLong: false,
             tooLarge: false,
             wrongContainer: false,
@@ -151,14 +157,13 @@ describe('checkExtendSource', () => {
         });
     });
 
-    it('flags sources over the duration ceiling', () => {
-        expect(checkExtendSource(flux, sourceFile(), 16)).toMatchObject({ tooLong: true, blocked: true });
-        // Draft has no duration ceiling.
-        expect(checkExtendSource(draft, sourceFile(), 16).tooLong).toBe(false);
+    it('flags duration bound violations', () => {
+        expect(checkExtendSource(grok, sourceFile(), 1.5)).toMatchObject({ tooShort: true, blocked: true });
+        expect(checkExtendSource(grok, sourceFile(), 16)).toMatchObject({ tooLong: true, blocked: true });
     });
 
     it('rejects non-MP4 containers when the profile requires MP4', () => {
-        const webm = checkExtendSource(flux, sourceFile({ type: 'video/webm', name: 'clip.webm' }), 8);
+        const webm = checkExtendSource(grok, sourceFile({ type: 'video/webm', name: 'clip.webm' }), 8);
         expect(webm).toMatchObject({ wrongContainer: true, blocked: true, accepted: false });
         // Unconstrained profiles accept any container.
         expect(checkExtendSource(ltx, sourceFile({ type: 'video/webm', name: 'clip.webm' }), 8).blocked).toBe(false);
@@ -166,14 +171,14 @@ describe('checkExtendSource', () => {
 
     it('accepts MP4s reported under noncanonical or empty MIME types', () => {
         // Browsers/OSes report legitimate .mp4 files as application/mp4,
-        // application/octet-stream, or "" — the extension must rescue them.
-        expect(checkExtendSource(flux, sourceFile({ type: 'application/mp4' }), 8).wrongContainer).toBe(false);
-        expect(checkExtendSource(flux, sourceFile({ type: 'application/octet-stream' }), 8).wrongContainer).toBe(false);
-        expect(checkExtendSource(flux, sourceFile({ type: '' }), 8).wrongContainer).toBe(false);
+        // application/octet-stream, or "" — aliases or the extension rescue them.
+        expect(checkExtendSource(grok, sourceFile({ type: 'application/mp4' }), 8).wrongContainer).toBe(false);
+        expect(checkExtendSource(grok, sourceFile({ type: 'application/octet-stream' }), 8).wrongContainer).toBe(false);
+        expect(checkExtendSource(grok, sourceFile({ type: '' }), 8).wrongContainer).toBe(false);
         // Neither MIME nor extension matching still fails.
-        expect(checkExtendSource(flux, sourceFile({ type: '', name: 'clip.avi' }), 8).wrongContainer).toBe(true);
+        expect(checkExtendSource(grok, sourceFile({ type: '', name: 'clip.avi' }), 8).wrongContainer).toBe(true);
         expect(
-            checkExtendSource(flux, sourceFile({ type: 'application/octet-stream', name: 'clip' }), 8).wrongContainer,
+            checkExtendSource(grok, sourceFile({ type: 'application/octet-stream', name: 'clip' }), 8).wrongContainer,
         ).toBe(true);
     });
 
@@ -183,17 +188,39 @@ describe('checkExtendSource', () => {
             blocked: true,
         });
         expect(checkExtendSource(flux, sourceFile({ size: 50_000_000 }), 8).tooLarge).toBe(false);
-        // Draft's ceiling is 50 MiB, not 50 MB.
-        expect(checkExtendSource(draft, sourceFile({ size: 50 * 1024 * 1024 + 1 }), 8).tooLarge).toBe(true);
-        expect(checkExtendSource(draft, sourceFile({ size: 50_000_001 }), 8).tooLarge).toBe(false);
+        // Grok documents no size cap.
+        expect(checkExtendSource(grok, sourceFile({ size: 500_000_000 }), 8).tooLarge).toBe(false);
     });
 
     it('treats an unknown duration as neither accepted nor blocked on duration', () => {
-        const check = checkExtendSource(flux, sourceFile(), null);
+        const check = checkExtendSource(grok, sourceFile(), null);
+        expect(check.tooShort).toBe(false);
         expect(check.tooLong).toBe(false);
         expect(check.accepted).toBe(false);
         expect(check.blocked).toBe(false);
         // File-level violations still block even with unknown duration.
-        expect(checkExtendSource(flux, sourceFile({ type: 'video/webm', name: 'c.webm' }), null).blocked).toBe(true);
+        expect(checkExtendSource(grok, sourceFile({ type: 'video/webm', name: 'c.webm' }), null).blocked).toBe(true);
+    });
+});
+
+describe('snapExtendDuration', () => {
+    const grok = getExtendCapabilityProfile('xai/grok-imagine-video/extend-video')!;
+    const ltx = getExtendCapabilityProfile('fal-ai/ltx-2.3/extend-video')!;
+
+    it('snaps fractional carry-over to whole seconds on integer-step profiles', () => {
+        // An LTX half-second value must not display 2.5 while Grok is sent 3.
+        expect(snapExtendDuration(grok, 2.5)).toBe(3);
+        expect(snapExtendDuration(grok, 9.4)).toBe(9);
+    });
+
+    it('preserves half-second values on 0.5-step profiles', () => {
+        expect(snapExtendDuration(ltx, 2.5)).toBe(2.5);
+        expect(snapExtendDuration(ltx, 2.3)).toBe(2.5);
+    });
+
+    it('clamps into the profile bounds', () => {
+        expect(snapExtendDuration(grok, 25)).toBe(10);
+        expect(snapExtendDuration(grok, 0.4)).toBe(2);
+        expect(snapExtendDuration(ltx, 25)).toBe(20);
     });
 });

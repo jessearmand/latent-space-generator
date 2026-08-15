@@ -116,12 +116,6 @@ export const InputSection: React.FC<InputSectionProps> = ({
         extendProfile !== undefined &&
         uploadedVideoFile !== null &&
         checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta?.duration ?? null).blocked;
-    const extendSourceTooShort =
-        isExtendVideo &&
-        extendProfile !== undefined &&
-        extendProfile.sourceMinSeconds !== null &&
-        extendVideoMeta !== null &&
-        extendVideoMeta.duration < extendProfile.sourceMinSeconds;
 
     return (
         <div className="input-section">
@@ -211,12 +205,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 className="generate-btn"
                 onClick={handleGenerate}
                 disabled={
-                    !currentSelectedModel ||
-                    modelsLoading ||
-                    isGenerating ||
-                    extendPromptMissing ||
-                    extendSourceBlocked ||
-                    extendSourceTooShort
+                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceBlocked
                 }
             >
                 {getGenerateButtonText()}

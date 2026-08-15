@@ -13,6 +13,7 @@ import {
     checkExtendSource,
     formatSourceMaxBytes,
     getExtendCapabilityProfile,
+    snapExtendDuration,
 } from '../services/extendVideoCapabilities';
 import type { VideoFileMetadata } from '../utils/videoMetadata';
 import type { ModelConfig } from '../types/models';
@@ -32,12 +33,14 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
     const config = useConfig();
     const profile = getExtendCapabilityProfile(selectedModel.endpointId);
 
-    // Clamp the stored extension length into the selected model's bounds.
+    // Clamp the stored extension length into the selected model's bounds and
+    // snap it to the model's step (a fractional LTX value like 2.5 must not
+    // survive into a whole-second model, where it would display 2.5 but send 3).
     useEffect(() => {
         if (!profile) return;
-        const clamped = Math.min(Math.max(config.extendDuration, profile.durationMin), profile.durationMax);
-        if (clamped !== config.extendDuration) {
-            config.setExtendDuration(clamped);
+        const snapped = snapExtendDuration(profile, config.extendDuration);
+        if (snapped !== config.extendDuration) {
+            config.setExtendDuration(snapped);
         }
         // Reset resolution/aspect to the profile default when the stored value is invalid.
         if (profile.resolutions.length > 0 && !profile.resolutions.includes(config.videoResolution)) {
@@ -62,7 +65,7 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
     const durationAuto = profile.supportsAutoDuration && config.extendDurationAuto;
     const contextAuto = !profile.supportsContext || config.extendContextAuto;
     const mode = profile.supportsMode && config.extendMode === 'start' ? 'start' : 'end';
-    const extSec = Math.min(Math.max(config.extendDuration, profile.durationMin), profile.durationMax);
+    const extSec = snapExtendDuration(profile, config.extendDuration);
     const effectiveExt = durationAuto ? profile.durationMax : extSec;
 
     // Guard against degenerate metadata (e.g. streams with unknown duration).
@@ -70,8 +73,6 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
     // One predicate for duration, size, and container — the same check gates
     // Generate in InputSection, so chips and button state always agree.
     const srcCheck = checkExtendSource(profile, videoFile, srcDuration);
-    const srcTooShort =
-        profile.sourceMinSeconds !== null && srcDuration !== null && srcDuration < profile.sourceMinSeconds;
     const totalSec = srcDuration !== null ? srcDuration + effectiveExt : null;
     const resultOverCeiling =
         profile.sourceMaxSeconds !== null && totalSec !== null && totalSec > profile.sourceMaxSeconds;
@@ -122,7 +123,7 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     <span className="extend-chip accent">
                         Extendable up to&nbsp;<strong>{profile.durationMax}s</strong>&nbsp;per pass
                     </span>
-                    {srcCheck.accepted && !srcTooShort && (
+                    {srcCheck.accepted && (
                         <span className="extend-chip success">
                             &#10003;{' '}
                             {profile.sourceNote
@@ -136,7 +137,7 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                             clip to extend it
                         </span>
                     )}
-                    {srcTooShort && (
+                    {srcCheck.tooShort && (
                         <span className="extend-chip warning">
                             &#9888; Source under the {profile.sourceMinSeconds}s minimum for this model
                         </span>

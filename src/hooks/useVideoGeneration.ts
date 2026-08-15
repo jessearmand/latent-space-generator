@@ -10,6 +10,7 @@ import {
     checkExtendSource,
     formatSourceMaxBytes,
     getExtendCapabilityProfile,
+    snapExtendDuration,
 } from '../services/extendVideoCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import { FalQueueCancelledError, FalQueueTimeoutError, submitAndPollFalQueue } from '../services/falQueue';
@@ -116,11 +117,7 @@ export function useVideoGeneration({
                     );
                     return;
                 }
-                if (
-                    sourceDuration !== null &&
-                    extendProfile.sourceMinSeconds !== null &&
-                    sourceDuration < extendProfile.sourceMinSeconds
-                ) {
+                if (sourceCheck.tooShort && sourceDuration !== null) {
                     setStatus(
                         `Source clip is ${sourceDuration.toFixed(1)}s — under the ${extendProfile.sourceMinSeconds}s minimum for ${modelName}.`,
                         'error',
@@ -239,11 +236,10 @@ export function useVideoGeneration({
                     // takes explicit float seconds. Whole-second endpoints get integers.
                     const durationAuto = extendProfile.supportsAutoDuration && config.extendDurationAuto;
                     if (!durationAuto) {
-                        const clamped = Math.min(
-                            Math.max(config.extendDuration, extendProfile.durationMin),
-                            extendProfile.durationMax,
-                        );
-                        input.duration = extendProfile.durationStep === 1 ? Math.round(clamped) : clamped;
+                        // Snap to the profile step so the payload matches what
+                        // the panel displays (fractional carry-over from another
+                        // model must not round differently here).
+                        input.duration = snapExtendDuration(extendProfile, config.extendDuration);
                     }
 
                     if (extendProfile.supportsMode) {
