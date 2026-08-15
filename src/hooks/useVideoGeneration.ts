@@ -7,6 +7,7 @@ import { parseFalError } from '../services/errors';
 import { sanitizeLogMessage } from '../utils/logSanitizer';
 import { getImageInputConfig } from '../services/modelParams';
 import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
+import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import type { StatusType } from './useStatusMessage';
 
@@ -50,17 +51,23 @@ export function useVideoGeneration({
     const generateVideo = useCallback(
         async (prompt: string, model: ModelConfig) => {
             cancelledRef.current = false;
-            if (!prompt) {
-                setStatus('Please enter a text prompt.', 'error');
-                console.error('Prompt text is empty. Cannot generate video.');
-                return;
-            }
 
             const modelId = model.endpointId;
             const modelName = model.displayName;
             const isImageToVideo = activeTab === 'image-to-video';
             const isVideoToVideo = activeTab === 'video-to-video';
             const isReferenceToVideo = activeTab === 'reference-to-video';
+            const isExtendVideo = activeTab === 'extend-video';
+            const extendProfile = isExtendVideo ? getExtendCapabilityProfile(modelId) : undefined;
+
+            // Prompt is required everywhere except extend endpoints whose
+            // profile marks it optional (LTX 2.3 Pro extends without one).
+            const promptOptional = isExtendVideo && extendProfile !== undefined && !extendProfile.promptRequired;
+            if (!prompt && !promptOptional) {
+                setStatus('Please enter a text prompt.', 'error');
+                console.error('Prompt text is empty. Cannot generate video.');
+                return;
+            }
 
             // For image-to-video mode, require an uploaded image
             if (isImageToVideo && uploadedImages.length === 0) {
@@ -68,9 +75,9 @@ export function useVideoGeneration({
                 return;
             }
 
-            // For video-to-video mode, require an uploaded video
-            if (isVideoToVideo && !uploadedVideoFile) {
-                setStatus('Please upload a video for video-to-video generation.', 'error');
+            // For video-to-video and extend-video modes, require an uploaded video
+            if ((isVideoToVideo || isExtendVideo) && !uploadedVideoFile) {
+                setStatus('Please upload a video to extend or transform.', 'error');
                 return;
             }
 
@@ -135,8 +142,8 @@ export function useVideoGeneration({
                 }
             }
 
-            // For video-to-video, upload the video first
-            if (isVideoToVideo && uploadedVideoFile) {
+            // For video-to-video and extend-video, upload the video first
+            if ((isVideoToVideo || isExtendVideo) && uploadedVideoFile) {
                 try {
                     setStatus(`Uploading video for ${modelName}...`);
                     uploadedVideoUrl = await fal.storage.upload(uploadedVideoFile);
@@ -163,7 +170,59 @@ export function useVideoGeneration({
             // per-model conditionals. Unprofiled endpoints use the legacy branches.
             const profile = getVideoCapabilityProfile(modelId);
 
-            if (profile) {
+            if (isExtendVideo) {
+                // Extend endpoints take the source clip plus range/constraint
+                // parameters from the ExtendCapabilityProfile. Unprofiled extend
+                // endpoints get only prompt + video_url (server defaults apply).
+                input.video_url = uploadedVideoUrl;
+
+                // LTX 2.3 Pro accepts requests without a prompt; drop the empty field.
+                if (!prompt) {
+                    delete input.prompt;
+                }
+
+                if (extendProfile) {
+                    // Duration: FLUX defaults to "auto" (omit the field); LTX always
+                    // takes explicit float seconds. Whole-second endpoints get integers.
+                    const durationAuto = extendProfile.supportsAutoDuration && config.extendDurationAuto;
+                    if (!durationAuto) {
+                        const clamped = Math.min(
+                            Math.max(config.extendDuration, extendProfile.durationMin),
+                            extendProfile.durationMax,
+                        );
+                        input.duration = extendProfile.durationStep === 1 ? Math.round(clamped) : clamped;
+                    }
+
+                    if (extendProfile.supportsMode) {
+                        input.mode = config.extendMode === 'start' ? 'start' : 'end';
+                    }
+
+                    // Context: omitting the field maximizes available context server-side.
+                    if (extendProfile.supportsContext && !config.extendContextAuto) {
+                        input.context = Math.min(Math.max(config.extendContext, 1), 20);
+                    }
+
+                    if (extendProfile.resolutions.length > 0) {
+                        input.resolution = extendProfile.resolutions.includes(config.videoResolution)
+                            ? config.videoResolution
+                            : extendProfile.resolutions[0];
+                    }
+
+                    if (extendProfile.aspectRatios.length > 0) {
+                        input.aspect_ratio = extendProfile.aspectRatios.includes(config.extendAspectRatio)
+                            ? config.extendAspectRatio
+                            : extendProfile.aspectRatios[0];
+                    }
+
+                    if (extendProfile.supportsGenerateAudio) {
+                        input.generate_audio = config.generateAudio;
+                    }
+
+                    if (extendProfile.supportsSafetyTolerance) {
+                        input.safety_tolerance = Math.min(Math.max(config.extendSafetyTolerance, 0), 4);
+                    }
+                }
+            } else if (profile) {
                 if (config.videoResolution) {
                     input.resolution = config.videoResolution;
                 }
@@ -310,8 +369,9 @@ export function useVideoGeneration({
             }
 
             // Model detection for specific parameters (legacy routing — skipped for
-            // profiled endpoints and seedance, whose input shapes are built above).
-            if (!isSeedance && !profile) {
+            // extend mode, profiled endpoints, and seedance, whose input shapes are
+            // built above).
+            if (!isExtendVideo && !isSeedance && !profile) {
                 const isKlingModel = modelIdLower.includes('kling');
                 const isVeoModel = modelIdLower.includes('veo');
                 const isLtx19bModel = modelIdLower.includes('ltx-2-19b');

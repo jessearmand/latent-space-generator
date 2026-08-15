@@ -445,12 +445,44 @@ export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
     },
 ];
 
+/**
+ * Curated list of extend-video models (continue an existing clip).
+ * Capabilities per endpoint live in `services/extendVideoCapabilities.ts`.
+ */
+export const CURATED_EXTEND_VIDEO_MODELS: ModelConfig[] = [
+    {
+        endpointId: 'fal-ai/ltx-2.3/extend-video',
+        displayName: 'LTX-2.3 Extend',
+        category: 'extend-video',
+        description: 'Extend a clip at either end, 2-20s per pass with context control',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'blackforestlabs/flux-3/extend-video',
+        displayName: 'FLUX 3 Extend',
+        category: 'extend-video',
+        description: 'Continue a clip past its final frame with audio, source up to 15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'blackforestlabs/flux-3/extend-video/draft',
+        displayName: 'FLUX 3 Extend Draft',
+        category: 'extend-video',
+        description: 'Fast low-cost 720p extend preview with a reusable draft cache',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+];
+
 /** All curated video models */
 export const CURATED_VIDEO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_VIDEO_MODELS,
     ...CURATED_IMAGE_TO_VIDEO_MODELS,
     ...CURATED_VIDEO_TO_VIDEO_MODELS,
     ...CURATED_REFERENCE_TO_VIDEO_MODELS,
+    ...CURATED_EXTEND_VIDEO_MODELS,
 ];
 
 /**
@@ -475,6 +507,10 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
 
     if (category === 'reference-to-video') {
         return CURATED_REFERENCE_TO_VIDEO_MODELS;
+    }
+
+    if (category === 'extend-video') {
+        return CURATED_EXTEND_VIDEO_MODELS;
     }
 
     return [];

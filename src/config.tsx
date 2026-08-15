@@ -48,6 +48,14 @@ export interface ConfigState {
     videoEnablePromptExpansion: boolean; // default false
     // Video-to-video settings
     videoStrength: number; // 0-1, strength for video-to-video transformation
+    // Extend-video settings (per-endpoint capabilities in services/extendVideoCapabilities.ts)
+    extendDuration: number; // Extension length in seconds
+    extendDurationAuto: boolean; // FLUX only: let the model choose (omits `duration`)
+    extendMode: string; // 'end' | 'start' (LTX only)
+    extendContext: number; // LTX only: seconds of source context (1-20)
+    extendContextAuto: boolean; // LTX only: omit `context` to maximize it
+    extendAspectRatio: string; // FLUX only: 'auto', '21:9', '2:1', ...
+    extendSafetyTolerance: number; // FLUX only: 0 (strict) - 4 (permissive)
     // Audio generation settings
     audioOutputFormat: string; // 'mp3' | 'wav' | 'flac' | 'pcm'
     audioSeed: number | null; // Seed for reproducibility
@@ -145,6 +153,14 @@ interface ConfigContextType extends ConfigState {
     setVideoEnablePromptExpansion: (value: boolean) => void;
     // Video-to-video setters
     setVideoStrength: (value: number) => void;
+    // Extend-video setters
+    setExtendDuration: (value: number) => void;
+    setExtendDurationAuto: (value: boolean) => void;
+    setExtendMode: (value: string) => void;
+    setExtendContext: (value: number) => void;
+    setExtendContextAuto: (value: boolean) => void;
+    setExtendAspectRatio: (value: string) => void;
+    setExtendSafetyTolerance: (value: number) => void;
     // Audio generation setters
     setAudioOutputFormat: (value: string) => void;
     setAudioSeed: (value: number | null) => void;
@@ -298,6 +314,26 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const [videoStrength, setVideoStrength] = useState<number>(
         parseFloat(localStorage.getItem('VIDEO_STRENGTH') || '0.5'),
     );
+    // Extend-video settings
+    const [extendDuration, setExtendDuration] = useState<number>(
+        parseFloat(localStorage.getItem('EXTEND_DURATION') || '5'),
+    );
+    const [extendDurationAuto, setExtendDurationAuto] = useState<boolean>(
+        localStorage.getItem('EXTEND_DURATION_AUTO') !== 'false', // Default true
+    );
+    const [extendMode, setExtendMode] = useState<string>(localStorage.getItem('EXTEND_MODE') || 'end');
+    const [extendContext, setExtendContext] = useState<number>(
+        parseInt(localStorage.getItem('EXTEND_CONTEXT') || '5', 10),
+    );
+    const [extendContextAuto, setExtendContextAuto] = useState<boolean>(
+        localStorage.getItem('EXTEND_CONTEXT_AUTO') !== 'false', // Default true
+    );
+    const [extendAspectRatio, setExtendAspectRatio] = useState<string>(
+        localStorage.getItem('EXTEND_ASPECT_RATIO') || 'auto',
+    );
+    const [extendSafetyTolerance, setExtendSafetyTolerance] = useState<number>(
+        parseInt(localStorage.getItem('EXTEND_SAFETY_TOLERANCE') || '2', 10),
+    );
     // Audio generation settings
     const [audioOutputFormat, setAudioOutputFormat] = useState<string>(
         localStorage.getItem('AUDIO_OUTPUT_FORMAT') || 'mp3',
@@ -446,6 +482,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('VIDEO_ENABLE_PROMPT_EXPANSION', videoEnablePromptExpansion.toString());
         // Video-to-video persistence
         localStorage.setItem('VIDEO_STRENGTH', videoStrength.toString());
+        // Extend-video persistence
+        localStorage.setItem('EXTEND_DURATION', extendDuration.toString());
+        localStorage.setItem('EXTEND_DURATION_AUTO', extendDurationAuto.toString());
+        localStorage.setItem('EXTEND_MODE', extendMode);
+        localStorage.setItem('EXTEND_CONTEXT', extendContext.toString());
+        localStorage.setItem('EXTEND_CONTEXT_AUTO', extendContextAuto.toString());
+        localStorage.setItem('EXTEND_ASPECT_RATIO', extendAspectRatio);
+        localStorage.setItem('EXTEND_SAFETY_TOLERANCE', extendSafetyTolerance.toString());
         // Audio generation persistence
         localStorage.setItem('AUDIO_OUTPUT_FORMAT', audioOutputFormat);
         localStorage.setItem('AUDIO_SEED', audioSeed !== null ? audioSeed.toString() : 'null');
@@ -534,6 +578,13 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         videoCameraLoraScale,
         videoEnablePromptExpansion,
         videoStrength,
+        extendDuration,
+        extendDurationAuto,
+        extendMode,
+        extendContext,
+        extendContextAuto,
+        extendAspectRatio,
+        extendSafetyTolerance,
         audioOutputFormat,
         audioSeed,
         ttsVoiceId,
@@ -654,6 +705,21 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 // Video-to-video settings
                 videoStrength,
                 setVideoStrength,
+                // Extend-video settings
+                extendDuration,
+                setExtendDuration,
+                extendDurationAuto,
+                setExtendDurationAuto,
+                extendMode,
+                setExtendMode,
+                extendContext,
+                setExtendContext,
+                extendContextAuto,
+                setExtendContextAuto,
+                extendAspectRatio,
+                setExtendAspectRatio,
+                extendSafetyTolerance,
+                setExtendSafetyTolerance,
                 // Audio generation
                 audioOutputFormat,
                 setAudioOutputFormat,

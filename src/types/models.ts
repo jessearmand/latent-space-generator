@@ -7,7 +7,12 @@
 export type ImageModelCategory = 'text-to-image' | 'image-to-image';
 
 /** Model categories for video generation */
-export type VideoModelCategory = 'text-to-video' | 'image-to-video' | 'video-to-video' | 'reference-to-video';
+export type VideoModelCategory =
+    | 'text-to-video'
+    | 'image-to-video'
+    | 'video-to-video'
+    | 'reference-to-video'
+    | 'extend-video';
 
 /** Model categories for audio generation */
 export type AudioModelCategory =
@@ -101,7 +106,8 @@ function getOutputType(category: ModelCategory): OutputType {
         category === 'text-to-video' ||
         category === 'image-to-video' ||
         category === 'video-to-video' ||
-        category === 'reference-to-video'
+        category === 'reference-to-video' ||
+        category === 'extend-video'
     ) {
         return 'video';
     }
@@ -126,7 +132,7 @@ function getSupportsImageInput(category: ModelCategory): boolean {
 
 /** Determine if model supports video input based on category */
 export function getSupportsVideoInput(category: ModelCategory): boolean {
-    return category === 'video-to-video' || category === 'video-to-audio';
+    return category === 'video-to-video' || category === 'video-to-audio' || category === 'extend-video';
 }
 
 /** Determine if model supports audio input based on category */
@@ -141,10 +147,15 @@ export function normalizeModel(model: FalModel): ModelConfig {
     // under metadata.category === 'image-to-video'. Detect them by endpoint suffix
     // so they route through the dedicated R2V picker and the R2V branch of
     // useVideoGeneration (`image_urls` array) instead of the I2V branch (`image_url`).
+    // Extend endpoints are filed under category === 'video-to-video' in the
+    // catalog; detect them by path segment (covers `/extend-video` and tier
+    // suffixes like `/extend-video/draft`) so they route to the extend mode.
     const endpointIdLower = model.endpoint_id.toLowerCase();
     const category: ModelCategory = endpointIdLower.endsWith('/reference-to-video')
         ? 'reference-to-video'
-        : metadata.category || 'text-to-image';
+        : endpointIdLower.includes('/extend-video')
+          ? 'extend-video'
+          : metadata.category || 'text-to-image';
 
     return {
         endpointId: model.endpoint_id,
