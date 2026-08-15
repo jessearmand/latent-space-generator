@@ -40,6 +40,8 @@ export interface ExtendCapabilityProfile {
     supportsSafetyTolerance: boolean;
     /** Whether `prompt` is required (FLUX) or optional (LTX 2.3 Pro). */
     promptRequired: boolean;
+    /** Minimum source clip length in seconds, or null when unconstrained (Grok: 2s). */
+    sourceMinSeconds: number | null;
     /** Maximum source clip length in seconds, or null when unconstrained. */
     sourceMaxSeconds: number | null;
     /** Maximum source file size in bytes, or null when the docs state none. */
@@ -50,6 +52,8 @@ export interface ExtendCapabilityProfile {
      * client-side — the API stays the final validator there.
      */
     sourceMimeTypes: string[];
+    /** Extra source constraint shown on the accepted chip (e.g. "MP4 · ≤ 50 MiB"). */
+    sourceNote?: string;
     /** Draft tier: 720p-only preview that also returns a reusable draft_cache. */
     isDraft: boolean;
 }
@@ -75,6 +79,7 @@ function flux3ExtendProfile(overrides: Partial<ExtendCapabilityProfile>): Extend
         supportsGenerateAudio: true,
         supportsSafetyTolerance: true,
         promptRequired: true,
+        sourceMinSeconds: null,
         sourceMaxSeconds: 15,
         sourceMaxBytes: 50_000_000,
         sourceMimeTypes: ['video/mp4'],
@@ -98,24 +103,48 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         supportsGenerateAudio: false,
         supportsSafetyTolerance: false,
         promptRequired: false,
+        sourceMinSeconds: null,
         sourceMaxSeconds: null,
         sourceMaxBytes: null,
         sourceMimeTypes: [],
         isDraft: false,
     },
     // Source clip: MP4, under 50 MB and under 15 seconds.
-    'blackforestlabs/flux-3/extend-video': flux3ExtendProfile({}),
+    'blackforestlabs/flux-3/extend-video': flux3ExtendProfile({ sourceNote: 'MP4 · ≤ 50 MB' }),
     // Draft: no resolution input; source limit is 50 MiB with no stated
     // duration cap; returns draft_cache alongside the video.
     'blackforestlabs/flux-3/extend-video/draft': flux3ExtendProfile({
         resolutions: [],
         sourceMaxSeconds: null,
         sourceMaxBytes: 50 * 1024 * 1024,
+        sourceNote: 'MP4 · ≤ 50 MiB',
         isDraft: true,
     }),
+    // Grok Imagine: the minimal extend schema — required prompt, source clip,
+    // integer duration 2-10 (default 6). Source must be MP4 (H.264/H.265/AV1)
+    // and 2-15 seconds; the extension is always appended at the end.
+    'xai/grok-imagine-video/extend-video': {
+        durationMin: 2,
+        durationMax: 10,
+        durationStep: 1,
+        supportsAutoDuration: false,
+        supportsMode: false,
+        supportsContext: false,
+        resolutions: [],
+        aspectRatios: [],
+        supportsGenerateAudio: false,
+        supportsSafetyTolerance: false,
+        promptRequired: true,
+        sourceMinSeconds: 2,
+        sourceMaxSeconds: 15,
+        sourceMaxBytes: null,
+        sourceMimeTypes: ['video/mp4'],
+        sourceNote: 'MP4 (H.264/H.265/AV1)',
+        isDraft: false,
+    },
     // fal-ai/ltx-2.3-quality and ltx-2.3-22b extend are frame-based APIs
     // (num_frames/num_context_frames, 19B-style knobs) — deferred.
-    // xai/grok-imagine-video and fal-ai/veo3.1 extend land in later stack layers.
+    // fal-ai/veo3.1 extend lands in the next stack layer.
 };
 
 /**

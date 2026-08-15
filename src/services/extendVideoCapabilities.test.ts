@@ -75,12 +75,38 @@ describe('getExtendCapabilityProfile', () => {
         });
     });
 
+    describe('Grok Imagine extend', () => {
+        it('declares the minimal schema: integer duration 2-10 and a 2-15s MP4 source', () => {
+            const profile = getExtendCapabilityProfile('xai/grok-imagine-video/extend-video');
+            expect(profile).toBeDefined();
+
+            // Integer seconds 2-10 (default 6), no auto
+            expect(profile?.durationMin).toBe(2);
+            expect(profile?.durationMax).toBe(10);
+            expect(profile?.durationStep).toBe(1);
+            expect(profile?.supportsAutoDuration).toBe(false);
+
+            // Nothing else in the input schema: end-only, no context, no
+            // resolution/aspect/audio/safety; prompt is required
+            expect(profile?.supportsMode).toBe(false);
+            expect(profile?.supportsContext).toBe(false);
+            expect(profile?.resolutions).toEqual([]);
+            expect(profile?.aspectRatios).toEqual([]);
+            expect(profile?.supportsGenerateAudio).toBe(false);
+            expect(profile?.supportsSafetyTolerance).toBe(false);
+            expect(profile?.promptRequired).toBe(true);
+
+            // Source must be an MP4 between 2 and 15 seconds
+            expect(profile?.sourceMinSeconds).toBe(2);
+            expect(profile?.sourceMaxSeconds).toBe(15);
+        });
+    });
+
     describe('unprofiled extend endpoints', () => {
         it.each([
-            // Frame-based LTX variants and later stack layers (grok, veo) are deferred.
+            // Frame-based LTX variants and the veo3.1 stack layer are deferred.
             'fal-ai/ltx-2.3-quality/extend-video',
             'fal-ai/ltx-2.3-22b/extend-video',
-            'xai/grok-imagine-video/extend-video',
             'fal-ai/veo3.1/extend-video',
             'fal-ai/veo3.1/fast/extend-video',
             'fal-ai/ltx-2.3/retake-video',

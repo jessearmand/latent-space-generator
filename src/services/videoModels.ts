@@ -474,6 +474,14 @@ export const CURATED_EXTEND_VIDEO_MODELS: ModelConfig[] = [
         supportsImageInput: false,
         outputType: 'video',
     },
+    {
+        endpointId: 'xai/grok-imagine-video/extend-video',
+        displayName: 'Grok Imagine Extend',
+        category: 'extend-video',
+        description: 'Continue an MP4 clip (2-15s source) by 2-10 seconds',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
 ];
 
 /** All curated video models */

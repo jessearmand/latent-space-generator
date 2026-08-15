@@ -70,6 +70,8 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
     // One predicate for duration, size, and container — the same check gates
     // Generate in InputSection, so chips and button state always agree.
     const srcCheck = checkExtendSource(profile, videoFile, srcDuration);
+    const srcTooShort =
+        profile.sourceMinSeconds !== null && srcDuration !== null && srcDuration < profile.sourceMinSeconds;
     const totalSec = srcDuration !== null ? srcDuration + effectiveExt : null;
     const resultOverCeiling =
         profile.sourceMaxSeconds !== null && totalSec !== null && totalSec > profile.sourceMaxSeconds;
@@ -120,15 +122,23 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     <span className="extend-chip accent">
                         Extendable up to&nbsp;<strong>{profile.durationMax}s</strong>&nbsp;per pass
                     </span>
-                    {srcCheck.accepted && (
+                    {srcCheck.accepted && !srcTooShort && (
                         <span className="extend-chip success">
-                            &#10003; Source accepted by {selectedModel.displayName}
+                            &#10003;{' '}
+                            {profile.sourceNote
+                                ? `Source accepted — ${profile.sourceNote}`
+                                : `Source accepted by ${selectedModel.displayName}`}
                         </span>
                     )}
                     {srcCheck.tooLong && (
                         <span className="extend-chip warning">
                             &#9888; Source over the {profile.sourceMaxSeconds}s limit for this model &mdash; trim the
                             clip to extend it
+                        </span>
+                    )}
+                    {srcTooShort && (
+                        <span className="extend-chip warning">
+                            &#9888; Source under the {profile.sourceMinSeconds}s minimum for this model
                         </span>
                     )}
                     {srcCheck.tooLarge && profile.sourceMaxBytes !== null && (
