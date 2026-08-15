@@ -72,9 +72,9 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
 
     // Guard against degenerate metadata (e.g. streams with unknown duration).
     const srcDuration = meta && Number.isFinite(meta.duration) && meta.duration > 0 ? meta.duration : null;
-    // One predicate for duration, size, and container — the same check gates
-    // Generate in InputSection, so chips and button state always agree.
-    const srcCheck = checkExtendSource(profile, videoFile, srcDuration);
+    // One predicate for duration, dimensions, size, and container — the same
+    // check gates Generate in InputSection, so chips and button state agree.
+    const srcCheck = checkExtendSource(profile, videoFile, srcDuration !== null && meta !== null ? meta : null);
     const totalSec = srcDuration !== null ? srcDuration + effectiveExt : null;
     const resultOverCeiling =
         profile.sourceMaxSeconds !== null && totalSec !== null && totalSec > profile.sourceMaxSeconds;
@@ -152,6 +152,15 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     )}
                     {srcCheck.wrongContainer && (
                         <span className="extend-chip warning">&#9888; Source must be an MP4 file for this model</span>
+                    )}
+                    {srcCheck.wrongDimensions && meta && (
+                        <span className="extend-chip warning">
+                            &#9888; Source is {meta.width}&times;{meta.height} &mdash; this model needs{' '}
+                            {profile.sourceNote ?? 'a supported resolution'}
+                        </span>
+                    )}
+                    {profile.sourceRequirementNote && (
+                        <span className="extend-chip">{profile.sourceRequirementNote}</span>
                     )}
                     {profile.isDraft && <span className="extend-chip draft">Draft preview &middot; 720p only</span>}
                 </div>

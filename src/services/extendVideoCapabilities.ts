@@ -64,8 +64,24 @@ export interface ExtendCapabilityProfile {
      * them for display only.
      */
     sourceMimeTypes: string[];
-    /** Extra source constraint shown on the accepted chip (e.g. "MP4 · ≤ 50 MiB"). */
+    /**
+     * Exact pixel dimensions the source must have; empty = unconstrained.
+     * Veo only extends its own output sizes (720p/1080p in 16:9 or 9:16),
+     * so the probed width×height is checked against this list.
+     */
+    sourceDimensions: Array<{ width: number; height: number }>;
+    /**
+     * Client-checkable source constraints shown on the accepted chip
+     * (e.g. "MP4 · ≤ 50 MiB"). Everything named here should be enforced
+     * by `checkExtendSource` (codec details being the documented exception).
+     */
     sourceNote?: string;
+    /**
+     * A requirement that cannot be verified client-side (Veo's "must be a
+     * Veo-created clip"). Always shown as a neutral requirement, never as
+     * part of an acceptance claim.
+     */
+    sourceRequirementNote?: string;
     /** Draft tier: 720p-only preview that also returns a reusable draft_cache. */
     isDraft: boolean;
 }
@@ -99,6 +115,7 @@ function flux3ExtendProfile(overrides: Partial<ExtendCapabilityProfile>): Extend
         sourceMaxSeconds: 15,
         sourceMaxBytes: 50_000_000,
         sourceMimeTypes: ['video/mp4'],
+        sourceDimensions: [],
         isDraft: false,
         ...overrides,
     };
@@ -130,11 +147,19 @@ function veo31ExtendProfile(): ExtendCapabilityProfile {
         promptRequired: true,
         sourceMinSeconds: null,
         sourceMaxSeconds: null,
-        // The real constraint is provenance (a Veo-created clip), which
-        // can't be checked client-side — no size or container gates.
         sourceMaxBytes: null,
         sourceMimeTypes: [],
-        sourceNote: 'Veo-created · 720p/1080p · 16:9 or 9:16',
+        // Veo only extends its own output sizes — the probed dimensions are
+        // checked against these. Provenance (a Veo-created clip) can't be
+        // verified client-side, so it's surfaced as a requirement instead.
+        sourceDimensions: [
+            { width: 1280, height: 720 },
+            { width: 1920, height: 1080 },
+            { width: 720, height: 1280 },
+            { width: 1080, height: 1920 },
+        ],
+        sourceNote: '720p/1080p · 16:9 or 9:16',
+        sourceRequirementNote: 'Requires a Veo-created source clip (not verifiable here)',
         isDraft: false,
     };
 }
@@ -162,6 +187,7 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         sourceMaxSeconds: null,
         sourceMaxBytes: null,
         sourceMimeTypes: [],
+        sourceDimensions: [],
         isDraft: false,
     },
     // Source clip: MP4, under 50 MB and under 15 seconds.
@@ -198,6 +224,7 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         sourceMaxSeconds: 15,
         sourceMaxBytes: null,
         sourceMimeTypes: ['video/mp4'],
+        sourceDimensions: [],
         sourceNote: 'MP4 (H.264/H.265/AV1)',
         isDraft: false,
     },
@@ -236,46 +263,62 @@ function matchesContainer(file: Pick<File, 'type' | 'name'>, required: string[])
     });
 }
 
+/** The probed source properties checkExtendSource can validate; null = probe pending/failed. */
+export interface ExtendSourceMetadata {
+    duration: number;
+    width: number;
+    height: number;
+}
+
 export interface ExtendSourceCheck {
     tooShort: boolean;
     tooLong: boolean;
     tooLarge: boolean;
     wrongContainer: boolean;
+    wrongDimensions: boolean;
     /** Any hard violation — generation should be blocked. */
     blocked: boolean;
     /**
-     * Duration is known and every client-checkable constraint passes.
-     * Not the negation of `blocked`: an unknown duration is neither.
+     * Metadata is known and every client-checkable constraint passes.
+     * Not the negation of `blocked`: unknown metadata is neither.
      */
     accepted: boolean;
 }
 
 /**
  * Validate a source clip against everything the profile can check
- * client-side: duration bounds (when known), file size, and container.
- * Codecs are not inspected — the API remains the final validator there.
- * Shared by the chips, the Generate gating, and the hook's pre-upload check
- * so the three never disagree.
+ * client-side: duration bounds and pixel dimensions (when the probe
+ * succeeded), file size, and container. Codecs and provenance are not
+ * inspected — the API remains the final validator there. Shared by the
+ * chips, the Generate gating, and the hook's pre-upload check so the
+ * three never disagree.
  */
 export function checkExtendSource(
     profile: ExtendCapabilityProfile,
     file: Pick<File, 'size' | 'type' | 'name'>,
-    durationSeconds: number | null,
+    meta: ExtendSourceMetadata | null,
 ): ExtendSourceCheck {
-    const tooShort =
-        profile.sourceMinSeconds !== null && durationSeconds !== null && durationSeconds < profile.sourceMinSeconds;
-    const tooLong =
-        profile.sourceMaxSeconds !== null && durationSeconds !== null && durationSeconds > profile.sourceMaxSeconds;
+    const tooShort = profile.sourceMinSeconds !== null && meta !== null && meta.duration < profile.sourceMinSeconds;
+    const tooLong = profile.sourceMaxSeconds !== null && meta !== null && meta.duration > profile.sourceMaxSeconds;
     const tooLarge = profile.sourceMaxBytes !== null && file.size > profile.sourceMaxBytes;
     const wrongContainer = profile.sourceMimeTypes.length > 0 && !matchesContainer(file, profile.sourceMimeTypes);
-    const blocked = tooShort || tooLong || tooLarge || wrongContainer;
+    // Dimensions can be 0 when the codec hides them from the probe — treat
+    // that as unknown rather than a violation.
+    const wrongDimensions =
+        profile.sourceDimensions.length > 0 &&
+        meta !== null &&
+        meta.width > 0 &&
+        meta.height > 0 &&
+        !profile.sourceDimensions.some((d) => d.width === meta.width && d.height === meta.height);
+    const blocked = tooShort || tooLong || tooLarge || wrongContainer || wrongDimensions;
     return {
         tooShort,
         tooLong,
         tooLarge,
         wrongContainer,
+        wrongDimensions,
         blocked,
-        accepted: durationSeconds !== null && !blocked,
+        accepted: meta !== null && !blocked,
     };
 }
 

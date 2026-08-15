@@ -115,7 +115,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
         isExtendVideo &&
         extendProfile !== undefined &&
         uploadedVideoFile !== null &&
-        checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta?.duration ?? null).blocked;
+        checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta).blocked;
 
     return (
         <div className="input-section">

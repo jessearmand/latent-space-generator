@@ -8,6 +8,8 @@ const sourceFile = (overrides: Partial<Pick<File, 'size' | 'type' | 'name'>> = {
     ...overrides,
 });
 
+const srcMeta = (duration: number, width = 1280, height = 720) => ({ duration, width, height });
+
 describe('getExtendCapabilityProfile', () => {
     describe('LTX 2.3 Pro extend', () => {
         it('declares float duration 2-20 with mode and context, nothing else', () => {
@@ -135,9 +137,18 @@ describe('getExtendCapabilityProfile', () => {
                 expect(profile?.supportsAutoFix).toBe(true);
                 expect(profile?.promptRequired).toBe(true);
 
-                // Source constraint is provenance/format, not a duration cap
+                // No duration cap; the checkable constraint is the exact Veo
+                // output sizes, while provenance (Veo-created) is unverifiable
+                // and surfaced as a requirement note instead of an acceptance.
                 expect(profile?.sourceMaxSeconds).toBeNull();
-                expect(profile?.sourceNote).toContain('Veo-created');
+                expect(profile?.sourceDimensions).toEqual([
+                    { width: 1280, height: 720 },
+                    { width: 1920, height: 1080 },
+                    { width: 720, height: 1280 },
+                    { width: 1080, height: 1920 },
+                ]);
+                expect(profile?.sourceNote).toBe('720p/1080p · 16:9 or 9:16');
+                expect(profile?.sourceRequirementNote).toContain('Veo-created');
             },
         );
     });
@@ -182,61 +193,89 @@ describe('checkExtendSource', () => {
     const grok = getExtendCapabilityProfile('xai/grok-imagine-video/extend-video')!;
     const flux = getExtendCapabilityProfile('blackforestlabs/flux-3/extend-video')!;
     const ltx = getExtendCapabilityProfile('fal-ai/ltx-2.3/extend-video')!;
+    const veo = getExtendCapabilityProfile('fal-ai/veo3.1/extend-video')!;
 
     it('accepts an MP4 within all bounds', () => {
-        const check = checkExtendSource(grok, sourceFile(), 8);
+        const check = checkExtendSource(grok, sourceFile(), srcMeta(8));
         expect(check).toEqual({
             tooShort: false,
             tooLong: false,
             tooLarge: false,
             wrongContainer: false,
+            wrongDimensions: false,
             blocked: false,
             accepted: true,
         });
     });
 
     it('flags duration bound violations', () => {
-        expect(checkExtendSource(grok, sourceFile(), 1.5)).toMatchObject({ tooShort: true, blocked: true });
-        expect(checkExtendSource(grok, sourceFile(), 16)).toMatchObject({ tooLong: true, blocked: true });
+        expect(checkExtendSource(grok, sourceFile(), srcMeta(1.5))).toMatchObject({ tooShort: true, blocked: true });
+        expect(checkExtendSource(grok, sourceFile(), srcMeta(16))).toMatchObject({ tooLong: true, blocked: true });
     });
 
     it('rejects non-MP4 containers when the profile requires MP4', () => {
-        const webm = checkExtendSource(grok, sourceFile({ type: 'video/webm', name: 'clip.webm' }), 8);
+        const webm = checkExtendSource(grok, sourceFile({ type: 'video/webm', name: 'clip.webm' }), srcMeta(8));
         expect(webm).toMatchObject({ wrongContainer: true, blocked: true, accepted: false });
         // Unconstrained profiles accept any container.
-        expect(checkExtendSource(ltx, sourceFile({ type: 'video/webm', name: 'clip.webm' }), 8).blocked).toBe(false);
+        expect(checkExtendSource(ltx, sourceFile({ type: 'video/webm', name: 'clip.webm' }), srcMeta(8)).blocked).toBe(
+            false,
+        );
     });
 
     it('accepts MP4s reported under noncanonical or empty MIME types', () => {
         // Browsers/OSes report legitimate .mp4 files as application/mp4,
         // application/octet-stream, or "" — aliases or the extension rescue them.
-        expect(checkExtendSource(grok, sourceFile({ type: 'application/mp4' }), 8).wrongContainer).toBe(false);
-        expect(checkExtendSource(grok, sourceFile({ type: 'application/octet-stream' }), 8).wrongContainer).toBe(false);
-        expect(checkExtendSource(grok, sourceFile({ type: '' }), 8).wrongContainer).toBe(false);
-        // Neither MIME nor extension matching still fails.
-        expect(checkExtendSource(grok, sourceFile({ type: '', name: 'clip.avi' }), 8).wrongContainer).toBe(true);
+        expect(checkExtendSource(grok, sourceFile({ type: 'application/mp4' }), srcMeta(8)).wrongContainer).toBe(false);
         expect(
-            checkExtendSource(grok, sourceFile({ type: 'application/octet-stream', name: 'clip' }), 8).wrongContainer,
+            checkExtendSource(grok, sourceFile({ type: 'application/octet-stream' }), srcMeta(8)).wrongContainer,
+        ).toBe(false);
+        expect(checkExtendSource(grok, sourceFile({ type: '' }), srcMeta(8)).wrongContainer).toBe(false);
+        // Neither MIME nor extension matching still fails.
+        expect(checkExtendSource(grok, sourceFile({ type: '', name: 'clip.avi' }), srcMeta(8)).wrongContainer).toBe(
+            true,
+        );
+        expect(
+            checkExtendSource(grok, sourceFile({ type: 'application/octet-stream', name: 'clip' }), srcMeta(8))
+                .wrongContainer,
         ).toBe(true);
     });
 
     it('flags files over the size limit', () => {
-        expect(checkExtendSource(flux, sourceFile({ size: 50_000_001 }), 8)).toMatchObject({
+        expect(checkExtendSource(flux, sourceFile({ size: 50_000_001 }), srcMeta(8))).toMatchObject({
             tooLarge: true,
             blocked: true,
         });
-        expect(checkExtendSource(flux, sourceFile({ size: 50_000_000 }), 8).tooLarge).toBe(false);
+        expect(checkExtendSource(flux, sourceFile({ size: 50_000_000 }), srcMeta(8)).tooLarge).toBe(false);
         // Grok documents no size cap.
-        expect(checkExtendSource(grok, sourceFile({ size: 500_000_000 }), 8).tooLarge).toBe(false);
+        expect(checkExtendSource(grok, sourceFile({ size: 500_000_000 }), srcMeta(8)).tooLarge).toBe(false);
     });
 
-    it('treats an unknown duration as neither accepted nor blocked on duration', () => {
+    it('checks Veo sources against its exact output sizes', () => {
+        // All four Veo output sizes pass; anything else is blocked.
+        expect(checkExtendSource(veo, sourceFile(), srcMeta(8, 1280, 720)).accepted).toBe(true);
+        expect(checkExtendSource(veo, sourceFile(), srcMeta(8, 1080, 1920)).accepted).toBe(true);
+        expect(checkExtendSource(veo, sourceFile(), srcMeta(8, 854, 480))).toMatchObject({
+            wrongDimensions: true,
+            blocked: true,
+            accepted: false,
+        });
+        expect(checkExtendSource(veo, sourceFile(), srcMeta(8, 1024, 1024)).wrongDimensions).toBe(true);
+        // Dimension-unconstrained profiles accept any size.
+        expect(checkExtendSource(grok, sourceFile(), srcMeta(8, 854, 480)).wrongDimensions).toBe(false);
+    });
+
+    it('treats zero dimensions (probe could not read them) as unknown, not a violation', () => {
+        expect(checkExtendSource(veo, sourceFile(), srcMeta(8, 0, 0)).wrongDimensions).toBe(false);
+    });
+
+    it('treats unknown metadata as neither accepted nor blocked on probed constraints', () => {
         const check = checkExtendSource(grok, sourceFile(), null);
         expect(check.tooShort).toBe(false);
         expect(check.tooLong).toBe(false);
         expect(check.accepted).toBe(false);
         expect(check.blocked).toBe(false);
-        // File-level violations still block even with unknown duration.
+        expect(checkExtendSource(veo, sourceFile(), null).wrongDimensions).toBe(false);
+        // File-level violations still block even with unknown metadata.
         expect(checkExtendSource(grok, sourceFile({ type: 'video/webm', name: 'c.webm' }), null).blocked).toBe(true);
     });
 });
