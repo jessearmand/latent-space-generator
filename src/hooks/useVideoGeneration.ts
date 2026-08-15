@@ -4,12 +4,16 @@ import type { GenerationMode } from '../components/GenerationTabs';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
-import { sanitizeLogMessage } from '../utils/logSanitizer';
 import { getImageInputConfig } from '../services/modelParams';
 import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
+import { FalQueueCancelledError, FalQueueTimeoutError, submitAndPollFalQueue } from '../services/falQueue';
+import { probeVideoFile } from '../utils/videoMetadata';
 import type { StatusType } from './useStatusMessage';
+
+const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const POLL_INTERVAL_MS = 3000; // longer poll interval for video
 
 export interface UseVideoGenerationParams {
     activeTab: GenerationMode;
@@ -85,6 +89,24 @@ export function useVideoGeneration({
             if (isReferenceToVideo && uploadedImages.length === 0) {
                 setStatus('Please upload at least one reference image for reference-to-video generation.', 'error');
                 return;
+            }
+
+            // Extend mode: reject sources over the model's ceiling before paying
+            // for a storage upload. The UI disables Generate too, but revalidate
+            // here in case its metadata probe lagged or failed.
+            if (isExtendVideo && extendProfile && extendProfile.sourceMaxSeconds !== null && uploadedVideoFile) {
+                try {
+                    const meta = await probeVideoFile(uploadedVideoFile);
+                    if (meta.duration > extendProfile.sourceMaxSeconds) {
+                        setStatus(
+                            `Source clip is ${meta.duration.toFixed(1)}s — over the ${extendProfile.sourceMaxSeconds}s limit for ${modelName}.`,
+                            'error',
+                        );
+                        return;
+                    }
+                } catch {
+                    // Unreadable metadata locally — let the API validate the upload.
+                }
             }
 
             setIsGenerating(true);
@@ -497,80 +519,48 @@ export function useVideoGeneration({
             try {
                 console.log(`Input sent to API for model ${modelName}:`, input);
 
-                // Step 1: Submit the request and get request ID
-                const submitResult = await fal.queue.submit(modelId, {
-                    input: input,
+                const { data } = await submitAndPollFalQueue({
+                    modelId,
+                    input,
+                    onStatus: setStatus,
+                    pollInterval: POLL_INTERVAL_MS,
+                    shouldCancel: () => cancelledRef.current,
+                    timeoutMs: POLL_TIMEOUT_MS,
                 });
-                const requestId = submitResult.request_id;
-                console.log(`Request submitted successfully. Request ID: ${requestId}`);
-                setStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
-                // Step 2: Poll status until not "IN_QUEUE" or "IN_PROGRESS"
-                const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-                const pollStart = Date.now();
+                // Video response can have different structures
+                let videoResultUrl: string | undefined;
 
-                while (!cancelledRef.current) {
-                    if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-                        setStatus('Video generation timed out after 10 minutes.', 'error');
-                        console.error(`Polling timed out for request ${requestId}`);
-                        break;
+                if (data.video) {
+                    if (typeof data.video === 'string') {
+                        videoResultUrl = data.video;
+                    } else if (typeof data.video === 'object' && data.video !== null) {
+                        const videoObj = data.video as { url?: string };
+                        videoResultUrl = videoObj.url;
                     }
+                } else if (Array.isArray(data.videos) && data.videos.length > 0) {
+                    const firstVideo = data.videos[0] as { url?: string } | string;
+                    videoResultUrl = typeof firstVideo === 'string' ? firstVideo : firstVideo.url;
+                }
 
-                    const statusResult = await fal.queue.status(modelId, {
-                        requestId,
-                        logs: true,
-                    });
-                    if (cancelledRef.current) break;
-
-                    console.log(`Status update for request ID ${requestId}:`, statusResult.status);
-                    if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
-                        const logs = (statusResult as { logs?: Array<{ message: string }> }).logs;
-                        const latestLog = sanitizeLogMessage(logs?.length ? logs[logs.length - 1].message : '');
-                        setStatus(`Request is ${statusResult.status}: ${latestLog}`);
-                        console.log(
-                            `Status logs:`,
-                            logs?.map((log) => log.message),
-                        );
-                        await new Promise((resolve) => setTimeout(resolve, 3000)); // Longer poll interval for video
-                    } else if (statusResult.status === 'COMPLETED') {
-                        const result = await fal.queue.result(modelId, {
-                            requestId,
-                        });
-                        console.log(`Request completed. Full result:`, result);
-
-                        // Video response can have different structures
-                        const data = result.data as Record<string, unknown>;
-                        let videoResultUrl: string | undefined;
-
-                        if (data.video) {
-                            if (typeof data.video === 'string') {
-                                videoResultUrl = data.video;
-                            } else if (typeof data.video === 'object' && data.video !== null) {
-                                const videoObj = data.video as { url?: string };
-                                videoResultUrl = videoObj.url;
-                            }
-                        } else if (Array.isArray(data.videos) && data.videos.length > 0) {
-                            const firstVideo = data.videos[0] as { url?: string } | string;
-                            videoResultUrl = typeof firstVideo === 'string' ? firstVideo : firstVideo.url;
-                        }
-
-                        if (videoResultUrl) {
-                            console.log(`Video generated successfully:`, videoResultUrl);
-                            setVideoUrl(videoResultUrl);
-                            setStatus(`Video generated successfully using ${modelName}!`, 'success');
-                        } else {
-                            setStatus('Video generation failed. No video URL found in result.', 'error');
-                            console.error('No video URL in result:', result);
-                        }
-                        break;
-                    } else {
-                        const status = (statusResult as { status: string }).status;
-                        setStatus(`Request failed with status: ${status}`, 'error');
-                        console.error(`Request failed with status ${status}:`, statusResult);
-                        break;
-                    }
+                if (videoResultUrl) {
+                    console.log(`Video generated successfully:`, videoResultUrl);
+                    setVideoUrl(videoResultUrl);
+                    setStatus(`Video generated successfully using ${modelName}!`, 'success');
+                } else {
+                    setStatus('Video generation failed. No video URL found in result.', 'error');
+                    console.error('No video URL in result:', data);
                 }
             } catch (error: unknown) {
+                // Cancelled means the component unmounted — skip state updates.
+                if (error instanceof FalQueueCancelledError) {
+                    return;
+                }
+                if (error instanceof FalQueueTimeoutError) {
+                    setStatus('Video generation timed out after 10 minutes.', 'error');
+                    console.error('Video generation error:', error);
+                    return;
+                }
                 console.error('Video generation error:', error);
 
                 const parsedError = parseFalError(error);

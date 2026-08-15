@@ -7,10 +7,10 @@
  */
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useConfig } from '../config';
 import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
-import { probeVideoFile, type VideoFileMetadata } from '../utils/videoMetadata';
+import type { VideoFileMetadata } from '../utils/videoMetadata';
 import type { ModelConfig } from '../types/models';
 import { ExtendTimeline } from './ExtendTimeline';
 import './ExtendVideoOptions.css';
@@ -18,30 +18,15 @@ import './ExtendVideoOptions.css';
 interface ExtendVideoOptionsProps {
     selectedModel: ModelConfig;
     videoFile: File;
+    /** Probed source metadata, owned by InputSection (which also gates Generate on it). */
+    meta: VideoFileMetadata | null;
 }
 
 const fmt = (n: number): string => `${(Math.round(n * 10) / 10).toFixed(1)}s`;
 
-export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selectedModel, videoFile }) => {
+export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selectedModel, videoFile, meta }) => {
     const config = useConfig();
     const profile = getExtendCapabilityProfile(selectedModel.endpointId);
-    const [meta, setMeta] = useState<VideoFileMetadata | null>(null);
-
-    // Probe the uploaded file for duration/dimensions/poster.
-    useEffect(() => {
-        let stale = false;
-        setMeta(null);
-        probeVideoFile(videoFile)
-            .then((m) => {
-                if (!stale) setMeta(m);
-            })
-            .catch(() => {
-                if (!stale) setMeta(null);
-            });
-        return () => {
-            stale = true;
-        };
-    }, [videoFile]);
 
     // Clamp the stored extension length into the selected model's bounds.
     useEffect(() => {
@@ -137,7 +122,8 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     )}
                     {srcTooLong && (
                         <span className="extend-chip warning">
-                            &#9888; Source over the {profile.sourceMaxSeconds}s limit for this model
+                            &#9888; Source over the {profile.sourceMaxSeconds}s limit for this model &mdash; trim the
+                            clip to extend it
                         </span>
                     )}
                     {profile.isDraft && <span className="extend-chip draft">Draft preview &middot; 720p only</span>}
@@ -182,8 +168,8 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
 
                 {profile.isDraft && (
                     <p className="extend-draft-note">
-                        Returns a reusable draft cache alongside the video &mdash; the result can be re-rendered at full
-                        quality without paying for another draft pass.
+                        The API also returns a draft cache for discounted full-quality re-rendering &mdash; this app
+                        doesn&#39;t support the enhance step yet.
                     </p>
                 )}
 

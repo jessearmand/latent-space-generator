@@ -12,6 +12,7 @@ import { AudioUploadZone } from './AudioUploadZone';
 import { ExtendVideoOptions } from './ExtendVideoOptions';
 import { getImageInputConfig } from '../services/modelParams';
 import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
+import { useVideoFileMetadata } from '../hooks/useVideoFileMetadata';
 
 export interface InputSectionProps {
     activeTab: GenerationMode;
@@ -105,6 +106,17 @@ export const InputSection: React.FC<InputSectionProps> = ({
     const extendPromptOptional = isExtendVideo && extendProfile !== undefined && !extendProfile.promptRequired;
     const extendPromptMissing = isExtendVideo && !extendPromptOptional && !promptText.trim();
 
+    // Probe the source clip once here (shared with ExtendVideoOptions below)
+    // so a clip over the model's ceiling disables Generate instead of only
+    // warning. Unknown metadata (null) doesn't block — the hook revalidates.
+    const extendVideoMeta = useVideoFileMetadata(isExtendVideo ? uploadedVideoFile : null);
+    const extendSourceTooLong =
+        isExtendVideo &&
+        extendProfile !== undefined &&
+        extendProfile.sourceMaxSeconds !== null &&
+        extendVideoMeta !== null &&
+        extendVideoMeta.duration > extendProfile.sourceMaxSeconds;
+
     return (
         <div className="input-section">
             <ModelSelector filterByCategory={activeTab} />
@@ -158,7 +170,11 @@ export const InputSection: React.FC<InputSectionProps> = ({
             {/* Extend mode owns all model settings in its own panel; the generic
                 config panel would render inapplicable video options for it. */}
             {isExtendVideo && currentSelectedModel && uploadedVideoFile && (
-                <ExtendVideoOptions selectedModel={currentSelectedModel} videoFile={uploadedVideoFile} />
+                <ExtendVideoOptions
+                    selectedModel={currentSelectedModel}
+                    videoFile={uploadedVideoFile}
+                    meta={extendVideoMeta}
+                />
             )}
             {!isExtendVideo && <ModelConfigPanel selectedModel={currentSelectedModel} activeTab={activeTab} />}
 
@@ -188,7 +204,9 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 type="button"
                 className="generate-btn"
                 onClick={handleGenerate}
-                disabled={!currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing}
+                disabled={
+                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceTooLong
+                }
             >
                 {getGenerateButtonText()}
             </button>
