@@ -6,7 +6,11 @@ import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';
 import { getImageInputConfig } from '../services/modelParams';
 import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
-import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
+import {
+    checkExtendSource,
+    formatSourceMaxBytes,
+    getExtendCapabilityProfile,
+} from '../services/extendVideoCapabilities';
 import { isSeedanceModel } from '../services/videoModels';
 import { FalQueueCancelledError, FalQueueTimeoutError, submitAndPollFalQueue } from '../services/falQueue';
 import { probeVideoFile } from '../utils/videoMetadata';
@@ -91,21 +95,37 @@ export function useVideoGeneration({
                 return;
             }
 
-            // Extend mode: reject sources over the model's ceiling before paying
-            // for a storage upload. The UI disables Generate too, but revalidate
+            // Extend mode: reject sources violating the model's constraints
+            // (duration ceiling, file size, container) before paying for a
+            // storage upload. The UI disables Generate too, but revalidate
             // here in case its metadata probe lagged or failed.
-            if (isExtendVideo && extendProfile && extendProfile.sourceMaxSeconds !== null && uploadedVideoFile) {
-                try {
-                    const meta = await probeVideoFile(uploadedVideoFile);
-                    if (meta.duration > extendProfile.sourceMaxSeconds) {
-                        setStatus(
-                            `Source clip is ${meta.duration.toFixed(1)}s — over the ${extendProfile.sourceMaxSeconds}s limit for ${modelName}.`,
-                            'error',
-                        );
-                        return;
+            if (isExtendVideo && extendProfile && uploadedVideoFile) {
+                let sourceDuration: number | null = null;
+                if (extendProfile.sourceMaxSeconds !== null) {
+                    try {
+                        sourceDuration = (await probeVideoFile(uploadedVideoFile)).duration;
+                    } catch {
+                        // Unreadable metadata locally — let the API validate the upload.
                     }
-                } catch {
-                    // Unreadable metadata locally — let the API validate the upload.
+                }
+                const sourceCheck = checkExtendSource(extendProfile, uploadedVideoFile, sourceDuration);
+                if (sourceCheck.tooLong && sourceDuration !== null) {
+                    setStatus(
+                        `Source clip is ${sourceDuration.toFixed(1)}s — over the ${extendProfile.sourceMaxSeconds}s limit for ${modelName}.`,
+                        'error',
+                    );
+                    return;
+                }
+                if (sourceCheck.tooLarge && extendProfile.sourceMaxBytes !== null) {
+                    setStatus(
+                        `Source file is ${(uploadedVideoFile.size / 1_000_000).toFixed(1)} MB — over the ${formatSourceMaxBytes(extendProfile.sourceMaxBytes)} limit for ${modelName}.`,
+                        'error',
+                    );
+                    return;
+                }
+                if (sourceCheck.wrongContainer) {
+                    setStatus(`Source must be an MP4 file for ${modelName}.`, 'error');
+                    return;
                 }
             }
 

@@ -9,7 +9,11 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useConfig } from '../config';
-import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
+import {
+    checkExtendSource,
+    formatSourceMaxBytes,
+    getExtendCapabilityProfile,
+} from '../services/extendVideoCapabilities';
 import type { VideoFileMetadata } from '../utils/videoMetadata';
 import type { ModelConfig } from '../types/models';
 import { ExtendTimeline } from './ExtendTimeline';
@@ -63,8 +67,9 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
 
     // Guard against degenerate metadata (e.g. streams with unknown duration).
     const srcDuration = meta && Number.isFinite(meta.duration) && meta.duration > 0 ? meta.duration : null;
-    const srcTooLong =
-        profile.sourceMaxSeconds !== null && srcDuration !== null && srcDuration > profile.sourceMaxSeconds;
+    // One predicate for duration, size, and container — the same check gates
+    // Generate in InputSection, so chips and button state always agree.
+    const srcCheck = checkExtendSource(profile, videoFile, srcDuration);
     const totalSec = srcDuration !== null ? srcDuration + effectiveExt : null;
     const resultOverCeiling =
         profile.sourceMaxSeconds !== null && totalSec !== null && totalSec > profile.sourceMaxSeconds;
@@ -115,16 +120,25 @@ export const ExtendVideoOptions: React.FC<ExtendVideoOptionsProps> = ({ selected
                     <span className="extend-chip accent">
                         Extendable up to&nbsp;<strong>{profile.durationMax}s</strong>&nbsp;per pass
                     </span>
-                    {srcDuration !== null && !srcTooLong && (
+                    {srcCheck.accepted && (
                         <span className="extend-chip success">
                             &#10003; Source accepted by {selectedModel.displayName}
                         </span>
                     )}
-                    {srcTooLong && (
+                    {srcCheck.tooLong && (
                         <span className="extend-chip warning">
                             &#9888; Source over the {profile.sourceMaxSeconds}s limit for this model &mdash; trim the
                             clip to extend it
                         </span>
+                    )}
+                    {srcCheck.tooLarge && profile.sourceMaxBytes !== null && (
+                        <span className="extend-chip warning">
+                            &#9888; Source is {(videoFile.size / 1_000_000).toFixed(1)} MB &mdash; over the{' '}
+                            {formatSourceMaxBytes(profile.sourceMaxBytes)} limit for this model
+                        </span>
+                    )}
+                    {srcCheck.wrongContainer && (
+                        <span className="extend-chip warning">&#9888; Source must be an MP4 file for this model</span>
                     )}
                     {profile.isDraft && <span className="extend-chip draft">Draft preview &middot; 720p only</span>}
                 </div>

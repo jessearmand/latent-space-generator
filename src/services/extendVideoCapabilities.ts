@@ -42,6 +42,14 @@ export interface ExtendCapabilityProfile {
     promptRequired: boolean;
     /** Maximum source clip length in seconds, or null when unconstrained. */
     sourceMaxSeconds: number | null;
+    /** Maximum source file size in bytes, or null when the docs state none. */
+    sourceMaxBytes: number | null;
+    /**
+     * Accepted source container MIME types (e.g. ['video/mp4']); empty =
+     * unconstrained. Codec requirements inside a container can't be checked
+     * client-side — the API stays the final validator there.
+     */
+    sourceMimeTypes: string[];
     /** Draft tier: 720p-only preview that also returns a reusable draft_cache. */
     isDraft: boolean;
 }
@@ -68,6 +76,8 @@ function flux3ExtendProfile(overrides: Partial<ExtendCapabilityProfile>): Extend
         supportsSafetyTolerance: true,
         promptRequired: true,
         sourceMaxSeconds: 15,
+        sourceMaxBytes: 50_000_000,
+        sourceMimeTypes: ['video/mp4'],
         isDraft: false,
         ...overrides,
     };
@@ -89,6 +99,8 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
         supportsSafetyTolerance: false,
         promptRequired: false,
         sourceMaxSeconds: null,
+        sourceMaxBytes: null,
+        sourceMimeTypes: [],
         isDraft: false,
     },
     // Source clip: MP4, under 50 MB and under 15 seconds.
@@ -98,6 +110,7 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
     'blackforestlabs/flux-3/extend-video/draft': flux3ExtendProfile({
         resolutions: [],
         sourceMaxSeconds: null,
+        sourceMaxBytes: 50 * 1024 * 1024,
         isDraft: true,
     }),
     // fal-ai/ltx-2.3-quality and ltx-2.3-22b extend are frame-based APIs
@@ -111,4 +124,68 @@ const PROFILES: Record<string, ExtendCapabilityProfile> = {
  */
 export function getExtendCapabilityProfile(endpointId: string): ExtendCapabilityProfile | undefined {
     return PROFILES[endpointId.toLowerCase()];
+}
+
+/**
+ * Canonical MIME type → accepted aliases and file extensions. Browsers and
+ * OSes report legitimate files under noncanonical or empty MIME types
+ * (application/mp4, application/octet-stream, ""), so a file passes when
+ * either its MIME type or its extension matches — the same policy the
+ * upload zone applies.
+ */
+const CONTAINER_MATCHERS: Record<string, { mimeTypes: string[]; extensions: string[] }> = {
+    'video/mp4': { mimeTypes: ['video/mp4', 'application/mp4'], extensions: ['.mp4'] },
+};
+
+function matchesContainer(file: Pick<File, 'type' | 'name'>, required: string[]): boolean {
+    const type = file.type.toLowerCase();
+    const name = file.name.toLowerCase();
+    return required.some((mime) => {
+        const matcher = CONTAINER_MATCHERS[mime] ?? { mimeTypes: [mime], extensions: [] };
+        return matcher.mimeTypes.includes(type) || matcher.extensions.some((ext) => name.endsWith(ext));
+    });
+}
+
+export interface ExtendSourceCheck {
+    tooLong: boolean;
+    tooLarge: boolean;
+    wrongContainer: boolean;
+    /** Any hard violation — generation should be blocked. */
+    blocked: boolean;
+    /**
+     * Duration is known and every client-checkable constraint passes.
+     * Not the negation of `blocked`: an unknown duration is neither.
+     */
+    accepted: boolean;
+}
+
+/**
+ * Validate a source clip against everything the profile can check
+ * client-side: duration ceiling (when known), file size, and container.
+ * Codecs are not inspected — the API remains the final validator there.
+ * Shared by the chips, the Generate gating, and the hook's pre-upload check
+ * so the three never disagree.
+ */
+export function checkExtendSource(
+    profile: ExtendCapabilityProfile,
+    file: Pick<File, 'size' | 'type' | 'name'>,
+    durationSeconds: number | null,
+): ExtendSourceCheck {
+    const tooLong =
+        profile.sourceMaxSeconds !== null && durationSeconds !== null && durationSeconds > profile.sourceMaxSeconds;
+    const tooLarge = profile.sourceMaxBytes !== null && file.size > profile.sourceMaxBytes;
+    const wrongContainer = profile.sourceMimeTypes.length > 0 && !matchesContainer(file, profile.sourceMimeTypes);
+    const blocked = tooLong || tooLarge || wrongContainer;
+    return {
+        tooLong,
+        tooLarge,
+        wrongContainer,
+        blocked,
+        accepted: durationSeconds !== null && !blocked,
+    };
+}
+
+/** Human label for a source size limit, honoring the unit the docs use. */
+export function formatSourceMaxBytes(bytes: number): string {
+    return bytes % (1024 * 1024) === 0 ? `${bytes / (1024 * 1024)} MiB` : `${bytes / 1_000_000} MB`;
 }

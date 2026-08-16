@@ -11,7 +11,7 @@ import { VideoUploadZone } from './VideoUploadZone';
 import { AudioUploadZone } from './AudioUploadZone';
 import { ExtendVideoOptions } from './ExtendVideoOptions';
 import { getImageInputConfig } from '../services/modelParams';
-import { getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
+import { checkExtendSource, getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
 import { useVideoFileMetadata } from '../hooks/useVideoFileMetadata';
 
 export interface InputSectionProps {
@@ -107,15 +107,15 @@ export const InputSection: React.FC<InputSectionProps> = ({
     const extendPromptMissing = isExtendVideo && !extendPromptOptional && !promptText.trim();
 
     // Probe the source clip once here (shared with ExtendVideoOptions below)
-    // so a clip over the model's ceiling disables Generate instead of only
-    // warning. Unknown metadata (null) doesn't block — the hook revalidates.
+    // so a clip violating the model's source constraints (duration ceiling,
+    // file size, container) disables Generate instead of only warning.
+    // Unknown metadata doesn't block — the hook revalidates before upload.
     const extendVideoMeta = useVideoFileMetadata(isExtendVideo ? uploadedVideoFile : null);
-    const extendSourceTooLong =
+    const extendSourceBlocked =
         isExtendVideo &&
         extendProfile !== undefined &&
-        extendProfile.sourceMaxSeconds !== null &&
-        extendVideoMeta !== null &&
-        extendVideoMeta.duration > extendProfile.sourceMaxSeconds;
+        uploadedVideoFile !== null &&
+        checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta?.duration ?? null).blocked;
 
     return (
         <div className="input-section">
@@ -205,7 +205,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 className="generate-btn"
                 onClick={handleGenerate}
                 disabled={
-                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceTooLong
+                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceBlocked
                 }
             >
                 {getGenerateButtonText()}
