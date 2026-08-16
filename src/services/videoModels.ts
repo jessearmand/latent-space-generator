@@ -540,11 +540,6 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
     return [];
 }
 
-/** Detect ByteDance Seedance 2.x endpoints (any version, any tier, any sub-task). */
-export function isSeedanceModel(endpointId: string): boolean {
-    return endpointId.toLowerCase().includes('seedance-2');
-}
-
 /**
  * Filter models by search query (case-insensitive)
  * Matches against displayName and endpointId

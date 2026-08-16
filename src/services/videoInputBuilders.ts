@@ -7,9 +7,7 @@
  *
  * Families, in dispatch order:
  * - extend:   ExtendCapabilityProfile-driven (unprofiled = prompt + video_url)
- * - profiled: VideoCapabilityProfile-driven (Seedance 2.5, MiniMax H3, LTX 2.x)
- * - seedance: Seedance 2.0 legacy shape (a profile in disguise — fold into
- *             capability profiles once its endpoint IDs are schema-verified)
+ * - profiled: VideoCapabilityProfile-driven (Seedance 2.x, MiniMax H3, LTX 2.x)
  * - legacy:   substring-detected models awaiting profile migration
  */
 
@@ -22,7 +20,6 @@ import {
     getVideoCapabilityProfile,
     type VideoCapabilityProfile,
 } from './videoModelCapabilities';
-import { isSeedanceModel } from './videoModels';
 
 /** URLs of the media uploaded for the active mode; absent = not uploaded. */
 export interface VideoAssetUrls {
@@ -232,50 +229,6 @@ export function buildProfiledVideoInput(
     return input;
 }
 
-/**
- * Seedance 2.0: its own input shape (string `duration` enum, no cfg_scale,
- * no guidance_scale, no fps). Structurally a capability profile in disguise —
- * scheduled to fold into `PROFILES` once its endpoint IDs are enumerated and
- * schema-verified; until then it stays quarantined here.
- */
-export function buildSeedanceVideoInput(
-    config: ConfigState,
-    mode: GenerationMode,
-    prompt: string,
-    assets: VideoAssetUrls,
-): Record<string, unknown> {
-    const input: Record<string, unknown> = { prompt };
-
-    // Resolution (Pro: 480p/720p/1080p; Fast: 480p/720p)
-    if (config.videoResolution) {
-        input.resolution = config.videoResolution;
-    }
-
-    // Duration: seedance expects "auto" or a string "4".."15".
-    // Storage may have either a bare number ("5") or a legacy "5s" suffix.
-    if (config.videoDuration) {
-        const raw = config.videoDuration.trim();
-        input.duration = raw === 'auto' ? 'auto' : raw.replace(/s$/, '');
-    }
-
-    // Aspect ratio: pass through, including "auto" and "21:9".
-    if (config.videoAspectRatio) {
-        input.aspect_ratio = config.videoAspectRatio;
-    }
-
-    // Synchronized audio (default true on the API; we mirror the user's toggle).
-    input.generate_audio = config.generateAudio;
-
-    // Seed (optional integer).
-    if (config.videoSeed !== null) {
-        input.seed = config.videoSeed;
-    }
-
-    applyImageInputs(input, mode, assets);
-
-    return input;
-}
-
 /** Mode-specific image inputs (start frame + optional end frame, or references). */
 function applyImageInputs(input: Record<string, unknown>, mode: GenerationMode, assets: VideoAssetUrls): void {
     if (mode === 'image-to-video' && assets.imageUrl) {
@@ -444,9 +397,6 @@ export function buildVideoGenerationInput(args: {
     const profile = getVideoCapabilityProfile(modelId);
     if (profile) {
         return buildProfiledVideoInput(profile, config, mode, prompt, assets);
-    }
-    if (isSeedanceModel(modelId)) {
-        return buildSeedanceVideoInput(config, mode, prompt, assets);
     }
     return buildLegacyVideoInput(modelId, config, mode, prompt, assets);
 }

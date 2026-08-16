@@ -251,14 +251,69 @@ describe('getVideoCapabilityProfile', () => {
         );
     });
 
-    describe('legacy endpoints fall back to undefined', () => {
-        it.each([
+    describe('Seedance 2.0 endpoints', () => {
+        const ALL_20_ENDPOINTS = [
             'bytedance/seedance-2.0/text-to-video',
+            'bytedance/seedance-2.0/image-to-video',
+            'bytedance/seedance-2.0/reference-to-video',
+            'bytedance/seedance-2.0/fast/text-to-video',
             'bytedance/seedance-2.0/fast/image-to-video',
-            'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
-            'fal-ai/ltx-2/text-to-video',
-        ])('%s has no profile and keeps legacy routing', (endpointId) => {
-            expect(getVideoCapabilityProfile(endpointId)).toBeUndefined();
+            'bytedance/seedance-2.0/fast/reference-to-video',
+        ];
+
+        it.each(ALL_20_ENDPOINTS)('%s declares the shared 2.0 schema enums', (endpointId) => {
+            const profile = getVideoCapabilityProfile(endpointId);
+            expect(profile).toBeDefined();
+
+            // Duration: "auto" plus "4".."15" as strings (13 values total)
+            expect(profile?.durations[0]).toBe('auto');
+            expect(profile?.durations).toContain('4');
+            expect(profile?.durations).toContain('15');
+            expect(profile?.durations).toHaveLength(13);
+            expect(profile?.durationFormat).toBe('string');
+
+            // Full aspect enum including 21:9; unlike 2.5, i2v does NOT pin
+            // the ratio — the schema exposes the whole enum on every mode.
+            expect(profile?.aspectRatios).toEqual(['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']);
+            expect(profile?.forcedAspectRatio).toBeUndefined();
+
+            // Synchronized audio, but no seed (the schema dropped it), no
+            // negative_prompt, and no fps/camera/H3-style toggles.
+            expect(profile?.supportsGenerateAudio).toBe(true);
+            expect(profile?.supportsSeed).toBe(false);
+            expect(profile?.supportsNegativePrompt).toBe(false);
+            expect(profile?.supportsPromptExpansion).toBe(false);
+            expect(profile?.supportsSafetyChecker).toBe(false);
+            expect(profile?.fpsValues).toEqual([]);
+            expect(profile?.cameraMotions).toEqual([]);
         });
+
+        it('Pro resolutions go up to 4k; Fast caps at 720p', () => {
+            for (const mode of ['text-to-video', 'image-to-video', 'reference-to-video']) {
+                expect(getVideoCapabilityProfile(`bytedance/seedance-2.0/${mode}`)?.resolutions).toEqual([
+                    '720p',
+                    '480p',
+                    '1080p',
+                    '4k',
+                ]);
+                expect(getVideoCapabilityProfile(`bytedance/seedance-2.0/fast/${mode}`)?.resolutions).toEqual([
+                    '720p',
+                    '480p',
+                ]);
+            }
+        });
+
+        it('leaves the uncurated Mini tier unprofiled', () => {
+            expect(getVideoCapabilityProfile('bytedance/seedance-2.0/mini/text-to-video')).toBeUndefined();
+        });
+    });
+
+    describe('legacy endpoints fall back to undefined', () => {
+        it.each(['fal-ai/kling-video/v2.5-turbo/pro/text-to-video', 'fal-ai/ltx-2/text-to-video'])(
+            '%s has no profile and keeps legacy routing',
+            (endpointId) => {
+                expect(getVideoCapabilityProfile(endpointId)).toBeUndefined();
+            },
+        );
     });
 });

@@ -109,6 +109,33 @@ function seedance25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCap
 }
 
 /**
+ * Shared Seedance 2.0 schema: duration is "auto" or a string "4".."15";
+ * full aspect enum including 21:9 (unlike 2.5, i2v does NOT pin the ratio);
+ * synchronized audio; no seed, negative_prompt, fps, or camera inputs (the
+ * schema dropped `seed` since the original integration). Pro and Fast differ
+ * only in resolution — Pro goes up to 4k, Fast caps at 720p. The optional
+ * `bitrate_mode` and `end_user_id` fields are not surfaced (server defaults).
+ */
+function seedance20Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
+    return {
+        durations: ['auto', ...Array.from({ length: 12 }, (_, i) => String(i + 4))],
+        durationFormat: 'string',
+        resolutions: ['720p', '480p', '1080p', '4k'],
+        aspectRatios: ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+        fpsValues: [],
+        cameraMotions: [],
+        supportsSeed: false,
+        supportsNegativePrompt: false,
+        supportsGenerateAudio: true,
+        supportsPromptExpansion: false,
+        supportsSafetyChecker: false,
+        ...overrides,
+    };
+}
+
+const SEEDANCE_20_FAST_RESOLUTIONS = ['720p', '480p'];
+
+/**
  * Shared MiniMax H3 schema: integer duration 5-15s (default 5), resolution
  * 768P/2K/4K (default 2K), seed, prompt-expansion and safety-checker toggles.
  * Audio is always generated natively — there is no `generate_audio` input.
@@ -213,6 +240,21 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     'bytedance/seedance-2.5/image-to-video': seedance25Profile({ forcedAspectRatio: 'auto' }),
     // R2V (image references only for now; video/audio references are future work).
     'bytedance/seedance-2.5/reference-to-video': seedance25Profile({}),
+
+    // Seedance 2.0 Pro: t2v/i2v/r2v share one schema (i2v adds
+    // image_url/end_image_url, r2v takes image_urls — routed by mode). R2V's
+    // video_urls/audio_urls references are deferred, like Seedance 2.5's.
+    'bytedance/seedance-2.0/text-to-video': seedance20Profile({}),
+    'bytedance/seedance-2.0/image-to-video': seedance20Profile({}),
+    'bytedance/seedance-2.0/reference-to-video': seedance20Profile({}),
+    // Fast tier: same schema with resolution capped at 720p.
+    'bytedance/seedance-2.0/fast/text-to-video': seedance20Profile({ resolutions: SEEDANCE_20_FAST_RESOLUTIONS }),
+    'bytedance/seedance-2.0/fast/image-to-video': seedance20Profile({ resolutions: SEEDANCE_20_FAST_RESOLUTIONS }),
+    'bytedance/seedance-2.0/fast/reference-to-video': seedance20Profile({
+        resolutions: SEEDANCE_20_FAST_RESOLUTIONS,
+    }),
+    // The Seedance 2.0 Mini tier (mini/{text,image,reference}-to-video) is
+    // not in the curated catalog — unprofiled until someone adds it.
 
     'minimax/h3/text-to-video': minimaxH3Profile({}),
     // H3 i2v has no aspect_ratio input — the output follows the start frame.

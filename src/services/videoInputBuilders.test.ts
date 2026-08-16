@@ -7,7 +7,6 @@ import {
     buildExtendVideoInput,
     buildLegacyVideoInput,
     buildProfiledVideoInput,
-    buildSeedanceVideoInput,
     buildVideoGenerationInput,
     extractVideoUrl,
     validateVideoRequest,
@@ -256,20 +255,61 @@ describe('buildProfiledVideoInput', () => {
     });
 });
 
-describe('buildSeedanceVideoInput', () => {
-    it('passes "auto" through and strips the "s" suffix otherwise', () => {
-        expect(buildSeedanceVideoInput(cfg({ videoDuration: 'auto' }), 'text-to-video', 'go', noAssets).duration).toBe(
-            'auto',
-        );
-        expect(buildSeedanceVideoInput(cfg({ videoDuration: '8s' }), 'text-to-video', 'go', noAssets).duration).toBe(
-            '8',
-        );
+describe('Seedance 2.0 via the profile builder', () => {
+    it('produces the legacy payload shape: string duration, aspect passthrough, audio toggle', () => {
+        const input = buildVideoGenerationInput({
+            modelId: 'bytedance/seedance-2.0/text-to-video',
+            mode: 'text-to-video',
+            prompt: 'go',
+            config: cfg({ videoDuration: '8s', videoAspectRatio: '21:9', generateAudio: false }),
+            assets: noAssets,
+        });
+        expect(input.duration).toBe('8');
+        expect(input.aspect_ratio).toBe('21:9');
+        expect(input.generate_audio).toBe(false);
     });
 
-    it('always mirrors the audio toggle and sends seed only when set', () => {
-        const input = buildSeedanceVideoInput(cfg({ generateAudio: false }), 'text-to-video', 'go', noAssets);
-        expect(input.generate_audio).toBe(false);
+    it('passes "auto" duration through', () => {
+        const input = buildVideoGenerationInput({
+            modelId: 'bytedance/seedance-2.0/fast/text-to-video',
+            mode: 'text-to-video',
+            prompt: 'go',
+            config: cfg({ videoDuration: 'auto' }),
+            assets: noAssets,
+        });
+        expect(input.duration).toBe('auto');
+    });
+
+    it('never sends seed — the schema dropped it', () => {
+        const input = buildVideoGenerationInput({
+            modelId: 'bytedance/seedance-2.0/text-to-video',
+            mode: 'text-to-video',
+            prompt: 'go',
+            config: cfg({ videoSeed: 42 }),
+            assets: noAssets,
+        });
         expect(input).not.toHaveProperty('seed');
+    });
+
+    it('routes start/end frames for i2v and image_urls for r2v', () => {
+        const i2v = buildVideoGenerationInput({
+            modelId: 'bytedance/seedance-2.0/image-to-video',
+            mode: 'image-to-video',
+            prompt: 'go',
+            config: cfg(),
+            assets: { imageUrl: 'start', endImageUrl: 'end', referenceImageUrls: [] },
+        });
+        expect(i2v.image_url).toBe('start');
+        expect(i2v.end_image_url).toBe('end');
+
+        const r2v = buildVideoGenerationInput({
+            modelId: 'bytedance/seedance-2.0/reference-to-video',
+            mode: 'reference-to-video',
+            prompt: 'go',
+            config: cfg(),
+            assets: { referenceImageUrls: ['a', 'b'] },
+        });
+        expect(r2v.image_urls).toEqual(['a', 'b']);
     });
 });
 

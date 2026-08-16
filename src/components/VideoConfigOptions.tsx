@@ -31,18 +31,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const isLtxFastModel = modelId.includes('ltx-2') && modelId.includes('fast') && !modelId.includes('ltx-2-19b');
     const isGrokVideoModel = modelId.includes('grok-imagine-video');
     const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
-    const isSeedance = modelId.includes('seedance-2');
-    const isSeedanceFast = modelId.includes('seedance-2.0/fast');
-    const supportsAudio = profile ? profile.supportsGenerateAudio : isVeoModel || isLtxModel || isSeedance;
-    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't.
+    const supportsAudio = profile ? profile.supportsGenerateAudio : isVeoModel || isLtxModel;
+    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, and grok don't.
     // No profiled endpoint exposes guidance_scale so far.
     const supportsGuidanceScale = profile
         ? false
-        : isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
-    // Seed and negative prompt: profiles declare these; legacy models keep the old rules
-    // (seed always shown, negative prompt hidden for Seedance 2.0 which lacks it).
+        : isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
+    // Seed and negative prompt: profiles declare these; legacy models keep the
+    // old rule of always showing both.
     const supportsSeed = profile ? profile.supportsSeed : true;
-    const supportsNegativePrompt = profile ? profile.supportsNegativePrompt : !isSeedance;
+    const supportsNegativePrompt = profile ? profile.supportsNegativePrompt : true;
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -63,12 +61,6 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         // Capability-profile endpoints declare their duration enum directly.
         if (profile) {
             return profile.durations;
-        }
-
-        // Seedance 2.0 — "auto" lets the model decide; otherwise 4-15 seconds.
-        // Stored as bare number strings ("4", "5", ..., "15") to match the API enum.
-        if (isSeedance) {
-            return ['auto', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
         }
 
         // Grok Imagine Video supports 1-15s continuous
@@ -107,11 +99,6 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         // and hides the selector.
         if (profile) {
             return profile.forcedAspectRatio ? [profile.forcedAspectRatio] : profile.aspectRatios;
-        }
-
-        // Seedance 2.0 — "auto" infers from prompt/image; supports 21:9 ultrawide.
-        if (isSeedance) {
-            return ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'];
         }
 
         // Grok Imagine Video supports these aspect ratios
@@ -153,12 +140,6 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         // Capability-profile endpoints declare their resolution enum directly.
         if (profile) {
             return durationConstraint ? [durationConstraint.resolution] : profile.resolutions;
-        }
-
-        // Seedance 2.0 — Fast tier caps at 720p; Pro tier adds 1080p.
-        // 720p first so the validate-and-reset effect lands on a sensible default.
-        if (isSeedance) {
-            return isSeedanceFast ? ['720p', '480p'] : ['720p', '480p', '1080p'];
         }
 
         // Grok Imagine Video supports 480p and 720p
