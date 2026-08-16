@@ -328,6 +328,37 @@ export function formatSourceMaxBytes(bytes: number): string {
 }
 
 /**
+ * Human-readable reason a source clip is rejected, or null when every
+ * client-checkable constraint passes. Lives beside `checkExtendSource` so
+ * the wording stays with the predicates it describes and every consumer
+ * (hook, chips) reports the same violation the same way.
+ */
+export function describeExtendSourceViolation(
+    profile: ExtendCapabilityProfile,
+    file: Pick<File, 'size' | 'type' | 'name'>,
+    meta: ExtendSourceMetadata | null,
+    modelName: string,
+): string | null {
+    const check = checkExtendSource(profile, file, meta);
+    if (check.tooLong && meta !== null) {
+        return `Source clip is ${meta.duration.toFixed(1)}s — over the ${profile.sourceMaxSeconds}s limit for ${modelName}.`;
+    }
+    if (check.tooShort && meta !== null) {
+        return `Source clip is ${meta.duration.toFixed(1)}s — under the ${profile.sourceMinSeconds}s minimum for ${modelName}.`;
+    }
+    if (check.wrongDimensions && meta !== null) {
+        return `Source is ${meta.width}×${meta.height} — ${modelName} needs ${profile.sourceNote ?? 'a supported resolution'}.`;
+    }
+    if (check.tooLarge && profile.sourceMaxBytes !== null) {
+        return `Source file is ${(file.size / 1_000_000).toFixed(1)} MB — over the ${formatSourceMaxBytes(profile.sourceMaxBytes)} limit for ${modelName}.`;
+    }
+    if (check.wrongContainer) {
+        return `Source must be an MP4 file for ${modelName}.`;
+    }
+    return null;
+}
+
+/**
  * Clamp a persisted extension length into the profile's bounds and snap it
  * to the slider step, so a fractional value carried over from another model
  * (LTX allows 2.5s) can't display one number while a whole-second endpoint

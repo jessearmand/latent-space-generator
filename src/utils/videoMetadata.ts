@@ -32,7 +32,16 @@ function captureFrame(video: HTMLVideoElement): string | null {
     }
 }
 
-export function probeVideoFile(file: File): Promise<VideoFileMetadata> {
+export interface ProbeVideoOptions {
+    /**
+     * Skip the canvas poster capture (the expensive part of the probe) when
+     * only duration/dimensions are needed, e.g. pre-upload validation.
+     */
+    capturePoster?: boolean;
+}
+
+export function probeVideoFile(file: File, options: ProbeVideoOptions = {}): Promise<VideoFileMetadata> {
+    const capturePoster = options.capturePoster !== false;
     return new Promise((resolve, reject) => {
         const objectUrl = URL.createObjectURL(file);
         const video = document.createElement('video');
@@ -56,7 +65,7 @@ export function probeVideoFile(file: File): Promise<VideoFileMetadata> {
                 // Re-read after seeking: Chrome reports Infinity for
                 // MediaRecorder-produced webm until forced past the end.
                 const duration = video.duration;
-                const posterUrl = captureFrame(video);
+                const posterUrl = capturePoster ? captureFrame(video) : null;
                 cleanup();
                 if (!Number.isFinite(duration) || duration <= 0) {
                     reject(new Error('Could not determine the video duration.'));
