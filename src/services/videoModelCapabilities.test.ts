@@ -259,6 +259,9 @@ describe('getVideoCapabilityProfile', () => {
             'bytedance/seedance-2.0/fast/text-to-video',
             'bytedance/seedance-2.0/fast/image-to-video',
             'bytedance/seedance-2.0/fast/reference-to-video',
+            'bytedance/seedance-2.0/mini/text-to-video',
+            'bytedance/seedance-2.0/mini/image-to-video',
+            'bytedance/seedance-2.0/mini/reference-to-video',
         ];
 
         it.each(ALL_20_ENDPOINTS)('%s declares the shared 2.0 schema enums', (endpointId) => {
@@ -288,7 +291,7 @@ describe('getVideoCapabilityProfile', () => {
             expect(profile?.cameraMotions).toEqual([]);
         });
 
-        it('Pro resolutions go up to 4k; Fast caps at 720p', () => {
+        it('Pro resolutions go up to 4k; Fast and Mini cap at 720p', () => {
             for (const mode of ['text-to-video', 'image-to-video', 'reference-to-video']) {
                 expect(getVideoCapabilityProfile(`bytedance/seedance-2.0/${mode}`)?.resolutions).toEqual([
                     '720p',
@@ -300,11 +303,11 @@ describe('getVideoCapabilityProfile', () => {
                     '720p',
                     '480p',
                 ]);
+                expect(getVideoCapabilityProfile(`bytedance/seedance-2.0/mini/${mode}`)?.resolutions).toEqual([
+                    '720p',
+                    '480p',
+                ]);
             }
-        });
-
-        it('leaves the uncurated Mini tier unprofiled', () => {
-            expect(getVideoCapabilityProfile('bytedance/seedance-2.0/mini/text-to-video')).toBeUndefined();
         });
     });
 

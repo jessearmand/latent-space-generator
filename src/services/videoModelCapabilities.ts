@@ -253,8 +253,13 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     'bytedance/seedance-2.0/fast/reference-to-video': seedance20Profile({
         resolutions: SEEDANCE_20_FAST_RESOLUTIONS,
     }),
-    // The Seedance 2.0 Mini tier (mini/{text,image,reference}-to-video) is
-    // not in the curated catalog — unprofiled until someone adds it.
+    // Mini tier: uncurated (reachable via "Show all models") but schema-
+    // identical to Fast in every surfaced field, so it shares the profile.
+    'bytedance/seedance-2.0/mini/text-to-video': seedance20Profile({ resolutions: SEEDANCE_20_FAST_RESOLUTIONS }),
+    'bytedance/seedance-2.0/mini/image-to-video': seedance20Profile({ resolutions: SEEDANCE_20_FAST_RESOLUTIONS }),
+    'bytedance/seedance-2.0/mini/reference-to-video': seedance20Profile({
+        resolutions: SEEDANCE_20_FAST_RESOLUTIONS,
+    }),
 
     'minimax/h3/text-to-video': minimaxH3Profile({}),
     // H3 i2v has no aspect_ratio input — the output follows the start frame.
