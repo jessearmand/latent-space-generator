@@ -22,6 +22,8 @@ const cfg = (overrides: Partial<ConfigState> = {}): ConfigState =>
         videoGuidanceScale: 0,
         videoSeed: null,
         videoNegativePrompt: '',
+        videoEnableSafetyChecker: true,
+        videoSafetyTolerance: 2,
         generateAudio: true,
         videoCfgScale: 0.5,
         videoFps: '25',
@@ -65,7 +67,6 @@ const bareProfile = (overrides: Partial<VideoCapabilityProfile> = {}): VideoCapa
     supportsNegativePrompt: false,
     supportsGenerateAudio: false,
     supportsPromptExpansion: false,
-    supportsSafetyChecker: false,
     ...overrides,
 });
 
@@ -239,6 +240,43 @@ describe('buildProfiledVideoInput', () => {
         expect(full.generate_audio).toBe(true);
     });
 
+    it('serializes only the declared safety contract', () => {
+        const checker = buildProfiledVideoInput(
+            bareProfile({ safetyChecker: { defaultValue: true, disableRequiresAuthorization: false } }),
+            cfg({ videoEnableSafetyChecker: false }),
+            'text-to-video',
+            'go',
+            noAssets,
+        );
+        expect(checker.enable_safety_checker).toBe(false);
+        expect(checker).not.toHaveProperty('safety_tolerance');
+
+        const tolerance = buildProfiledVideoInput(
+            bareProfile({
+                safetyTolerance: { values: [0, 1, 2, 3, 4], defaultValue: 2, format: 'integer' },
+            }),
+            cfg({ videoSafetyTolerance: 4 }),
+            'text-to-video',
+            'go',
+            noAssets,
+        );
+        expect(tolerance.safety_tolerance).toBe(4);
+        expect(tolerance).not.toHaveProperty('enable_safety_checker');
+    });
+
+    it('uses the profile default when stored safety tolerance is invalid', () => {
+        const input = buildProfiledVideoInput(
+            bareProfile({
+                safetyTolerance: { values: [0, 1, 2, 3, 4], defaultValue: 2, format: 'integer' },
+            }),
+            cfg({ videoSafetyTolerance: 99 }),
+            'text-to-video',
+            'go',
+            noAssets,
+        );
+        expect(input.safety_tolerance).toBe(2);
+    });
+
     it('routes image assets per mode', () => {
         const i2v = buildProfiledVideoInput(bareProfile(), cfg(), 'image-to-video', 'go', {
             imageUrl: 'start',
@@ -252,6 +290,102 @@ describe('buildProfiledVideoInput', () => {
             referenceImageUrls: ['a', 'b'],
         });
         expect(r2v.image_urls).toEqual(['a', 'b']);
+    });
+});
+
+describe('FLUX 3 standard profiled payloads', () => {
+    it.each([
+        ['blackforestlabs/flux-3/text-to-video', 'text-to-video', '1080p'],
+        ['blackforestlabs/flux-3/image-to-video', 'image-to-video', '1080p'],
+    ] as const)('%s emits safety tolerance without legacy-only fields', (modelId, mode, expectedResolution) => {
+        const input = buildVideoGenerationInput({
+            modelId,
+            mode,
+            prompt: 'go',
+            config: cfg({
+                videoDuration: '20',
+                videoAspectRatio: '2:1',
+                videoResolution: '1080p',
+                videoGuidanceScale: 3,
+                videoSeed: 7,
+                videoNegativePrompt: 'blur',
+                videoSafetyTolerance: 4,
+            }),
+            assets: {
+                imageUrl: mode === 'image-to-video' ? 'https://images/start.png' : undefined,
+                referenceImageUrls: [],
+            },
+        });
+
+        expect(input.safety_tolerance).toBe(4);
+        expect(input.generate_audio).toBe(true);
+        expect(input).not.toHaveProperty('guidance_scale');
+        expect(input).not.toHaveProperty('seed');
+        expect(input).not.toHaveProperty('negative_prompt');
+        expect(input.resolution).toBe(expectedResolution);
+    });
+});
+
+describe('Wan 2.7 profiled payload', () => {
+    it('emits its safety checker and omits unsupported legacy fields', () => {
+        const input = buildVideoGenerationInput({
+            modelId: 'fal-ai/wan/v2.7/image-to-video',
+            mode: 'image-to-video',
+            prompt: 'go',
+            config: cfg({
+                videoDuration: '15',
+                videoResolution: '1080p',
+                videoAspectRatio: '16:9',
+                videoGuidanceScale: 3,
+                videoSeed: 7,
+                videoNegativePrompt: 'blur',
+                videoEnablePromptExpansion: true,
+                videoEnableSafetyChecker: false,
+            }),
+            assets: {
+                imageUrl: 'https://images/start.png',
+                endImageUrl: 'https://images/end.png',
+                referenceImageUrls: [],
+            },
+        });
+
+        expect(input).toEqual({
+            prompt: 'go',
+            resolution: '1080p',
+            duration: 15,
+            seed: 7,
+            negative_prompt: 'blur',
+            enable_prompt_expansion: true,
+            enable_safety_checker: false,
+            image_url: 'https://images/start.png',
+            end_image_url: 'https://images/end.png',
+        });
+    });
+});
+
+describe('MiniMax H3 profiled payloads', () => {
+    it.each([
+        ['minimax/h3/text-to-video', 'text-to-video'],
+        ['minimax/h3/image-to-video', 'image-to-video'],
+    ] as const)('%s uses the video safety setting rather than the image setting', (modelId, mode) => {
+        const input = buildVideoGenerationInput({
+            modelId,
+            mode,
+            prompt: 'go',
+            config: cfg({
+                enableSafetyChecker: false,
+                videoEnableSafetyChecker: true,
+                videoResolution: '720p',
+            }),
+            assets: {
+                imageUrl: mode === 'image-to-video' ? 'https://images/start.png' : undefined,
+                referenceImageUrls: [],
+            },
+        });
+
+        expect(input.enable_safety_checker).toBe(true);
+        expect(input).not.toHaveProperty('safety_tolerance');
+        expect(input.resolution).toBe('2K');
     });
 });
 

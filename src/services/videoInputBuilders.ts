@@ -158,21 +158,24 @@ export function buildProfiledVideoInput(
 ): Record<string, unknown> {
     const input: Record<string, unknown> = { prompt };
 
-    if (config.videoResolution) {
-        input.resolution = config.videoResolution;
+    if (profile.resolutions.length > 0) {
+        input.resolution = profile.resolutions.includes(config.videoResolution)
+            ? config.videoResolution
+            : profile.resolutions[0];
     }
 
     // Duration comes from the profile's enum. Storage may hold a legacy
     // "5s" suffix from other models; strip it before serializing.
     if (config.videoDuration) {
         const raw = config.videoDuration.trim().replace(/s$/, '');
+        const duration = profile.durations.includes(raw) ? raw : (profile.defaultDuration ?? profile.durations[0]);
         if (profile.durationFormat === 'integer') {
-            const seconds = parseInt(raw, 10);
+            const seconds = parseInt(duration, 10);
             if (!Number.isNaN(seconds)) {
                 input.duration = seconds;
             }
         } else {
-            input.duration = raw;
+            input.duration = duration;
         }
     }
 
@@ -181,12 +184,15 @@ export function buildProfiledVideoInput(
     if (profile.forcedAspectRatio) {
         input.aspect_ratio = profile.forcedAspectRatio;
     } else if (profile.aspectRatios.length > 0 && config.videoAspectRatio) {
-        input.aspect_ratio = config.videoAspectRatio;
+        input.aspect_ratio = profile.aspectRatios.includes(config.videoAspectRatio)
+            ? config.videoAspectRatio
+            : profile.aspectRatios[0];
     }
 
     // FPS: integer field, only on endpoints whose schema declares an enum (LTX).
     if (profile.fpsValues.length > 0 && config.videoFps) {
-        const fps = parseInt(config.videoFps, 10);
+        const value = profile.fpsValues.includes(config.videoFps) ? config.videoFps : profile.fpsValues[0];
+        const fps = parseInt(value, 10);
         if (!Number.isNaN(fps)) {
             input.fps = fps;
         }
@@ -220,8 +226,15 @@ export function buildProfiledVideoInput(
     if (profile.supportsPromptExpansion) {
         input.enable_prompt_expansion = config.videoEnablePromptExpansion;
     }
-    if (profile.supportsSafetyChecker) {
-        input.enable_safety_checker = config.enableSafetyChecker;
+    if (profile.safetyChecker) {
+        input.enable_safety_checker = config.videoEnableSafetyChecker;
+    }
+    if (profile.safetyTolerance) {
+        const capability = profile.safetyTolerance;
+        const tolerance = capability.values.includes(config.videoSafetyTolerance)
+            ? config.videoSafetyTolerance
+            : capability.defaultValue;
+        input.safety_tolerance = capability.format === 'string' ? String(tolerance) : tolerance;
     }
 
     applyImageInputs(input, mode, assets);
