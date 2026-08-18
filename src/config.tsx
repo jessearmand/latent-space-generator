@@ -35,7 +35,8 @@ export interface ConfigState {
     // Model-specific video settings
     generateAudio: boolean; // For veo3.1 and ltx-2 models
     videoCfgScale: number; // CFG scale for kling models (0-1 range)
-    videoFps: string; // FPS for ltx-2 Pro/Fast models (25 or 50)
+    videoFps: string; // FPS for LTX Pro/Fast models (profile endpoints declare the enum)
+    videoCameraMotion: string; // Optional camera_motion for LTX 2.5 models ('none' omits it)
     // Advanced video settings (used by ltx-2-19b and potentially other models)
     videoNumFrames: number; // 9-481, default 121
     videoOutputSize: string; // landscape_4_3, portrait_3_4, square, etc.
@@ -47,6 +48,15 @@ export interface ConfigState {
     videoEnablePromptExpansion: boolean; // default false
     // Video-to-video settings
     videoStrength: number; // 0-1, strength for video-to-video transformation
+    // Extend-video settings (per-endpoint capabilities in services/extendVideoCapabilities.ts)
+    extendDuration: number; // Extension length in seconds
+    extendDurationAuto: boolean; // FLUX only: let the model choose (omits `duration`)
+    extendMode: string; // 'end' | 'start' (LTX only)
+    extendContext: number; // LTX only: seconds of source context (1-20)
+    extendContextAuto: boolean; // LTX only: omit `context` to maximize it
+    extendAspectRatio: string; // FLUX/Veo: 'auto', '21:9', '2:1', ...
+    extendSafetyTolerance: number; // FLUX 0-4 / Veo 1-6 (clamped per profile)
+    extendAutoFix: boolean; // Veo only: rewrite prompts that fail content policy
     // Audio generation settings
     audioOutputFormat: string; // 'mp3' | 'wav' | 'flac' | 'pcm'
     audioSeed: number | null; // Seed for reproducibility
@@ -132,6 +142,7 @@ interface ConfigContextType extends ConfigState {
     setGenerateAudio: (value: boolean) => void;
     setVideoCfgScale: (value: number) => void;
     setVideoFps: (value: string) => void;
+    setVideoCameraMotion: (value: string) => void;
     // Advanced video setters
     setVideoNumFrames: (value: number) => void;
     setVideoOutputSize: (value: string) => void;
@@ -143,6 +154,15 @@ interface ConfigContextType extends ConfigState {
     setVideoEnablePromptExpansion: (value: boolean) => void;
     // Video-to-video setters
     setVideoStrength: (value: number) => void;
+    // Extend-video setters
+    setExtendDuration: (value: number) => void;
+    setExtendDurationAuto: (value: boolean) => void;
+    setExtendMode: (value: string) => void;
+    setExtendContext: (value: number) => void;
+    setExtendContextAuto: (value: boolean) => void;
+    setExtendAspectRatio: (value: string) => void;
+    setExtendSafetyTolerance: (value: number) => void;
+    setExtendAutoFix: (value: boolean) => void;
     // Audio generation setters
     setAudioOutputFormat: (value: string) => void;
     setAudioSeed: (value: number | null) => void;
@@ -266,6 +286,9 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         parseFloat(localStorage.getItem('VIDEO_CFG_SCALE') || '0.5'),
     ); // Kling default
     const [videoFps, setVideoFps] = useState<string>(localStorage.getItem('VIDEO_FPS') || '25'); // LTX-2 Pro/Fast default
+    const [videoCameraMotion, setVideoCameraMotion] = useState<string>(
+        localStorage.getItem('VIDEO_CAMERA_MOTION') || 'none',
+    ); // LTX 2.5 optional camera motion
     // Advanced video settings (used by ltx-2-19b and potentially other models)
     const [videoNumFrames, setVideoNumFrames] = useState<number>(
         parseInt(localStorage.getItem('VIDEO_NUM_FRAMES') || '121', 10),
@@ -293,6 +316,27 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const [videoStrength, setVideoStrength] = useState<number>(
         parseFloat(localStorage.getItem('VIDEO_STRENGTH') || '0.5'),
     );
+    // Extend-video settings
+    const [extendDuration, setExtendDuration] = useState<number>(
+        parseFloat(localStorage.getItem('EXTEND_DURATION') || '5'),
+    );
+    const [extendDurationAuto, setExtendDurationAuto] = useState<boolean>(
+        localStorage.getItem('EXTEND_DURATION_AUTO') !== 'false', // Default true
+    );
+    const [extendMode, setExtendMode] = useState<string>(localStorage.getItem('EXTEND_MODE') || 'end');
+    const [extendContext, setExtendContext] = useState<number>(
+        parseInt(localStorage.getItem('EXTEND_CONTEXT') || '5', 10),
+    );
+    const [extendContextAuto, setExtendContextAuto] = useState<boolean>(
+        localStorage.getItem('EXTEND_CONTEXT_AUTO') !== 'false', // Default true
+    );
+    const [extendAspectRatio, setExtendAspectRatio] = useState<string>(
+        localStorage.getItem('EXTEND_ASPECT_RATIO') || 'auto',
+    );
+    const [extendSafetyTolerance, setExtendSafetyTolerance] = useState<number>(
+        parseInt(localStorage.getItem('EXTEND_SAFETY_TOLERANCE') || '2', 10),
+    );
+    const [extendAutoFix, setExtendAutoFix] = useState<boolean>(localStorage.getItem('EXTEND_AUTO_FIX') === 'true');
     // Audio generation settings
     const [audioOutputFormat, setAudioOutputFormat] = useState<string>(
         localStorage.getItem('AUDIO_OUTPUT_FORMAT') || 'mp3',
@@ -429,6 +473,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('GENERATE_AUDIO', generateAudio.toString());
         localStorage.setItem('VIDEO_CFG_SCALE', videoCfgScale.toString());
         localStorage.setItem('VIDEO_FPS', videoFps);
+        localStorage.setItem('VIDEO_CAMERA_MOTION', videoCameraMotion);
         // Advanced video settings persistence
         localStorage.setItem('VIDEO_NUM_FRAMES', videoNumFrames.toString());
         localStorage.setItem('VIDEO_OUTPUT_SIZE', videoOutputSize);
@@ -440,6 +485,15 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('VIDEO_ENABLE_PROMPT_EXPANSION', videoEnablePromptExpansion.toString());
         // Video-to-video persistence
         localStorage.setItem('VIDEO_STRENGTH', videoStrength.toString());
+        // Extend-video persistence
+        localStorage.setItem('EXTEND_DURATION', extendDuration.toString());
+        localStorage.setItem('EXTEND_DURATION_AUTO', extendDurationAuto.toString());
+        localStorage.setItem('EXTEND_MODE', extendMode);
+        localStorage.setItem('EXTEND_CONTEXT', extendContext.toString());
+        localStorage.setItem('EXTEND_CONTEXT_AUTO', extendContextAuto.toString());
+        localStorage.setItem('EXTEND_ASPECT_RATIO', extendAspectRatio);
+        localStorage.setItem('EXTEND_SAFETY_TOLERANCE', extendSafetyTolerance.toString());
+        localStorage.setItem('EXTEND_AUTO_FIX', extendAutoFix.toString());
         // Audio generation persistence
         localStorage.setItem('AUDIO_OUTPUT_FORMAT', audioOutputFormat);
         localStorage.setItem('AUDIO_SEED', audioSeed !== null ? audioSeed.toString() : 'null');
@@ -518,6 +572,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         generateAudio,
         videoCfgScale,
         videoFps,
+        videoCameraMotion,
         videoNumFrames,
         videoOutputSize,
         videoUseMultiscale,
@@ -527,6 +582,14 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         videoCameraLoraScale,
         videoEnablePromptExpansion,
         videoStrength,
+        extendDuration,
+        extendDurationAuto,
+        extendMode,
+        extendContext,
+        extendContextAuto,
+        extendAspectRatio,
+        extendSafetyTolerance,
+        extendAutoFix,
         audioOutputFormat,
         audioSeed,
         ttsVoiceId,
@@ -625,6 +688,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 setVideoCfgScale,
                 videoFps,
                 setVideoFps,
+                videoCameraMotion,
+                setVideoCameraMotion,
                 // Advanced video settings
                 videoNumFrames,
                 setVideoNumFrames,
@@ -645,6 +710,23 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 // Video-to-video settings
                 videoStrength,
                 setVideoStrength,
+                // Extend-video settings
+                extendDuration,
+                setExtendDuration,
+                extendDurationAuto,
+                setExtendDurationAuto,
+                extendMode,
+                setExtendMode,
+                extendContext,
+                setExtendContext,
+                extendContextAuto,
+                setExtendContextAuto,
+                extendAspectRatio,
+                setExtendAspectRatio,
+                extendSafetyTolerance,
+                setExtendSafetyTolerance,
+                extendAutoFix,
+                setExtendAutoFix,
                 // Audio generation
                 audioOutputFormat,
                 setAudioOutputFormat,

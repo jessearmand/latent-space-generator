@@ -331,13 +331,15 @@ export const ModelsProvider: React.FC<ModelsProviderProps> = ({ children }) => {
 
             let filtered = category ? sourceModels.filter((m) => m.category === category) : sourceModels;
 
-            // fal.ai's catalog categorizes Seedance reference-to-video under `image-to-video`,
-            // so the fetched-all path would otherwise return nothing for our `reference-to-video`
-            // UX category. Always seed it from the curated list so the user sees something.
-            if (category === 'reference-to-video' && showAllVideoModels) {
-                const curatedR2V = curatedVideoModels.filter((m) => m.category === 'reference-to-video');
+            // fal.ai's catalog categorizes Seedance reference-to-video under `image-to-video`
+            // and extend endpoints under `video-to-video`, so the fetched-all path would
+            // otherwise return nothing for these UX categories (normalizeModel recategorizes
+            // by endpoint suffix, but only for endpoints the catalog page returned). Always
+            // seed them from the curated list so the user sees something.
+            if ((category === 'reference-to-video' || category === 'extend-video') && showAllVideoModels) {
+                const curatedForCategory = curatedVideoModels.filter((m) => m.category === category);
                 const fetchedIds = new Set(filtered.map((m) => m.endpointId));
-                filtered = [...filtered, ...curatedR2V.filter((m) => !fetchedIds.has(m.endpointId))];
+                filtered = [...filtered, ...curatedForCategory.filter((m) => !fetchedIds.has(m.endpointId))];
             }
 
             if (showAllVideoModels && videoSearchQuery) {

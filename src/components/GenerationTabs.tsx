@@ -14,6 +14,7 @@ export type GenerationMode =
     | 'image-to-video'
     | 'video-to-video'
     | 'reference-to-video'
+    | 'extend-video'
     | 'text-to-speech'
     | 'text-to-audio'
     | 'audio-to-audio'
@@ -39,7 +40,8 @@ export function isVideoMode(mode: GenerationMode): boolean {
         mode === 'text-to-video' ||
         mode === 'image-to-video' ||
         mode === 'video-to-video' ||
-        mode === 'reference-to-video'
+        mode === 'reference-to-video' ||
+        mode === 'extend-video'
     );
 }
 
@@ -61,7 +63,7 @@ export function requiresImageInput(mode: GenerationMode): boolean {
 
 /** Helper to check if a mode requires video input */
 export function requiresVideoInput(mode: GenerationMode): boolean {
-    return mode === 'video-to-video' || mode === 'video-to-audio';
+    return mode === 'video-to-video' || mode === 'video-to-audio' || mode === 'extend-video';
 }
 
 /** Helper to check if a mode requires audio input */
@@ -78,6 +80,7 @@ export function isValidGenerationMode(value: string): value is GenerationMode {
         value === 'image-to-video' ||
         value === 'video-to-video' ||
         value === 'reference-to-video' ||
+        value === 'extend-video' ||
         value === 'text-to-speech' ||
         value === 'text-to-audio' ||
         value === 'audio-to-audio' ||

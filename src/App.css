@@ -51,6 +51,16 @@ label {
   resize: vertical;
 }
 
+.prompt-required-mark {
+  color: #dc3545;
+}
+
+.prompt-optional-hint {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: -4px;
+}
+
 .generate-btn {
   padding: 12px 20px;
   font-size: 1em;

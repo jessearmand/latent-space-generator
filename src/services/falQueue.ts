@@ -6,10 +6,33 @@ export interface FalQueueOptions {
     input: Record<string, unknown>;
     onStatus: (message: string) => void;
     pollInterval?: number;
+    /**
+     * Checked before and after each status poll; returning true aborts with
+     * FalQueueCancelledError (e.g. the calling component unmounted).
+     */
+    shouldCancel?: () => boolean;
+    /** Overall deadline; exceeding it aborts with FalQueueTimeoutError. */
+    timeoutMs?: number;
 }
 
 export interface FalQueueResult {
     data: Record<string, unknown>;
+}
+
+/** Polling was abandoned because the caller cancelled (not an API failure). */
+export class FalQueueCancelledError extends Error {
+    constructor() {
+        super('Request cancelled');
+        this.name = 'FalQueueCancelledError';
+    }
+}
+
+/** The request did not complete within `timeoutMs`. */
+export class FalQueueTimeoutError extends Error {
+    constructor(timeoutMs: number) {
+        super(`Request timed out after ${Math.round(timeoutMs / 60000)} minutes.`);
+        this.name = 'FalQueueTimeoutError';
+    }
 }
 
 export async function submitAndPollFalQueue({
@@ -17,17 +40,31 @@ export async function submitAndPollFalQueue({
     input,
     onStatus,
     pollInterval = 2000,
+    shouldCancel,
+    timeoutMs,
 }: FalQueueOptions): Promise<FalQueueResult> {
     const submitResult = await fal.queue.submit(modelId, { input });
     const requestId = submitResult.request_id;
     console.log(`Request submitted. Request ID: ${requestId}`);
     onStatus(`Request submitted. Request ID: ${requestId}. Waiting for completion...`);
 
+    const startedAt = Date.now();
+
     while (true) {
+        if (shouldCancel?.()) {
+            throw new FalQueueCancelledError();
+        }
+        if (timeoutMs !== undefined && Date.now() - startedAt > timeoutMs) {
+            throw new FalQueueTimeoutError(timeoutMs);
+        }
+
         const statusResult = await fal.queue.status(modelId, {
             requestId,
             logs: true,
         });
+        if (shouldCancel?.()) {
+            throw new FalQueueCancelledError();
+        }
         console.log(`Status update for request ID ${requestId}:`, statusResult.status);
 
         if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {

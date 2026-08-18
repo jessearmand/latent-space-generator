@@ -9,8 +9,10 @@ import { PromptOptimizer } from './PromptOptimizer';
 import { ImageUploadZone } from './ImageUploadZone';
 import { VideoUploadZone } from './VideoUploadZone';
 import { AudioUploadZone } from './AudioUploadZone';
+import { ExtendVideoOptions } from './ExtendVideoOptions';
 import { getImageInputConfig } from '../services/modelParams';
-import { isSeedanceImageToVideoModel } from '../services/videoModels';
+import { checkExtendSource, getExtendCapabilityProfile } from '../services/extendVideoCapabilities';
+import { useVideoFileMetadata } from '../hooks/useVideoFileMetadata';
 
 export interface InputSectionProps {
     activeTab: GenerationMode;
@@ -59,6 +61,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 return 'Transform this video into...';
             case 'reference-to-video':
                 return 'Use @Image1, @Image2... in your prompt to reference uploaded images';
+            case 'extend-video':
+                return 'The camera keeps drifting right as the ripples settle and dusk falls...';
             case 'text-to-speech':
                 return 'Hello, welcome to the presentation...';
             case 'text-to-audio':
@@ -78,6 +82,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
         if (isGenerating) return 'Generating...';
         if (modelsLoading) return 'Loading models...';
         if (activeTab === 'audio-understanding') return 'Analyze Audio';
+        if (activeTab === 'extend-video') return 'Extend Video';
         if (isAudioMode(activeTab)) return 'Generate Audio';
         if (isVideoMode(activeTab)) return 'Generate Video';
         return 'Generate Image';
@@ -92,6 +97,25 @@ export const InputSection: React.FC<InputSectionProps> = ({
         }
         return 'Enter your prompt:';
     };
+
+    // Extend mode: prompt requirement varies per endpoint (required for FLUX,
+    // optional for LTX 2.3 Pro). Unprofiled endpoints default to required.
+    const isExtendVideo = activeTab === 'extend-video';
+    const extendProfile =
+        isExtendVideo && currentSelectedModel ? getExtendCapabilityProfile(currentSelectedModel.endpointId) : undefined;
+    const extendPromptOptional = isExtendVideo && extendProfile !== undefined && !extendProfile.promptRequired;
+    const extendPromptMissing = isExtendVideo && !extendPromptOptional && !promptText.trim();
+
+    // Probe the source clip once here (shared with ExtendVideoOptions below)
+    // so a clip violating the model's source constraints (duration bounds,
+    // file size, container) disables Generate instead of only warning.
+    // Unknown metadata doesn't block — the hook revalidates before upload.
+    const extendVideoMeta = useVideoFileMetadata(isExtendVideo ? uploadedVideoFile : null);
+    const extendSourceBlocked =
+        isExtendVideo &&
+        extendProfile !== undefined &&
+        uploadedVideoFile !== null &&
+        checkExtendSource(extendProfile, uploadedVideoFile, extendVideoMeta).blocked;
 
     return (
         <div className="input-section">
@@ -110,12 +134,13 @@ export const InputSection: React.FC<InputSectionProps> = ({
                         maxImages={getImageInputConfig(currentSelectedModel.endpointId).maxImages}
                         disabled={isGenerating}
                     />
-                    {activeTab === 'image-to-video' && isSeedanceImageToVideoModel(currentSelectedModel.endpointId) && (
-                        <p className="upload-caption">
-                            First image is the start frame. The optional second image is used as the end frame for a
-                            transition.
-                        </p>
-                    )}
+                    {activeTab === 'image-to-video' &&
+                        getImageInputConfig(currentSelectedModel.endpointId).maxImages >= 2 && (
+                            <p className="upload-caption">
+                                First image is the start frame. The optional second image is used as the end frame for a
+                                transition.
+                            </p>
+                        )}
                     {activeTab === 'reference-to-video' && (
                         <p className="upload-caption">
                             Reference images are addressable as @Image1, @Image2, … in the prompt.
@@ -142,11 +167,28 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 />
             )}
 
-            <ModelConfigPanel selectedModel={currentSelectedModel} activeTab={activeTab} />
+            {/* Extend mode owns all model settings in its own panel; the generic
+                config panel would render inapplicable video options for it. */}
+            {isExtendVideo && currentSelectedModel && uploadedVideoFile && (
+                <ExtendVideoOptions
+                    selectedModel={currentSelectedModel}
+                    videoFile={uploadedVideoFile}
+                    meta={extendVideoMeta}
+                />
+            )}
+            {!isExtendVideo && <ModelConfigPanel selectedModel={currentSelectedModel} activeTab={activeTab} />}
 
             <PromptOptimizer originalPrompt={promptText} onPromptOptimized={(optimized) => setPromptText(optimized)} />
 
-            <label htmlFor="prompt-input">{getInputLabel()}</label>
+            <label htmlFor="prompt-input">
+                {getInputLabel()}
+                {isExtendVideo && !extendPromptOptional && <span className="prompt-required-mark"> *</span>}
+            </label>
+            {extendPromptOptional && (
+                <span className="prompt-optional-hint">
+                    Optional &mdash; describe what should happen in the extension.
+                </span>
+            )}
             <TextareaAutosize
                 id="prompt-input"
                 value={promptText}
@@ -162,7 +204,9 @@ export const InputSection: React.FC<InputSectionProps> = ({
                 type="button"
                 className="generate-btn"
                 onClick={handleGenerate}
-                disabled={!currentSelectedModel || modelsLoading || isGenerating}
+                disabled={
+                    !currentSelectedModel || modelsLoading || isGenerating || extendPromptMissing || extendSourceBlocked
+                }
             >
                 {getGenerateButtonText()}
             </button>

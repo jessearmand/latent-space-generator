@@ -6,6 +6,7 @@
 import type React from 'react';
 import { useEffect } from 'react';
 import { useConfig } from '../config';
+import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import type { ModelConfig } from '../types/models';
 
 interface VideoConfigOptionsProps {
@@ -17,6 +18,10 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const config = useConfig();
     const modelId = selectedModel.endpointId.toLowerCase();
 
+    // Endpoints with a capability profile get their options/field visibility from
+    // declared schema data; everything else uses the legacy detection below.
+    const profile = getVideoCapabilityProfile(selectedModel.endpointId);
+
     // Model detection helpers
     const isKlingModel = modelId.includes('kling');
     const isVeoModel = modelId.includes('veo');
@@ -26,12 +31,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const isLtxFastModel = modelId.includes('ltx-2') && modelId.includes('fast') && !modelId.includes('ltx-2-19b');
     const isGrokVideoModel = modelId.includes('grok-imagine-video');
     const isGrokVideoEdit = isGrokVideoModel && modelId.includes('edit-video');
-    const isSeedance = modelId.includes('seedance-2');
-    const isSeedanceFast = modelId.includes('seedance-2.0/fast');
-    const supportsAudio = isVeoModel || isLtxModel || isSeedance;
-    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, grok, and seedance don't
-    const supportsGuidanceScale =
-        isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel && !isSeedance);
+    const supportsAudio = profile ? profile.supportsGenerateAudio : isVeoModel || isLtxModel;
+    // Guidance scale: ltx-2-19b has it; veo, ltx-2 Pro/Fast, kling, and grok don't.
+    // No profiled endpoint exposes guidance_scale so far.
+    const supportsGuidanceScale = profile
+        ? false
+        : isLtx19bModel || (!isVeoModel && !isLtxProFastModel && !isKlingModel && !isGrokVideoModel);
+    // Seed and negative prompt: profiles declare these; legacy models keep the
+    // old rule of always showing both.
+    const supportsSeed = profile ? profile.supportsSeed : true;
+    const supportsNegativePrompt = profile ? profile.supportsNegativePrompt : true;
 
     // V2V model detection
     const isMMAudioModel = modelId.includes('mmaudio');
@@ -49,10 +58,9 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
 
     // Different models support different durations
     const getDurationOptions = (): string[] => {
-        // Seedance 2.0 — "auto" lets the model decide; otherwise 4-15 seconds.
-        // Stored as bare number strings ("4", "5", ..., "15") to match the API enum.
-        if (isSeedance) {
-            return ['auto', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
+        // Capability-profile endpoints declare their duration enum directly.
+        if (profile) {
+            return profile.durations;
         }
 
         // Grok Imagine Video supports 1-15s continuous
@@ -86,9 +94,11 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
 
     // Different models support different aspect ratios
     const getAspectRatioOptions = (): string[] => {
-        // Seedance 2.0 — "auto" infers from prompt/image; supports 21:9 ultrawide.
-        if (isSeedance) {
-            return ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'];
+        // Capability-profile endpoints declare their aspect ratio enum; a forced
+        // ratio (e.g. Seedance 2.5 i2v pins "auto") collapses to a single option
+        // and hides the selector.
+        if (profile) {
+            return profile.forcedAspectRatio ? [profile.forcedAspectRatio] : profile.aspectRatios;
         }
 
         // Grok Imagine Video supports these aspect ratios
@@ -120,12 +130,16 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         return ['16:9', '9:16', '1:1'];
     };
 
+    // Long durations can pin fps/resolution (LTX 2.3 Fast: 12s+ requires
+    // 25 fps at 1080p) — collapsing the option lists below makes the
+    // validate-and-reset effect snap stored values to the required pair.
+    const durationConstraint = profile ? activeLongDurationConstraint(profile, config.videoDuration) : null;
+
     // Different models support different resolutions
     const getResolutionOptions = (): string[] => {
-        // Seedance 2.0 — Fast tier caps at 720p; Pro tier adds 1080p.
-        // 720p first so the validate-and-reset effect lands on a sensible default.
-        if (isSeedance) {
-            return isSeedanceFast ? ['720p', '480p'] : ['720p', '480p', '1080p'];
+        // Capability-profile endpoints declare their resolution enum directly.
+        if (profile) {
+            return durationConstraint ? [durationConstraint.resolution] : profile.resolutions;
         }
 
         // Grok Imagine Video supports 480p and 720p
@@ -162,27 +176,48 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         return ['720p'];
     };
 
+    // FPS: profile endpoints declare their enum (empty = no fps input); legacy
+    // LTX-2 Pro/Fast keeps its historical 25/50 choice. Note the legacy substring
+    // check also matches 'ltx-2.5'/'ltx-2.3', so the profile must win here.
+    const getFpsOptions = (): string[] => {
+        if (profile) {
+            if (durationConstraint && profile.fpsValues.length > 0) {
+                return [durationConstraint.fps];
+            }
+            return profile.fpsValues;
+        }
+        return isLtxProFastModel ? ['25', '50'] : [];
+    };
+
     const durationOptions = getDurationOptions();
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
+    const fpsOptions = getFpsOptions();
 
-    // Validate and reset config values when model changes if current values are not supported
+    // Validate and reset config values when model changes if current values are not
+    // supported. An empty option list means the endpoint has no such input at all
+    // (e.g. H3 i2v has no aspect_ratio) — leave the stored value alone.
     useEffect(() => {
         // Check if current duration is valid for this model, reset to first option if not
-        if (!durationOptions.includes(config.videoDuration)) {
+        if (durationOptions.length > 0 && !durationOptions.includes(config.videoDuration)) {
             config.setVideoDuration(durationOptions[0]);
         }
 
         // Check if current aspect ratio is valid for this model, reset to first option if not
-        if (!aspectRatioOptions.includes(config.videoAspectRatio)) {
+        if (aspectRatioOptions.length > 0 && !aspectRatioOptions.includes(config.videoAspectRatio)) {
             config.setVideoAspectRatio(aspectRatioOptions[0]);
         }
 
         // Check if current resolution is valid for this model, reset to first option if not
-        if (!resolutionOptions.includes(config.videoResolution)) {
+        if (resolutionOptions.length > 0 && !resolutionOptions.includes(config.videoResolution)) {
             config.setVideoResolution(resolutionOptions[0]);
         }
-    }, [durationOptions, aspectRatioOptions, resolutionOptions, config]);
+
+        // Check if current fps is valid for this model, reset to first option if not
+        if (fpsOptions.length > 0 && !fpsOptions.includes(config.videoFps)) {
+            config.setVideoFps(fpsOptions[0]);
+        }
+    }, [durationOptions, aspectRatioOptions, resolutionOptions, fpsOptions, config]);
 
     return (
         <>
@@ -199,22 +234,32 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                         </option>
                     ))}
                 </select>
+                {durationConstraint && (
+                    <span className="hint">
+                        {' '}
+                        ({profile?.longDurationConstraint?.minDurationSeconds}s and longer run at{' '}
+                        {durationConstraint.fps} fps, {durationConstraint.resolution})
+                    </span>
+                )}
             </div>
 
-            <div className="form-group">
-                <label htmlFor="video-aspect-ratio">Aspect Ratio:</label>
-                <select
-                    id="video-aspect-ratio"
-                    value={config.videoAspectRatio}
-                    onChange={(e) => config.setVideoAspectRatio(e.target.value)}
-                >
-                    {aspectRatioOptions.map((ratio) => (
-                        <option key={ratio} value={ratio}>
-                            {ratio}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {/* Hidden when the endpoint pins a single ratio (e.g. i2v follows the input image) */}
+            {aspectRatioOptions.length > 1 && (
+                <div className="form-group">
+                    <label htmlFor="video-aspect-ratio">Aspect Ratio:</label>
+                    <select
+                        id="video-aspect-ratio"
+                        value={config.videoAspectRatio}
+                        onChange={(e) => config.setVideoAspectRatio(e.target.value)}
+                    >
+                        {aspectRatioOptions.map((ratio) => (
+                            <option key={ratio} value={ratio}>
+                                {ratio}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {resolutionOptions.length > 1 && (
                 <div className="form-group">
@@ -233,6 +278,32 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </div>
             )}
 
+            {/* Prompt expansion / safety checker toggles for profiled endpoints (MiniMax H3) */}
+            {profile?.supportsPromptExpansion && (
+                <div className="form-group">
+                    <label htmlFor="video-enable-prompt-expansion">Prompt Expansion:</label>
+                    <input
+                        id="video-enable-prompt-expansion"
+                        type="checkbox"
+                        checked={config.videoEnablePromptExpansion}
+                        onChange={(e) => config.setVideoEnablePromptExpansion(e.target.checked)}
+                    />
+                    <span className="hint"> (auto-enhance prompt with a vision language model)</span>
+                </div>
+            )}
+
+            {profile?.supportsSafetyChecker && (
+                <div className="form-group">
+                    <label htmlFor="video-enable-safety-checker">Safety Checker:</label>
+                    <input
+                        id="video-enable-safety-checker"
+                        type="checkbox"
+                        checked={config.enableSafetyChecker}
+                        onChange={(e) => config.setEnableSafetyChecker(e.target.checked)}
+                    />
+                </div>
+            )}
+
             {/* Audio generation option for veo and ltx-2 models */}
             {supportsAudio && (
                 <div className="form-group">
@@ -247,15 +318,40 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </div>
             )}
 
-            {/* FPS option for LTX-2 Pro/Fast models (not 19B which uses float fps via num_frames) */}
-            {isLtxProFastModel && (
+            {/* FPS option for LTX Pro/Fast models (not 19B which uses float fps via num_frames) */}
+            {fpsOptions.length > 0 && (
                 <div className="form-group">
                     <label htmlFor="video-fps">Frame Rate:</label>
                     <select id="video-fps" value={config.videoFps} onChange={(e) => config.setVideoFps(e.target.value)}>
-                        <option value="25">25 fps (standard)</option>
-                        <option value="50">50 fps (smooth)</option>
+                        {fpsOptions.map((fps) => (
+                            <option key={fps} value={fps}>
+                                {fps} fps
+                            </option>
+                        ))}
                     </select>
                     <span className="hint"> (higher fps = smoother motion)</span>
+                </div>
+            )}
+
+            {/* Optional camera motion for profiled endpoints that declare it (LTX 2.5) */}
+            {profile && profile.cameraMotions.length > 0 && (
+                <div className="form-group">
+                    <label htmlFor="video-camera-motion">Camera Motion:</label>
+                    <select
+                        id="video-camera-motion"
+                        value={config.videoCameraMotion}
+                        onChange={(e) => config.setVideoCameraMotion(e.target.value)}
+                    >
+                        <option value="none">None</option>
+                        {profile.cameraMotions.map((motion) => (
+                            <option key={motion} value={motion}>
+                                {motion
+                                    .split('_')
+                                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ')}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             )}
 
@@ -423,18 +519,21 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </>
             )}
 
-            <div className="form-group">
-                <label htmlFor="video-seed">Seed (leave blank for random):</label>
-                <input
-                    id="video-seed"
-                    type="number"
-                    value={config.videoSeed !== null ? config.videoSeed : ''}
-                    onChange={(e) => config.setVideoSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
-                />
-            </div>
+            {/* Hidden for endpoints whose input schema has no seed (e.g. Seedance 2.5 i2v/r2v) */}
+            {supportsSeed && (
+                <div className="form-group">
+                    <label htmlFor="video-seed">Seed (leave blank for random):</label>
+                    <input
+                        id="video-seed"
+                        type="number"
+                        value={config.videoSeed !== null ? config.videoSeed : ''}
+                        onChange={(e) => config.setVideoSeed(e.target.value ? parseInt(e.target.value, 10) : null)}
+                    />
+                </div>
+            )}
 
-            {/* Seedance 2.0 doesn't expose negative_prompt in its schema, hide the field. */}
-            {!isSeedance && (
+            {/* Seedance doesn't expose negative_prompt in its schema, hide the field. */}
+            {supportsNegativePrompt && (
                 <div className="form-group">
                     <label htmlFor="video-negative-prompt">Negative Prompt:</label>
                     <textarea

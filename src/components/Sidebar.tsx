@@ -62,6 +62,7 @@ const sections: SectionConfig[] = [
             { id: 'image-to-video', label: 'Image to Video' },
             { id: 'video-to-video', label: 'Video to Video' },
             { id: 'reference-to-video', label: 'Reference to Video' },
+            { id: 'extend-video', label: 'Extend Video' },
         ],
     },
     {

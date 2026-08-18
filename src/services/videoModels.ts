@@ -44,6 +44,14 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'minimax/h3/text-to-video',
+        displayName: 'MiniMax H3',
+        category: 'text-to-video',
+        description: 'Frontier T2V with native stereo audio, 2K default up to 4K, 5-15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/minimax/hailuo-02/standard/text-to-video',
         displayName: 'MiniMax Hailuo 02',
         category: 'text-to-video',
@@ -84,6 +92,38 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'lightricks/ltx-2.5/text-to-video/pro',
+        displayName: 'LTX-2.5 Pro',
+        category: 'text-to-video',
+        description: 'Diffusion-fidelity rendering with synchronized audio, up to 1080p',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'lightricks/ltx-2.5/text-to-video/fast',
+        displayName: 'LTX-2.5 Fast',
+        category: 'text-to-video',
+        description: 'Fast tier with synchronized audio, up to 20s and 2160p',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2.3/text-to-video',
+        displayName: 'LTX-2.3 Pro',
+        category: 'text-to-video',
+        description: 'Sharper VAE with native audio, 1080p-2160p output',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2.3/text-to-video/fast',
+        displayName: 'LTX-2.3 Fast',
+        category: 'text-to-video',
+        description: 'Fast tier with native audio, up to 20s duration',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/ltx-2/text-to-video',
         displayName: 'LTX-2 Pro',
         category: 'text-to-video',
@@ -96,6 +136,14 @@ export const CURATED_TEXT_TO_VIDEO_MODELS: ModelConfig[] = [
         displayName: 'LTX-2 Fast',
         category: 'text-to-video',
         description: 'Fast video generation with audio, up to 20s duration',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.5/text-to-video',
+        displayName: 'Seedance 2.5',
+        category: 'text-to-video',
+        description: "ByteDance's latest T2V — up to 30s clips with native audio, 480p/720p",
         supportsImageInput: false,
         outputType: 'video',
     },
@@ -172,6 +220,14 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'minimax/h3/image-to-video',
+        displayName: 'MiniMax H3 I2V',
+        category: 'image-to-video',
+        description: 'Animates a first frame (optional last frame) into 2K video with native audio',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/minimax/hailuo-2.3/pro/image-to-video',
         displayName: 'MiniMax Hailuo 2.3 Pro',
         category: 'image-to-video',
@@ -196,10 +252,50 @@ export const CURATED_IMAGE_TO_VIDEO_MODELS: ModelConfig[] = [
         outputType: 'video',
     },
     {
+        endpointId: 'lightricks/ltx-2.5/image-to-video/pro',
+        displayName: 'LTX-2.5 Pro I2V',
+        category: 'image-to-video',
+        description: 'Animate a still with synchronized audio, optional end frame',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'lightricks/ltx-2.5/image-to-video/fast',
+        displayName: 'LTX-2.5 Fast I2V',
+        category: 'image-to-video',
+        description: 'Fast tier I2V with audio, up to 20s and 2160p, optional end frame',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2.3/image-to-video',
+        displayName: 'LTX-2.3 I2V',
+        category: 'image-to-video',
+        description: 'Animate a still with native audio, 1080p-2160p, optional end frame',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/ltx-2.3/image-to-video/fast',
+        displayName: 'LTX-2.3 Fast I2V',
+        category: 'image-to-video',
+        description: 'Fast tier I2V with native audio, up to 20s, optional end frame',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
         endpointId: 'fal-ai/ltx-2/image-to-video',
         displayName: 'LTX-2 Pro I2V',
         category: 'image-to-video',
         description: 'Transform images into videos with audio, up to 2160p',
+        supportsImageInput: true,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'bytedance/seedance-2.5/image-to-video',
+        displayName: 'Seedance 2.5 I2V',
+        category: 'image-to-video',
+        description: "ByteDance's latest I2V — animates a still up to 30s, optional end-frame morph",
         supportsImageInput: true,
         outputType: 'video',
     },
@@ -349,12 +445,68 @@ export const CURATED_VIDEO_TO_VIDEO_MODELS: ModelConfig[] = [
     },
 ];
 
+/**
+ * Curated list of extend-video models (continue an existing clip).
+ * Capabilities per endpoint live in `services/extendVideoCapabilities.ts`.
+ */
+export const CURATED_EXTEND_VIDEO_MODELS: ModelConfig[] = [
+    {
+        endpointId: 'fal-ai/ltx-2.3/extend-video',
+        displayName: 'LTX-2.3 Extend',
+        category: 'extend-video',
+        description: 'Extend a clip at either end, 2-20s per pass with context control',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'blackforestlabs/flux-3/extend-video',
+        displayName: 'FLUX 3 Extend',
+        category: 'extend-video',
+        description: 'Continue a clip past its final frame with audio, source up to 15s',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'blackforestlabs/flux-3/extend-video/draft',
+        displayName: 'FLUX 3 Extend Draft',
+        category: 'extend-video',
+        description: 'Fast low-cost 720p extend preview with a reusable draft cache',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'xai/grok-imagine-video/extend-video',
+        displayName: 'Grok Imagine Extend',
+        category: 'extend-video',
+        description: 'Continue an MP4 clip (2-15s source) by 2-10 seconds',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/veo3.1/extend-video',
+        displayName: 'Veo 3.1 Extend',
+        category: 'extend-video',
+        description: 'Extend Veo-created clips by 7s per pass, up to 30s total',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+    {
+        endpointId: 'fal-ai/veo3.1/fast/extend-video',
+        displayName: 'Veo 3.1 Fast Extend',
+        category: 'extend-video',
+        description: 'Fast tier of Veo 3.1 extend — same 7s passes at lower cost',
+        supportsImageInput: false,
+        outputType: 'video',
+    },
+];
+
 /** All curated video models */
 export const CURATED_VIDEO_MODELS: ModelConfig[] = [
     ...CURATED_TEXT_TO_VIDEO_MODELS,
     ...CURATED_IMAGE_TO_VIDEO_MODELS,
     ...CURATED_VIDEO_TO_VIDEO_MODELS,
     ...CURATED_REFERENCE_TO_VIDEO_MODELS,
+    ...CURATED_EXTEND_VIDEO_MODELS,
 ];
 
 /**
@@ -381,27 +533,11 @@ export function getCuratedVideoModels(category?: VideoModelCategory): ModelConfi
         return CURATED_REFERENCE_TO_VIDEO_MODELS;
     }
 
+    if (category === 'extend-video') {
+        return CURATED_EXTEND_VIDEO_MODELS;
+    }
+
     return [];
-}
-
-/** Detect ByteDance Seedance 2.0 endpoints (any tier, any sub-task). */
-export function isSeedanceModel(endpointId: string): boolean {
-    return endpointId.toLowerCase().includes('seedance-2');
-}
-
-/** Detect the Seedance Fast tier specifically (caps at 720p). */
-export function isSeedanceFastModel(endpointId: string): boolean {
-    return endpointId.toLowerCase().includes('seedance-2.0/fast');
-}
-
-/** Detect Seedance reference-to-video endpoints (Pro and Fast). */
-export function isSeedanceReferenceModel(endpointId: string): boolean {
-    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('reference-to-video');
-}
-
-/** Detect Seedance image-to-video endpoints (Pro and Fast). */
-export function isSeedanceImageToVideoModel(endpointId: string): boolean {
-    return isSeedanceModel(endpointId) && endpointId.toLowerCase().includes('image-to-video');
 }
 
 /**

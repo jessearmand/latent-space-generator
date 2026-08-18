@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Repeatable procedure for discovering new fal.ai models, fetching their API specs, and integrating them into this codebase.
+Repeatable procedure for discovering new fal.ai models, fetching their API specs, and integrating them into this codebase. Also covers adding a new model category and a new API provider.
 
 ## Step 1: Discover Models
 
@@ -117,7 +117,7 @@ Examples:
 
 ## Video Models (extended checklist)
 
-Adding a new video model is a **10-file checklist** — wider than audio because video also runs through the sidebar, the input gating helpers, and the shared `getImageInputConfig` lookup. Most edits are tiny; the point of the list is to not forget a step.
+Adding a new video model is an **11-file checklist** — wider than audio because video also runs through the sidebar, the input gating helpers, the shared `getImageInputConfig` lookup, and the capability profiles. Most edits are tiny; the point of the list is to not forget a step.
 
 1. **Types — `src/types/models.ts`**
    Extend `VideoModelCategory` ONLY when introducing a brand-new category (e.g. `'reference-to-video'`). Update `getOutputType()` and `getSupportsImageInput()` if applicable.
@@ -128,25 +128,28 @@ Adding a new video model is a **10-file checklist** — wider than audio because
 3. **Image input config — `src/services/modelParams.ts`**
    `getImageInputConfig` is the **single source of truth for `maxImages`** across image-to-image, image-to-video, and reference-to-video. Extend it when the new model takes 2+ image inputs. Keep `paramName='image_url'` for the primary slot even when `maxImages > 1` and the extra slots map to other fields (e.g. `end_image_url`); the hook handles the routing. Add a focused test in `modelParams.test.ts`.
 
-4. **Model filtering — `src/contexts/ModelsContext.tsx`**
+4. **Capability profile — `src/services/videoModelCapabilities.ts`**
+   `getVideoCapabilityProfile(endpointId)` returns a `VideoCapabilityProfile` declaring the endpoint's full input contract: duration enum + serialization format (`durationFormat: 'string' | 'integer'`), resolution/aspect/fps enums (empty array = the input doesn't exist), camera motion, a forced aspect ratio (pin + hide the selector), duration-dependent constraints (`longDurationConstraint`, e.g. LTX 2.3 Fast 12s+ requires 25 fps at 1080p — checked via `activeLongDurationConstraint()`), and optional-field flags (`supportsSeed`, `supportsNegativePrompt`, `supportsGenerateAudio`, `supportsPromptExpansion`, `supportsSafetyChecker`). Add a profile when the new model's options differ per endpoint (e.g. seedance t2v vs i2v vs r2v), instead of hard-coding option lists in the UI. Add a test in `videoModelCapabilities.test.ts`.
+
+5. **Model filtering — `src/contexts/ModelsContext.tsx`**
    `getFilteredVideoModels` filters by `m.category === category`. If fal.ai's catalog labels your model under a *different* category than the UX category you want to expose (e.g. seedance r2v ships labeled as `image-to-video`), seed the curated list back in for the "Show all models" path so the UX category isn't empty.
 
-5. **Mode union & helpers — `src/components/GenerationTabs.tsx`**
+6. **Mode union & helpers — `src/components/GenerationTabs.tsx`**
    Update `GenerationMode`, `isVideoMode`, `requiresImageInput` (gates the upload zone in InputSection), `requiresVideoInput`, `requiresAudioInput`, and `isValidGenerationMode`. Do NOT add new modes to the visual `tabs` array — the sidebar handles navigation.
 
-6. **Sidebar entry — `src/components/Sidebar.tsx`**
+7. **Sidebar entry — `src/components/Sidebar.tsx`**
    Append `{ id: 'your-mode', label: 'Your Label' }` to the `'video'` section's `modes` array.
 
-7. **Input section — `src/components/InputSection.tsx`**
+8. **Input section — `src/components/InputSection.tsx`**
    Read `getImageInputConfig(currentSelectedModel.endpointId).maxImages` directly — do NOT special-case per active tab. Add captions / placeholder strings for new modes so the user understands the slot conventions (e.g. start vs end frame, @Image1 references).
 
-8. **Generation hook — `src/hooks/useVideoGeneration.ts`**
+9. **Generation hook — `src/hooks/useVideoGeneration.ts`**
    Add a detection flag and a parameter-routing branch. Critical: enums sometimes need string vs integer (seedance wants `"5"` or `"auto"` as a string, not `5`). Gate legacy per-model branches behind `if (!isYourModel)` if your model has its own input shape so the legacy code doesn't clobber yours.
 
-9. **Config UI — `src/components/VideoConfigOptions.tsx`**
-   Update `getDurationOptions()`, `getAspectRatioOptions()`, `getResolutionOptions()` per model. Show/hide controls (cfg_scale, fps, generate_audio, etc.). Note: the validate-and-reset effect lands on the *first* option in each list, so put your preferred default first.
+10. **Config UI — `src/components/VideoConfigOptions.tsx`**
+    Update `getDurationOptions()`, `getAspectRatioOptions()`, `getResolutionOptions()` per model — prefer deriving options from the capability profile (step 4) over new hard-coded lists. Show/hide controls (cfg_scale, fps, generate_audio, etc.). Note: the validate-and-reset effect lands on the *first* option in each list, so put your preferred default first.
 
-10. **Config state — `src/config.tsx`** *(only if needed)*
+11. **Config state — `src/config.tsx`** *(only if needed)*
     Add new state fields when the model needs settings the existing video state doesn't cover.
 
 ### Common pitfalls
@@ -156,6 +159,20 @@ Adding a new video model is a **10-file checklist** — wider than audio because
 - **`requiresImageInput` is the upload-zone gate.** A new mode that forgets this helper won't show its upload zone in InputSection.
 - **Multi-image upload is shared.** Use `ImageUploadZone` driven by `getImageInputConfig().maxImages`. Do not branch on activeTab in InputSection.
 - **fal.ai catalog vs UX category mismatch.** fal.ai may file your model under an existing category. Compensate in `ModelsContext.getFilteredVideoModels` rather than re-tagging the catalog response.
+
+## Adding a New Model Category
+
+1. Update the relevant category type in `src/types/models.ts` (`ImageModelCategory`, `VideoModelCategory`, or `AudioModelCategory`) and the derived helpers (`getOutputType`, `getSupports*Input`)
+2. Add the category to its catalog-fetch path in `src/services/models.ts` (e.g. `fetchImageGenerationModels()` for image categories) and to the matching curated list + `getCurated*Models()` helper
+3. Update `normalizeModel()` if the new category needs special input-support logic or recategorization by endpoint suffix (as reference-to-video does)
+4. Add model-specific config options in the category's config component (`ModelConfigPanel.tsx` for images, `VideoConfigOptions.tsx` for video, `AudioConfigOptions.tsx` for audio)
+
+## Adding a New API Provider
+
+1. Create service in `src/services/` (see `openai.ts` as example)
+2. Add proxy endpoint in `server/index.ts` with appropriate security checks (whitelist target domains)
+3. Detect model type in the appropriate generation hook and route to service
+4. Add UI config options in the appropriate config component
 
 ## Verification
 
