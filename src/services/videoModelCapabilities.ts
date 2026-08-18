@@ -196,7 +196,8 @@ const LTX_25_FAST_DURATIONS = ['auto', '6', '8', '10', '12', '14', '16', '18', '
 const LTX_25_FAST_RESOLUTIONS = ['1080p', '720p', '1440p', '2160p'];
 
 /**
- * Shared LTX 2.3 schema (fal-ai/ltx-2.3): no "auto" duration (default "6"),
+ * Shared LTX 2.3 schema (fal-ai/ltx-2.3): integer duration with no "auto"
+ * option (default 6),
  * resolutions start at 1080p (no 720p), no camera_motion, no seed. Fast tier
  * extends durations to 20s, but 12s+ requires 25 fps at 1080p (server-side
  * constraint the schema documents in prose only).
@@ -204,7 +205,7 @@ const LTX_25_FAST_RESOLUTIONS = ['1080p', '720p', '1440p', '2160p'];
 function ltx23Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
     return {
         durations: ['6', '8', '10'],
-        durationFormat: 'string',
+        durationFormat: 'integer',
         resolutions: ['1080p', '1440p', '2160p'],
         aspectRatios: ['16:9', '9:16'],
         fpsValues: ['25', '24', '48', '50'],

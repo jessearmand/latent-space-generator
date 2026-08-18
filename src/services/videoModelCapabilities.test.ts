@@ -157,8 +157,8 @@ describe('getVideoCapabilityProfile', () => {
             const profile = getVideoCapabilityProfile(endpointId);
             expect(profile).toBeDefined();
 
-            // No "auto" duration — string enum defaulting to "6"
-            expect(profile?.durationFormat).toBe('string');
+            // No "auto" duration — integer enum defaulting to 6
+            expect(profile?.durationFormat).toBe('integer');
             expect(profile?.durations[0]).toBe('6');
             expect(profile?.durations).not.toContain('auto');
 

@@ -313,6 +313,23 @@ describe('Seedance 2.0 via the profile builder', () => {
     });
 });
 
+describe('LTX 2.3 via the profile builder', () => {
+    it.each([
+        ['fal-ai/ltx-2.3/image-to-video', '8', 8],
+        ['fal-ai/ltx-2.3/image-to-video/fast', '20', 20],
+    ])('serializes %s duration as an integer', (modelId, storedDuration, expectedDuration) => {
+        const input = buildVideoGenerationInput({
+            modelId,
+            mode: 'image-to-video',
+            prompt: 'go',
+            config: cfg({ videoDuration: storedDuration, videoResolution: '1080p' }),
+            assets: { imageUrl: 'start', referenceImageUrls: [] },
+        });
+
+        expect(input.duration).toBe(expectedDuration);
+    });
+});
+
 describe('buildLegacyVideoInput', () => {
     it('clamps Grok duration to 1-15 and resolution to its enum', () => {
         const input = buildLegacyVideoInput(
