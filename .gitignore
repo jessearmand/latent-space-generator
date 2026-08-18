@@ -218,7 +218,8 @@ sketch
 .claude/skills/vercel-react-best-practices
 .claude/skills/web-design-guidelines
 .mcp.json
-mise.toml
+# Project tasks/tool pins are shared; keep machine-local overrides ignored
+mise.local.toml
 
 # Vite config build artifacts
 vite.config.js

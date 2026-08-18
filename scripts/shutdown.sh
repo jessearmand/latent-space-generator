@@ -7,8 +7,9 @@ PORTS=(3000 3001)
 KILLED=0
 
 for PORT in "${PORTS[@]}"; do
-    # Find PIDs listening on the port
-    PIDS=$(lsof -ti ":$PORT" 2>/dev/null | sort -u)
+    # Find PIDs listening on the port (-sTCP:LISTEN excludes clients
+    # that merely have a connection to the port)
+    PIDS=$(lsof -ti ":$PORT" -sTCP:LISTEN 2>/dev/null | sort -u)
 
     if [ -n "$PIDS" ]; then
         for PID in $PIDS; do
@@ -29,7 +30,7 @@ else
     # Wait briefly and check if any processes are still running
     sleep 1
     for PORT in "${PORTS[@]}"; do
-        REMAINING=$(lsof -ti ":$PORT" 2>/dev/null)
+        REMAINING=$(lsof -ti ":$PORT" -sTCP:LISTEN 2>/dev/null)
         if [ -n "$REMAINING" ]; then
             echo "Force killing remaining processes on port $PORT..."
             echo "$REMAINING" | xargs kill -9 2>/dev/null

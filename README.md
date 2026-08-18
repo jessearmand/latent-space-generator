@@ -1,122 +1,109 @@
 # Latent Space Generator
 
-A React single-page application for AI media generation using multiple providers including fal.ai and OpenAI.
+A React single-page application for AI media generation across image, video, and audio, using multiple providers: fal.ai, OpenAI, and OpenRouter.
 
 ## Features
 
 ### Image Generation
-- **Multiple AI Providers**: Generate images using fal.ai models (Flux, SDXL, Gemini, etc.), OpenAI GPT Image models, or OpenRouter (fallback)
-- **Dynamic Model Discovery**: Automatically fetches available models from the fal.ai API
-- **Image-to-Image**: Upload reference images for supported models (up to 8 images for Flux edit models)
-- **Clipboard Paste**: Paste images directly from clipboard for image-to-image mode
-- **Configurable Parameters**: Adjust safety tolerance, aspect ratio, guidance scale, quality, and more
+- **Text-to-Image** and **Image-to-Image** with reference images (multi-image upload and clipboard paste)
+- **Multiple providers with automatic fallback**: fal.ai models (Flux, Flux 2 [klein], SDXL, Qwen, and more), OpenAI GPT Image models, and Gemini image models — GPT and Gemini requests cascade across OpenAI/fal.ai/OpenRouter depending on which API keys are available
+- **Configurable parameters** per model: aspect ratio, safety tolerance, guidance scale, quality, and more
 
 ### Video Generation
-- **Text-to-Video**: Generate videos from text prompts
-- **Image-to-Video**: Transform images into animated videos
-- **Video-to-Video**: Style transfer, background removal, relighting, and more
-- **Supported Video Models**: Kling 2.5/2.0, Veo 3, LTX-2 Pro/Fast/19B, MiniMax Hailuo, Hunyuan, and more
-- **Model-Specific Controls**: Duration, aspect ratio, resolution, FPS, audio generation, camera movement
+- **Text-to-Video** — generate videos from text prompts
+- **Image-to-Video** — animate images, including start + end frame control on supported models
+- **Video-to-Video** — style transfer, background removal, relighting
+- **Reference-to-Video** — compose videos from up to 9 reference images with `@Image1` mentions (Seedance)
+- **Extend Video** — continue an existing clip with LTX 2.3 Pro, FLUX 3 (including draft mode), Grok Imagine, or Veo 3.1, with per-model source validation (duration, container, dimensions) before upload
+- **Model-specific controls**: duration, aspect ratio, resolution, FPS, audio generation, camera movement — the app only offers the options each endpoint actually accepts
 
 ### Audio Generation
-- **Text-to-Speech**: Generate natural speech with voice selection and emotion control (MiniMax, Chatterbox)
-- **Text-to-Audio**: Generate music and sound effects (Beatoven, ElevenLabs, Stable Audio)
-- **Voice Cloning**: Clone voices from audio samples (Dia TTS)
-- **Video-to-Audio**: Generate synchronized audio for videos (Mirelo SFX)
-- **Model-Specific Controls**: Voice selection, speed, pitch, emotion, refinement, creativity
+- **Text-to-Speech** — natural speech with voice selection and emotion control (MiniMax, Chatterbox)
+- **Text-to-Audio** — music and sound effects (Beatoven, ElevenLabs, Stable Audio)
+- **Voice Cloning** — clone voices from audio samples (Dia TTS)
+- **Video-to-Audio** — synchronized audio for videos (Mirelo SFX)
+- **Audio Understanding** — analyze uploaded audio with optional detailed analysis
 
-### Additional Features
-- **Sidebar Navigation**: Easy switching between generation modes
-- **Prompt Optimizer**: AI-powered prompt enhancement using OpenRouter integration
-- **Download Button**: Easy download for generated images, videos, and audio
-- **Queue-Based Processing**: Real-time status updates during generation
+### Everything Else
+- **Generation history** — browse, replay, and download previous results
+- **Prompt Optimizer** — AI-powered prompt enhancement via OpenRouter (streaming)
+- **Dynamic model catalog** — curated lists load instantly; a "Show all models" toggle fetches the full fal.ai catalog with search
+- **Queue-based processing** — real-time status updates during generation
 
-## Prerequisites
+## Notable Models
 
-- [Bun](https://bun.sh/) runtime
+The catalog is loaded dynamically, so the in-app model selector is the authoritative list. Curated highlights:
+
+- **Video**: Kling 2.5 Turbo Pro / 2.0 Master, Veo 3 / 3.1 (including Extend), Seedance 2.5 and 2.0 (Pro / Fast, up to 4K), LTX-2 / 2.3 / 2.5, MiniMax Hailuo 02 / H3, Grok Imagine, Wan 2.5, Hunyuan, Luma Dream Machine
+- **Image**: Flux family (Schnell → Ultra, Edit), Flux 2 [klein], GPT Image 1.5 / 1 Mini, Gemini 2.5 Flash Image / 3 Pro Image, SDXL, Qwen Image
+- **Audio**: MiniMax Speech-02-HD (30+ languages), Chatterbox TTS, ACE / Beatoven music, ElevenLabs SFX, Dia voice cloning, Mirelo SFX
+
+## Getting Started
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) runtime — or let [mise](https://mise.jdx.dev/) install it for you (`mise install` reads the pins in `mise.toml`)
 - A [fal.ai](https://fal.ai/) API key
-- An [OpenAI](https://platform.openai.com/) API key for GPT Image models (server-side env var)
-- (Optional) An [OpenRouter](https://openrouter.ai/) API key for prompt optimization fallback (server-side env var)
+- (Optional) An [OpenAI](https://platform.openai.com/) API key for direct GPT Image generation
+- (Optional) An [OpenRouter](https://openrouter.ai/) API key for prompt optimization and Gemini/GPT fallback
 
-## Installation
+### Install
 
 ```bash
 bun install
 ```
 
-## Configuration
+### Configure secrets
 
-Create a `.env` file or set the environment variables:
-
-```bash
-export FAL_API_KEY=your_fal_api_key_here
-export OPENAI_API_KEY=your_openai_api_key_here
-export OPENROUTER_API_KEY=your_openrouter_api_key_here  # Optional fallback
-```
-
-- `⚠️` Do not commit `.env` files to source control.
-
-- `FAL_API_KEY` — Required for fal.ai image/video/audio generation, also fallback for GPT models
-- `OPENAI_API_KEY` — Preferred for GPT Image models (direct, no queue)
-- `OPENROUTER_API_KEY` — Fallback for Gemini image models, fallback for GPT models, fallback for prompt optimization
-
-OpenRouter authentication can also be configured in Settings via OAuth login.
-
-## Usage
-
-Start the development server:
+Development uses [fnox](https://fnox.jdx.dev) to supply API keys. The committed `fnox.toml` only *references* secrets — the values live in the macOS Keychain, never on disk. Store them once (each command prompts for the value):
 
 ```bash
-bun start
+fnox set FAL_API_KEY --provider fal
 ```
 
-This starts both:
+```bash
+fnox set OPENROUTER_API_KEY --provider OpenRouter
+```
+
+`OPENAI_API_KEY` is intentionally not configured; GPT Image models fall back to fal.ai/OpenRouter. OpenRouter can also be authenticated per-user in the app's Settings via OAuth.
+
+If you prefer not to use fnox, exporting the same variables as plain environment variables works too — just don't commit a `.env` file.
+
+### Run
+
+```bash
+mise run dev
+```
+
+This injects secrets via fnox and starts both servers:
 - **Client**: Vite dev server on http://localhost:3000
-- **Proxy Server**: Bun API proxy on http://localhost:3001
+- **Proxy**: Bun API proxy on http://localhost:3001 (injects API keys server-side)
 
-Then open http://localhost:3000 in your browser.
+Stop everything (kills whatever is listening on ports 3000/3001):
 
-### Generating Images
+```bash
+mise run stop
+```
 
-1. Select **Image** from the sidebar, then **Text-to-Image** or **Image-to-Image** tab
-2. Select a model from the dropdown
-3. Configure generation parameters (varies by model)
-4. Enter your prompt (use the Prompt Optimizer for AI enhancement)
-5. (Optional) Upload or paste reference images for image-to-image models
-6. Click **Generate**
+Other tasks: `mise run server` / `mise run client` (individual processes), `mise run build`, `mise run test`, `mise run check` (typecheck + lint + format check). `mise tasks` lists them all.
 
-### Generating Videos
+## Using the App
 
-1. Select **Video** from the sidebar, then **Text-to-Video**, **Image-to-Video**, or **Video-to-Video** tab
-2. Select a video model (Kling, Veo, LTX-2, etc.)
-3. Configure video parameters (duration, aspect ratio, resolution, FPS)
-4. Enter your prompt describing the desired video
-5. (For Image/Video-to-Video) Upload a starting image or video
-6. Click **Generate**
-
-### Generating Audio
-
-1. Select **Audio** from the sidebar, then choose a mode:
-   - **Text-to-Speech**: Generate natural speech from text
-   - **Text-to-Audio**: Generate music or sound effects
-   - **Audio-to-Audio**: Clone a voice from an audio sample
-   - **Video-to-Audio**: Generate audio for a video
-2. Select an audio model
-3. Configure audio parameters (voice, speed, duration, etc.)
-4. Enter your text or prompt
-5. (For cloning/video) Upload a reference audio or video file
-6. Click **Generate**
+1. Pick a category (**Image**, **Video**, **Audio**) and mode from the sidebar
+2. Select a model — each mode shows a curated list, or toggle **Show all models** to search the full catalog
+3. Configure the model's parameters (the options shown are the ones that endpoint accepts)
+4. Enter a prompt — the **Prompt Optimizer** can enhance it
+5. Upload inputs where the mode needs them (reference images, a source video to extend, an audio sample to clone)
+6. Click **Generate** and watch the queue status; results land in the output panel and **History**
 
 ## Development
 
 ```bash
-bun run start:client  # Start Vite dev server only
-bun run start:server  # Start Bun proxy server only
-bun test              # Run tests with Vitest
+bun run test          # Vitest (use `bun run test`, not `bun test`)
 bun run typecheck     # TypeScript type checking
-bun run lint          # Run Biome linter
-bun run lint:fix      # Auto-fix linting issues
-bun run build         # Production build
+bun run lint          # Oxlint (fails on warnings)
+bun run fmt           # Format with oxfmt
+bun run build         # Production build to build/
 ```
 
 ## Architecture
@@ -137,100 +124,11 @@ bun run build         # Production build
                                                    └─────────────────┘
 ```
 
-- **React Client**: User interface with sidebar navigation, model selection, and media display
-- **Bun Proxy Server**: Handles API key injection and CORS for browser requests
-- **fal.ai API**: Queue-based generation for images, videos, and audio
-- **OpenAI API**: Direct image generation for GPT Image models
-- **OpenRouter API**: AI-powered prompt optimization with streaming, Gemini/GPT image generation fallback
-
-## Supported Models
-
-### Image Models (fal.ai)
-- Flux (Schnell, Pro, Dev, Ultra, Edit variants)
-- Flux 2 [klein] (4B and 9B)
-- SDXL, SD3.5 variants
-- Qwen Image Layered
-- And many more (dynamically loaded from API)
-
-### Image Models (OpenAI / fal.ai / OpenRouter)
-- GPT Image 1.5 (cascading route by key availability: OpenAI direct → fal.ai → OpenRouter)
-- GPT Image 1 Mini (cascading route by key availability: OpenAI direct → fal.ai → OpenRouter)
-
-### Image Models (fal.ai / OpenRouter)
-- Gemini 2.5 Flash Image (routes: fal.ai → OpenRouter)
-- Gemini 3 Pro Image (routes: fal.ai → OpenRouter)
-
-### Video Models (fal.ai)
-- **Kling**: 2.5 Turbo Pro, 2.0 Master, 1.6 Pro (text-to-video and image-to-video)
-- **Veo**: Veo 3, Veo 3 Fast, Veo 2 I2V
-- **LTX-2**: Pro, Fast, 19B, Pro I2V (with audio generation, up to 2160p)
-- **MiniMax Hailuo**: 02, 2.3 Pro
-- **Wan**: 2.5 Preview, 2.1 Pro, Wan Effects
-- **Hunyuan Video**, **Luma Dream Machine**, **Mochi 1**
-- **Video-to-Video**: LTX-2 19B V2V, MMAudio V2, Bria BG Removal, LightX Relight/Recamera
-
-### Audio Models (fal.ai)
-- **Text-to-Speech**: MiniMax Speech-02-HD (30+ languages, emotion control), Chatterbox TTS
-- **Text-to-Audio**: ACE Music, Beatoven Music/SFX, ElevenLabs Sound Effects, Stable Audio
-- **Voice Cloning**: Dia TTS Voice Clone
-- **Video-to-Audio**: Mirelo SFX
-
-## Project Structure
-
-```text
-src/
-├── App.tsx                        # Main application component
-├── config.tsx                     # Configuration context provider
-├── components/
-│   ├── Sidebar.tsx                # Navigation sidebar for generation modes
-│   ├── ModelSelector.tsx          # Model selection dropdown
-│   ├── ModelConfigPanel.tsx       # Dynamic image model configuration UI
-│   ├── VideoConfigOptions.tsx     # Video model configuration options
-│   ├── AudioConfigOptions.tsx     # Audio model configuration options
-│   ├── VideoPlayer.tsx            # Video playback component
-│   ├── AudioPlayer.tsx            # Audio playback component
-│   ├── GenerationTabs.tsx         # Tab navigation for generation modes
-│   ├── ImageUploadZone.tsx        # Multi-image upload with paste support
-│   ├── VideoUploadZone.tsx        # Video upload for V2V and video-to-audio
-│   ├── AudioUploadZone.tsx        # Audio upload for voice cloning
-│   ├── PromptOptimizer.tsx        # OpenRouter-powered prompt enhancement
-│   └── DownloadButton.tsx         # Download button for results
-├── contexts/
-│   ├── ModelsContext.tsx          # Model state management
-│   ├── ServerKeysContext.tsx      # Server API key availability
-│   ├── OpenRouterAuthContext.tsx  # OpenRouter OAuth PKCE auth state
-│   └── OpenRouterContext.tsx      # OpenRouter model selection & caching
-├── hooks/
-│   ├── useImageGeneration.ts      # Image generation logic
-│   ├── useVideoGeneration.ts      # Video generation logic
-│   ├── useAudioGeneration.ts      # Audio generation logic
-│   ├── useGenerationMode.ts       # Generation mode state
-│   ├── useImageUpload.ts          # Image upload handling
-│   └── useStatusMessage.ts        # Status message state
-├── services/
-│   ├── models.ts                  # fal.ai Models API client
-│   ├── imageModels.ts             # Curated image model definitions
-│   ├── videoModels.ts             # Video model definitions
-│   ├── audioModels.ts             # Audio model definitions
-│   ├── openai.ts                  # OpenAI Images API client
-│   ├── openrouterImage.ts         # OpenRouter image generation client
-│   ├── openrouter.ts              # OpenRouter API for prompt optimization
-│   ├── openrouterAuth.ts          # OpenRouter OAuth PKCE authentication
-│   └── errors.ts                  # Error parsing utilities
-└── types/
-    ├── models.ts                  # TypeScript type definitions
-    ├── audio.ts                   # Audio-specific types
-    └── openrouter.ts              # OpenRouter model types
-
-server/
-└── index.ts                       # Bun proxy server
-
-docs/
-├── fal-ai-ltx-2-video.md          # LTX-2 video model documentation
-├── fal-ai-flux-2-klein.md         # Flux 2 [klein] image model documentation
-├── fal-ai-audio-models.md         # Audio models documentation
-└── fal-ai-video-to-video-models.md # Video-to-video models documentation
-```
+- **React Client** (`src/`): sidebar navigation, model selection, per-model config UI, media display, history
+- **Bun Proxy Server** (`server/index.ts`): injects API keys server-side, whitelists target domains, handles CORS
+- **fal.ai**: queue-based generation for images, videos, and audio
+- **OpenAI**: direct image generation for GPT Image models
+- **OpenRouter**: prompt optimization plus Gemini/GPT image fallback
 
 ## License
 

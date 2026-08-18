@@ -1,0 +1,36 @@
+[tools]
+bun = "1"
+fnox = "latest"
+
+# Secrets (FAL_API_KEY, OPENROUTER_API_KEY) resolve from the macOS Keychain via
+# fnox.toml — tasks that need them wrap the command in `fnox exec`.
+
+[tasks.dev]
+description = "Start client (:3000) + proxy server (:3001) with secrets from fnox"
+alias = "start"
+run = "fnox exec -- bun start"
+
+[tasks.server]
+description = "Start the Bun proxy server only (:3001) with secrets from fnox"
+run = "fnox exec -- bun run start:server"
+
+[tasks.client]
+description = "Start the Vite dev server only (:3000, no secrets needed)"
+run = "bun run start:client"
+
+[tasks.stop]
+description = "Stop dev servers on ports 3000/3001"
+alias = "shutdown"
+run = "./scripts/shutdown.sh"
+
+[tasks.build]
+description = "Production build (output to build/)"
+run = "bun run build"
+
+[tasks.test]
+description = "Run tests with Vitest"
+run = "bun run test"
+
+[tasks.check]
+description = "Typecheck, lint, and verify formatting"
+run = ["bun run typecheck", "bun run lint", "bun run fmt:check"]
