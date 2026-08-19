@@ -8,13 +8,14 @@
  * Different models use different parameter naming conventions:
  * - Some use `image_urls` (array), others use `image_url` (string)
  * - Some use `strength`, others use `image_prompt_strength`, some have none
- * - Some support multiple input images (up to 9 for seedance reference-to-video)
+ * - Some support multiple input images (per-model limits for seedance reference-to-video)
  *
  * Notes on video coverage:
  * - Seedance i2v exposes 2 slots: slot[0] -> `image_url`, slot[1] -> `end_image_url`.
  *   The `paramName` here stays `'image_url'` (singular) because that's what the
  *   primary slot maps to; the hook handles `end_image_url` separately.
- * - Seedance r2v exposes up to 9 slots: all -> `image_urls` (array of URLs).
+ * - Seedance r2v exposes multiple slots (9 on 2.0, 30 on 2.5): all -> `image_urls`
+ *   (array of URLs).
  */
 
 export interface ImageInputConfig {

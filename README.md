@@ -6,14 +6,14 @@ A React single-page application for AI media generation across image, video, and
 
 ### Image Generation
 - **Text-to-Image** and **Image-to-Image** with reference images (multi-image upload and clipboard paste)
-- **Multiple providers with automatic fallback**: fal.ai models (Flux, Flux 2 [klein], SDXL, Qwen, and more), OpenAI GPT Image models, and Gemini image models — GPT and Gemini requests cascade across OpenAI/fal.ai/OpenRouter depending on which API keys are available
+- **Multiple providers with automatic fallback**: fal.ai models (Flux, Flux 2 [klein], SDXL, Qwen, and more), OpenAI GPT Image models, and Gemini image models — GPT Image requests cascade OpenAI → fal.ai → OpenRouter, Gemini requests cascade fal.ai → OpenRouter, depending on which API keys are available
 - **Configurable parameters** per model: aspect ratio, safety tolerance, guidance scale, quality, and more
 
 ### Video Generation
 - **Text-to-Video** — generate videos from text prompts
 - **Image-to-Video** — animate images, including start + end frame control on supported models
 - **Video-to-Video** — style transfer, background removal, relighting
-- **Reference-to-Video** — compose videos from up to 9 reference images with `@Image1` mentions (Seedance)
+- **Reference-to-Video** — compose videos from reference images with `@Image1` mentions (Seedance; the image limit is per-model — 9 on Seedance 2.0, 30 on 2.5)
 - **Extend Video** — continue an existing clip with LTX 2.3 Pro, FLUX 3 (including draft mode), Grok Imagine, or Veo 3.1, with per-model source validation (duration, container, dimensions) before upload
 - **Model-specific controls**: duration, aspect ratio, resolution, FPS, audio generation, camera movement — the app only offers the options each endpoint actually accepts
 

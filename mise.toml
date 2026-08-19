@@ -1,3 +1,8 @@
+[settings]
+# Pin exact tool versions (with checksums) in mise.lock while keeping
+# fuzzy specifiers here; update via `mise upgrade`.
+lockfile = true
+
 [tools]
 bun = "1"
 fnox = "latest"

@@ -49,7 +49,7 @@ Never start dev servers with plain Bash — use the mise tasks, or the Browser p
 
 ## Proxy Server
 
-`server/index.ts` (Bun) injects API keys server-side and only forwards to whitelisted fal.ai domains. Endpoints: `/api/fal/proxy`, `/api/openai/images`, `/api/openrouter/{models,completion,images}`, and `/api/health` (reports key availability as `{ keys: { fal, openai, openrouter } }`, consumed by `ServerKeysContext`). The fal client is configured with `fal.config({ proxyUrl: '/api/fal/proxy' })`; Vite's dev proxy resolves it to port 3001.
+`server/index.ts` (Bun) injects API keys server-side. `/api/fal/proxy` takes a dynamic target URL and forwards only to whitelisted fal.ai domains; the OpenAI and OpenRouter endpoints (`/api/openai/images`, `/api/openrouter/{models,completion,images}`) have hardcoded upstream targets. `/api/health` reports key availability as `{ keys: { fal, openai, openrouter } }`, consumed by `ServerKeysContext`. The fal client is configured with `fal.config({ proxyUrl: '/api/fal/proxy' })`; Vite's dev proxy resolves it to port 3001.
 
 ## API Keys & Secrets
 
