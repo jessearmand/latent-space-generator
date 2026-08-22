@@ -16,6 +16,7 @@ interface VideoConfigOptionsProps {
 
 export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selectedModel, isVideoToVideo = false }) => {
     const config = useConfig();
+    const { setVideoEnableSafetyChecker } = config;
     const modelId = selectedModel.endpointId.toLowerCase();
 
     // Endpoints with a capability profile get their options/field visibility from
@@ -193,7 +194,17 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
     const fpsOptions = getFpsOptions();
+    const safetyCheckerDefault = profile?.safetyChecker?.defaultValue;
     const safetyTolerance = profile?.safetyTolerance;
+
+    // Safety-checker choices are not portable between endpoint contracts. In
+    // particular, Wan requires authorization to disable its checker, while H3
+    // does not. Start each selected endpoint from its declared safe default.
+    useEffect(() => {
+        if (safetyCheckerDefault !== undefined) {
+            setVideoEnableSafetyChecker(safetyCheckerDefault);
+        }
+    }, [modelId, safetyCheckerDefault, setVideoEnableSafetyChecker]);
 
     // Validate and reset config values when model changes if current values are not
     // supported. An empty option list means the endpoint has no such input at all

@@ -77,6 +77,7 @@ function model(endpointId: string, category: VideoModelCategory): ModelConfig {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    config.videoEnableSafetyChecker = true;
 });
 
 afterEach(() => {
@@ -116,5 +117,18 @@ describe('VideoConfigOptions safety controls', () => {
     it('explains Wan authorization when disabling the checker', () => {
         render(<VideoConfigOptions selectedModel={model('fal-ai/wan/v2.7/image-to-video', 'image-to-video')} />);
         expect(screen.getByText(/disabling requires account authorization/i)).toBeTruthy();
+    });
+
+    it('resets the safety checker to the new endpoint default when switching from H3 to Wan', () => {
+        const { rerender } = render(
+            <VideoConfigOptions selectedModel={model('minimax/h3/text-to-video', 'text-to-video')} />,
+        );
+
+        vi.clearAllMocks();
+        config.videoEnableSafetyChecker = false;
+        rerender(<VideoConfigOptions selectedModel={model('fal-ai/wan/v2.7/image-to-video', 'image-to-video')} />);
+
+        expect(config.setVideoEnableSafetyChecker).toHaveBeenCalledTimes(1);
+        expect(config.setVideoEnableSafetyChecker).toHaveBeenCalledWith(true);
     });
 });
