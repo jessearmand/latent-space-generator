@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useConfig } from '../config';
 import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import type { ModelConfig } from '../types/models';
@@ -18,6 +18,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const config = useConfig();
     const { setVideoEnableSafetyChecker } = config;
     const modelId = selectedModel.endpointId.toLowerCase();
+    const previousModelIdRef = useRef(modelId);
 
     // Endpoints with a capability profile get their options/field visibility from
     // declared schema data; everything else uses the legacy detection below.
@@ -197,11 +198,14 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const safetyCheckerDefault = profile?.safetyChecker?.defaultValue;
     const safetyTolerance = profile?.safetyTolerance;
 
-    // Safety-checker choices are not portable between endpoint contracts. In
-    // particular, Wan requires authorization to disable its checker, while H3
-    // does not. Start each selected endpoint from its declared safe default.
+    // Preserve the persisted setting on mount, but do not carry it across
+    // endpoint contracts. Wan requires authorization to disable its checker,
+    // while H3 does not.
     useEffect(() => {
-        if (safetyCheckerDefault !== undefined) {
+        const previousModelId = previousModelIdRef.current;
+        previousModelIdRef.current = modelId;
+
+        if (previousModelId !== modelId && safetyCheckerDefault !== undefined) {
             setVideoEnableSafetyChecker(safetyCheckerDefault);
         }
     }, [modelId, safetyCheckerDefault, setVideoEnableSafetyChecker]);

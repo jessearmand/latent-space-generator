@@ -119,13 +119,14 @@ describe('VideoConfigOptions safety controls', () => {
         expect(screen.getByText(/disabling requires account authorization/i)).toBeTruthy();
     });
 
-    it('resets the safety checker to the new endpoint default when switching from H3 to Wan', () => {
+    it('preserves the persisted H3 checker on mount and resets it after switching to Wan', () => {
+        config.videoEnableSafetyChecker = false;
         const { rerender } = render(
             <VideoConfigOptions selectedModel={model('minimax/h3/text-to-video', 'text-to-video')} />,
         );
 
-        vi.clearAllMocks();
-        config.videoEnableSafetyChecker = false;
+        expect(config.setVideoEnableSafetyChecker).not.toHaveBeenCalled();
+
         rerender(<VideoConfigOptions selectedModel={model('fal-ai/wan/v2.7/image-to-video', 'image-to-video')} />);
 
         expect(config.setVideoEnableSafetyChecker).toHaveBeenCalledTimes(1);
