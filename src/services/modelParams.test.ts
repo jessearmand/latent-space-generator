@@ -150,16 +150,19 @@ describe('getImageInputConfig', () => {
         });
     });
 
-    describe('MiniMax H3 image-to-video (first frame + optional last frame)', () => {
-        it('minimax/h3/image-to-video should expose 2 image slots, no strength', () => {
-            const config = getImageInputConfig('minimax/h3/image-to-video');
-            expect(config).toEqual({
-                paramName: 'image_url',
-                isArray: false,
-                strengthParam: null,
-                maxImages: 2,
-            });
-        });
+    describe('MiniMax H3 and Wan 2.7 image-to-video (first frame + optional last frame)', () => {
+        it.each(['minimax/h3/image-to-video', 'fal-ai/wan/v2.7/image-to-video'])(
+            '%s should expose 2 image slots, no strength',
+            (modelId) => {
+                const config = getImageInputConfig(modelId);
+                expect(config).toEqual({
+                    paramName: 'image_url',
+                    isArray: false,
+                    strengthParam: null,
+                    maxImages: 2,
+                });
+            },
+        );
     });
 
     describe('Seedance 2.5 reference-to-video (up to 30 reference images)', () => {

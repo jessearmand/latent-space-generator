@@ -128,9 +128,10 @@ export function getImageInputConfig(modelId: string): ImageInputConfig {
         };
     }
 
-    // MiniMax H3 i2v: first frame + optional last frame (`end_image_url` in the hook),
-    // same two-slot shape as Seedance i2v.
-    if (lower.includes('minimax/h3') && lower.includes('image-to-video')) {
+    // MiniMax H3 and Wan 2.7 i2v: first frame + optional last frame
+    // (`end_image_url` in the builder), same two-slot shape as Seedance i2v.
+    const supportsVideoEndFrame = lower.includes('minimax/h3') || lower.includes('fal-ai/wan/v2.7');
+    if (supportsVideoEndFrame && lower.includes('image-to-video')) {
         return {
             paramName: 'image_url',
             isArray: false,

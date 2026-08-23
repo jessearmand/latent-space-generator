@@ -27,7 +27,8 @@ describe('getVideoCapabilityProfile', () => {
             expect(profile?.supportsNegativePrompt).toBe(false);
             expect(profile?.supportsGenerateAudio).toBe(true);
             expect(profile?.supportsPromptExpansion).toBe(false);
-            expect(profile?.supportsSafetyChecker).toBe(false);
+            expect(profile?.safetyChecker).toBeUndefined();
+            expect(profile?.safetyTolerance).toBeUndefined();
         });
 
         it('exposes seed on text-to-video only', () => {
@@ -63,12 +64,16 @@ describe('getVideoCapabilityProfile', () => {
                 expect(profile?.durations).toEqual(['5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15']);
 
                 // Resolution: 2K default first; 720p is NOT an H3 resolution
-                expect(profile?.resolutions).toEqual(['2K', '768P', '4K']);
+                expect(profile?.resolutions).toEqual(['2K', '480P', '768P', '4K']);
 
                 // seed and both toggles exist; no negative_prompt
                 expect(profile?.supportsSeed).toBe(true);
                 expect(profile?.supportsPromptExpansion).toBe(true);
-                expect(profile?.supportsSafetyChecker).toBe(true);
+                expect(profile?.safetyChecker).toEqual({
+                    defaultValue: true,
+                    disableRequiresAuthorization: false,
+                });
+                expect(profile?.safetyTolerance).toBeUndefined();
                 expect(profile?.supportsNegativePrompt).toBe(false);
 
                 // Audio is always generated natively — no generate_audio input
@@ -91,6 +96,92 @@ describe('getVideoCapabilityProfile', () => {
         });
     });
 
+    describe('FLUX 3 text/image-to-video endpoints', () => {
+        const endpoints = ['blackforestlabs/flux-3/text-to-video', 'blackforestlabs/flux-3/image-to-video'];
+
+        it.each(endpoints)('%s declares the shared schema and safety tolerance', (endpointId) => {
+            const profile = getVideoCapabilityProfile(endpointId);
+            expect(profile).toBeDefined();
+            expect(profile?.durations).toEqual([
+                'auto',
+                '5',
+                '6',
+                '7',
+                '8',
+                '9',
+                '10',
+                '11',
+                '12',
+                '13',
+                '14',
+                '15',
+                '16',
+                '17',
+                '18',
+                '19',
+                '20',
+            ]);
+            expect(profile?.durationFormat).toBe('string');
+            expect(profile?.aspectRatios).toEqual(['auto', '21:9', '2:1', '16:9', '4:3', '1:1', '3:4', '9:16']);
+            expect(profile?.supportsGenerateAudio).toBe(true);
+            expect(profile?.supportsSeed).toBe(false);
+            expect(profile?.supportsNegativePrompt).toBe(false);
+            expect(profile?.safetyChecker).toBeUndefined();
+            expect(profile?.safetyTolerance).toEqual({
+                values: [0, 1, 2, 3, 4],
+                defaultValue: 2,
+                format: 'integer',
+            });
+        });
+
+        it('exposes the standard endpoint resolutions', () => {
+            expect(getVideoCapabilityProfile('blackforestlabs/flux-3/text-to-video')?.resolutions).toEqual([
+                '720p',
+                '1080p',
+            ]);
+            expect(getVideoCapabilityProfile('blackforestlabs/flux-3/image-to-video')?.resolutions).toEqual([
+                '720p',
+                '1080p',
+            ]);
+        });
+    });
+
+    describe('Wan 2.7 image-to-video', () => {
+        it('declares its enums and authorized safety-checker contract', () => {
+            const profile = getVideoCapabilityProfile('fal-ai/wan/v2.7/image-to-video');
+            expect(profile).toBeDefined();
+            expect(profile?.durationFormat).toBe('integer');
+            expect(profile?.durations).toEqual([
+                '2',
+                '3',
+                '4',
+                '5',
+                '6',
+                '7',
+                '8',
+                '9',
+                '10',
+                '11',
+                '12',
+                '13',
+                '14',
+                '15',
+            ]);
+            expect(profile?.defaultDuration).toBe('5');
+            expect(profile?.durations).toHaveLength(14);
+            expect(profile?.resolutions).toEqual(['1080p', '720p']);
+            expect(profile?.aspectRatios).toEqual([]);
+            expect(profile?.supportsSeed).toBe(true);
+            expect(profile?.supportsNegativePrompt).toBe(true);
+            expect(profile?.supportsPromptExpansion).toBe(true);
+            expect(profile?.safetyChecker).toEqual({
+                defaultValue: true,
+                disableRequiresAuthorization: true,
+            });
+            expect(profile?.safetyTolerance).toBeUndefined();
+        });
+    });
+
     describe('LTX 2.5 endpoints', () => {
         it.each([
             'lightricks/ltx-2.5/text-to-video/pro',
@@ -110,7 +201,8 @@ describe('getVideoCapabilityProfile', () => {
             expect(profile?.supportsSeed).toBe(false);
             expect(profile?.supportsNegativePrompt).toBe(false);
             expect(profile?.supportsPromptExpansion).toBe(false);
-            expect(profile?.supportsSafetyChecker).toBe(false);
+            expect(profile?.safetyChecker).toBeUndefined();
+            expect(profile?.safetyTolerance).toBeUndefined();
 
             // Optional camera_motion with 8 enum values including focus_shift
             expect(profile?.cameraMotions).toHaveLength(8);
@@ -286,7 +378,8 @@ describe('getVideoCapabilityProfile', () => {
             expect(profile?.supportsSeed).toBe(false);
             expect(profile?.supportsNegativePrompt).toBe(false);
             expect(profile?.supportsPromptExpansion).toBe(false);
-            expect(profile?.supportsSafetyChecker).toBe(false);
+            expect(profile?.safetyChecker).toBeUndefined();
+            expect(profile?.safetyTolerance).toBeUndefined();
             expect(profile?.fpsValues).toEqual([]);
             expect(profile?.cameraMotions).toEqual([]);
         });

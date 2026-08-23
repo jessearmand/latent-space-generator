@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useConfig } from '../config';
 import { activeLongDurationConstraint, getVideoCapabilityProfile } from '../services/videoModelCapabilities';
 import type { ModelConfig } from '../types/models';
@@ -16,7 +16,9 @@ interface VideoConfigOptionsProps {
 
 export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selectedModel, isVideoToVideo = false }) => {
     const config = useConfig();
+    const { setVideoEnableSafetyChecker } = config;
     const modelId = selectedModel.endpointId.toLowerCase();
+    const previousModelIdRef = useRef(modelId);
 
     // Endpoints with a capability profile get their options/field visibility from
     // declared schema data; everything else uses the legacy detection below.
@@ -193,14 +195,28 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
     const aspectRatioOptions = getAspectRatioOptions();
     const resolutionOptions = getResolutionOptions();
     const fpsOptions = getFpsOptions();
+    const safetyCheckerDefault = profile?.safetyChecker?.defaultValue;
+    const safetyTolerance = profile?.safetyTolerance;
+
+    // Preserve the persisted setting on mount, but do not carry it across
+    // endpoint contracts. Wan requires authorization to disable its checker,
+    // while H3 does not.
+    useEffect(() => {
+        const previousModelId = previousModelIdRef.current;
+        previousModelIdRef.current = modelId;
+
+        if (previousModelId !== modelId && safetyCheckerDefault !== undefined) {
+            setVideoEnableSafetyChecker(safetyCheckerDefault);
+        }
+    }, [modelId, safetyCheckerDefault, setVideoEnableSafetyChecker]);
 
     // Validate and reset config values when model changes if current values are not
     // supported. An empty option list means the endpoint has no such input at all
     // (e.g. H3 i2v has no aspect_ratio) — leave the stored value alone.
     useEffect(() => {
-        // Check if current duration is valid for this model, reset to first option if not
+        // Check if current duration is valid for this model, reset to its declared default if not
         if (durationOptions.length > 0 && !durationOptions.includes(config.videoDuration)) {
-            config.setVideoDuration(durationOptions[0]);
+            config.setVideoDuration(profile?.defaultDuration ?? durationOptions[0]);
         }
 
         // Check if current aspect ratio is valid for this model, reset to first option if not
@@ -217,7 +233,19 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
         if (fpsOptions.length > 0 && !fpsOptions.includes(config.videoFps)) {
             config.setVideoFps(fpsOptions[0]);
         }
-    }, [durationOptions, aspectRatioOptions, resolutionOptions, fpsOptions, config]);
+
+        if (safetyTolerance && !safetyTolerance.values.includes(config.videoSafetyTolerance)) {
+            config.setVideoSafetyTolerance(safetyTolerance.defaultValue);
+        }
+    }, [
+        durationOptions,
+        aspectRatioOptions,
+        resolutionOptions,
+        fpsOptions,
+        profile?.defaultDuration,
+        safetyTolerance,
+        config,
+    ]);
 
     return (
         <>
@@ -278,7 +306,7 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </div>
             )}
 
-            {/* Prompt expansion / safety checker toggles for profiled endpoints (MiniMax H3) */}
+            {/* Prompt expansion and safety controls for profiled endpoints. */}
             {profile?.supportsPromptExpansion && (
                 <div className="form-group">
                     <label htmlFor="video-enable-prompt-expansion">Prompt Expansion:</label>
@@ -292,15 +320,38 @@ export const VideoConfigOptions: React.FC<VideoConfigOptionsProps> = ({ selected
                 </div>
             )}
 
-            {profile?.supportsSafetyChecker && (
+            {profile?.safetyChecker && (
                 <div className="form-group">
                     <label htmlFor="video-enable-safety-checker">Safety Checker:</label>
                     <input
                         id="video-enable-safety-checker"
                         type="checkbox"
-                        checked={config.enableSafetyChecker}
-                        onChange={(e) => config.setEnableSafetyChecker(e.target.checked)}
+                        checked={config.videoEnableSafetyChecker}
+                        onChange={(e) => config.setVideoEnableSafetyChecker(e.target.checked)}
                     />
+                    <span className="hint">
+                        {profile.safetyChecker.disableRequiresAuthorization
+                            ? ' (disabling requires account authorization)'
+                            : ' (moderates generated content)'}
+                    </span>
+                </div>
+            )}
+
+            {safetyTolerance && (
+                <div className="form-group">
+                    <label htmlFor="video-safety-tolerance">Safety Tolerance:</label>
+                    <select
+                        id="video-safety-tolerance"
+                        value={config.videoSafetyTolerance}
+                        onChange={(e) => config.setVideoSafetyTolerance(parseInt(e.target.value, 10))}
+                    >
+                        {safetyTolerance.values.map((value) => (
+                            <option key={value} value={value}>
+                                {value}
+                            </option>
+                        ))}
+                    </select>
+                    <span className="hint"> (0 = strictest, 4 = most permissive)</span>
                 </div>
             )}
 

@@ -18,8 +18,10 @@
  */
 
 export interface VideoCapabilityProfile {
-    /** `duration` enum values exactly as the API expects them; first entry is the default. */
+    /** `duration` enum values exactly as the API expects them. */
     durations: string[];
+    /** Server default when it differs from the first displayed duration. */
+    defaultDuration?: string;
     /** How `duration` is serialized: the enum string as-is, or parsed to integer seconds. */
     durationFormat: 'string' | 'integer';
     /** `resolution` enum values; first entry is the default. */
@@ -54,8 +56,17 @@ export interface VideoCapabilityProfile {
     supportsGenerateAudio: boolean;
     /** Whether the input schema has `enable_prompt_expansion`. */
     supportsPromptExpansion: boolean;
-    /** Whether the input schema has `enable_safety_checker`. */
-    supportsSafetyChecker: boolean;
+    /** Boolean safety-checker input, when the endpoint exposes one. */
+    safetyChecker?: {
+        defaultValue: boolean;
+        disableRequiresAuthorization: boolean;
+    };
+    /** Numeric safety-tolerance input, when the endpoint exposes one. */
+    safetyTolerance?: {
+        values: number[];
+        defaultValue: number;
+        format: 'integer' | 'string';
+    };
     /**
      * Duration-dependent constraint: when the selected duration is
      * `minDurationSeconds` or longer, only this fps/resolution pair is
@@ -103,7 +114,6 @@ function seedance25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCap
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
         supportsPromptExpansion: false,
-        supportsSafetyChecker: false,
         ...overrides,
     };
 }
@@ -128,7 +138,6 @@ function seedance20Profile(overrides: Partial<VideoCapabilityProfile>): VideoCap
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
         supportsPromptExpansion: false,
-        supportsSafetyChecker: false,
         ...overrides,
     };
 }
@@ -137,14 +146,14 @@ const SEEDANCE_20_FAST_RESOLUTIONS = ['720p', '480p'];
 
 /**
  * Shared MiniMax H3 schema: integer duration 5-15s (default 5), resolution
- * 768P/2K/4K (default 2K), seed, prompt-expansion and safety-checker toggles.
+ * 480P/768P/2K/4K (default 2K), seed, prompt-expansion and safety-checker toggles.
  * Audio is always generated natively — there is no `generate_audio` input.
  */
 function minimaxH3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
     return {
         durations: Array.from({ length: 11 }, (_, i) => String(i + 5)),
         durationFormat: 'integer',
-        resolutions: ['2K', '768P', '4K'],
+        resolutions: ['2K', '480P', '768P', '4K'],
         aspectRatios: ['16:9', '21:9', '4:3', '1:1', '3:4', '9:16'],
         fpsValues: [],
         cameraMotions: [],
@@ -152,8 +161,57 @@ function minimaxH3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapa
         supportsNegativePrompt: false,
         supportsGenerateAudio: false,
         supportsPromptExpansion: true,
-        supportsSafetyChecker: true,
+        safetyChecker: {
+            defaultValue: true,
+            disableRequiresAuthorization: false,
+        },
         ...overrides,
+    };
+}
+
+const FLUX_3_DURATIONS = ['auto', ...Array.from({ length: 16 }, (_, i) => String(i + 5))];
+const FLUX_3_ASPECT_RATIOS = ['auto', '21:9', '2:1', '16:9', '4:3', '1:1', '3:4', '9:16'];
+
+/** Shared standard FLUX.3 T2V/I2V schema. */
+function flux3Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabilityProfile {
+    return {
+        durations: FLUX_3_DURATIONS,
+        durationFormat: 'string',
+        resolutions: ['720p', '1080p'],
+        aspectRatios: FLUX_3_ASPECT_RATIOS,
+        fpsValues: [],
+        cameraMotions: [],
+        supportsSeed: false,
+        supportsNegativePrompt: false,
+        supportsGenerateAudio: true,
+        supportsPromptExpansion: false,
+        safetyTolerance: {
+            values: [0, 1, 2, 3, 4],
+            defaultValue: 2,
+            format: 'integer',
+        },
+        ...overrides,
+    };
+}
+
+/** Wan 2.7 I2V schema; the endpoint also supports optional last-frame input. */
+function wan27Profile(): VideoCapabilityProfile {
+    return {
+        durations: Array.from({ length: 14 }, (_, i) => String(i + 2)),
+        defaultDuration: '5',
+        durationFormat: 'integer',
+        resolutions: ['1080p', '720p'],
+        aspectRatios: [],
+        fpsValues: [],
+        cameraMotions: [],
+        supportsSeed: true,
+        supportsNegativePrompt: true,
+        supportsGenerateAudio: false,
+        supportsPromptExpansion: true,
+        safetyChecker: {
+            defaultValue: true,
+            disableRequiresAuthorization: true,
+        },
     };
 }
 
@@ -187,7 +245,6 @@ function ltx25Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabili
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
         supportsPromptExpansion: false,
-        supportsSafetyChecker: false,
         ...overrides,
     };
 }
@@ -214,7 +271,6 @@ function ltx23Profile(overrides: Partial<VideoCapabilityProfile>): VideoCapabili
         supportsNegativePrompt: false,
         supportsGenerateAudio: true,
         supportsPromptExpansion: false,
-        supportsSafetyChecker: false,
         ...overrides,
     };
 }
@@ -268,6 +324,11 @@ const PROFILES: Record<string, VideoCapabilityProfile> = {
     'minimax/h3/image-to-video': minimaxH3Profile({ aspectRatios: [] }),
     // H3 reference-to-video is multimodal (reference_image_urls/video_urls/audio_urls)
     // and needs role-aware upload state — deferred, so no profile yet.
+
+    'blackforestlabs/flux-3/text-to-video': flux3Profile({}),
+    'blackforestlabs/flux-3/image-to-video': flux3Profile({}),
+
+    'fal-ai/wan/v2.7/image-to-video': wan27Profile(),
 
     'lightricks/ltx-2.5/text-to-video/pro': ltx25Profile({}),
     'lightricks/ltx-2.5/text-to-video/fast': ltx25Profile({

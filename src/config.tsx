@@ -32,6 +32,8 @@ export interface ConfigState {
     videoGuidanceScale: number; // CFG scale for video generation
     videoSeed: number | null; // Seed for reproducibility
     videoNegativePrompt: string; // Content to avoid
+    videoEnableSafetyChecker: boolean; // Wan/H3 safety checker, default true
+    videoSafetyTolerance: number; // FLUX.3 safety tolerance, 0 strictest to 4 most permissive
     // Model-specific video settings
     generateAudio: boolean; // For veo3.1 and ltx-2 models
     videoCfgScale: number; // CFG scale for kling models (0-1 range)
@@ -138,6 +140,8 @@ interface ConfigContextType extends ConfigState {
     setVideoGuidanceScale: (value: number) => void;
     setVideoSeed: (value: number | null) => void;
     setVideoNegativePrompt: (value: string) => void;
+    setVideoEnableSafetyChecker: (value: boolean) => void;
+    setVideoSafetyTolerance: (value: number) => void;
     // Model-specific video setters
     setGenerateAudio: (value: boolean) => void;
     setVideoCfgScale: (value: number) => void;
@@ -279,6 +283,12 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     );
     const [videoNegativePrompt, setVideoNegativePrompt] = useState<string>(
         localStorage.getItem('VIDEO_NEGATIVE_PROMPT') || '',
+    );
+    const [videoEnableSafetyChecker, setVideoEnableSafetyChecker] = useState<boolean>(
+        localStorage.getItem('VIDEO_ENABLE_SAFETY_CHECKER') !== 'false',
+    );
+    const [videoSafetyTolerance, setVideoSafetyTolerance] = useState<number>(
+        parseInt(localStorage.getItem('VIDEO_SAFETY_TOLERANCE') || '2', 10),
     );
     // Model-specific video settings
     const [generateAudio, setGenerateAudio] = useState<boolean>(localStorage.getItem('GENERATE_AUDIO') !== 'false'); // Default true
@@ -469,6 +479,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('VIDEO_GUIDANCE_SCALE', videoGuidanceScale.toString());
         localStorage.setItem('VIDEO_SEED', videoSeed !== null ? videoSeed.toString() : 'null');
         localStorage.setItem('VIDEO_NEGATIVE_PROMPT', videoNegativePrompt);
+        localStorage.setItem('VIDEO_ENABLE_SAFETY_CHECKER', videoEnableSafetyChecker.toString());
+        localStorage.setItem('VIDEO_SAFETY_TOLERANCE', videoSafetyTolerance.toString());
         // Model-specific video persistence
         localStorage.setItem('GENERATE_AUDIO', generateAudio.toString());
         localStorage.setItem('VIDEO_CFG_SCALE', videoCfgScale.toString());
@@ -569,6 +581,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         videoGuidanceScale,
         videoSeed,
         videoNegativePrompt,
+        videoEnableSafetyChecker,
+        videoSafetyTolerance,
         generateAudio,
         videoCfgScale,
         videoFps,
@@ -681,6 +695,10 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 setVideoSeed,
                 videoNegativePrompt,
                 setVideoNegativePrompt,
+                videoEnableSafetyChecker,
+                setVideoEnableSafetyChecker,
+                videoSafetyTolerance,
+                setVideoSafetyTolerance,
                 // Model-specific video settings
                 generateAudio,
                 setGenerateAudio,
