@@ -7,12 +7,12 @@
  * - Left/Right expand/collapse sections
  * - Home/End jump to first/last item
  * - Enter/Space activate (toggle section or select mode)
- * - Focus does NOT follow selection (unlike GenerationTabs)
+ * - Focus does NOT follow selection
  */
 
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import type { GenerationMode } from './GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 import type { AppView, HistoryFilter } from '../types/appView';
 import './Sidebar.css';
 

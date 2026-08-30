@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { OutputType } from '../types/models';
-import type { GenerationMode } from '../components/GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 import { type HistoryEntry, MAX_HISTORY_ENTRIES, generateHistoryId } from '../types/history';
 import { type HistoryFilter, outputTypeToHistoryFilter } from '../types/appView';
 

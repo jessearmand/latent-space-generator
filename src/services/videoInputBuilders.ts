@@ -11,7 +11,7 @@
  * - legacy:   substring-detected models awaiting profile migration
  */
 
-import type { GenerationMode } from '../components/GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 import type { ConfigState } from '../config';
 import type { ExtendCapabilityProfile } from './extendVideoCapabilities';
 import { snapExtendDuration } from './extendVideoCapabilities';

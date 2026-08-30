@@ -44,7 +44,7 @@ Never start dev servers with plain Bash — use the mise tasks, or the Browser p
   - Which options a video endpoint accepts (durations, resolutions, aspect ratios, fps, optional fields): `getVideoCapabilityProfile()` in `src/services/videoModelCapabilities.ts`; extend-video endpoints use `src/services/extendVideoCapabilities.ts` (range-based `ExtendCapabilityProfile` + source validation via `checkExtendSource()`).
   - What actually gets sent to the API: `src/services/videoInputBuilders.ts` (profiled/legacy/extend builders), `src/services/imageInputBuilders.ts`, and the routing branches in `hooks/useAudioGeneration.ts`.
 - **Duration serialization varies per API**: some endpoints want a string enum (`"5"`, `"auto"` — Seedance), others an integer. The video profiles carry a `durationFormat` field; check the endpoint's schema before running values through `parseInt`.
-- **The generation-mode union lives in `src/components/GenerationTabs.tsx`** (`GenerationMode`), with gating helpers (`requiresImageInput`, etc.) beside it. The sidebar (`Sidebar.tsx`) owns navigation; the visual `tabs` array does not list every mode.
+- **The generation-mode union lives in `src/types/generationMode.ts`** (`GenerationMode`), with gating helpers (`requiresImageInput`, etc.) beside it. The sidebar (`Sidebar.tsx`) owns navigation.
 - **Dynamic model loading**: curated lists (`services/imageModels.ts`, `videoModels.ts`, `audioModels.ts`) load instantly; "Show all models" lazy-loads the full fal.ai catalog via `services/models.ts` with a 24h localStorage cache (`contexts/ModelsContext.tsx`). `services/deprecatedModels.ts` blocklists models hidden from the catalog.
 
 ## Proxy Server

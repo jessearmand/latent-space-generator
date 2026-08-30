@@ -1,5 +1,5 @@
 import type { OutputType } from './models';
-import type { GenerationMode } from '../components/GenerationTabs';
+import type { GenerationMode } from './generationMode';
 
 /** A single generation result saved to history */
 export interface HistoryEntry {

@@ -1,7 +1,13 @@
 import type React from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import type { GenerationMode } from './GenerationTabs';
-import { isAudioMode, isVideoMode, requiresImageInput, requiresVideoInput, requiresAudioInput } from './GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
+import {
+    isAudioMode,
+    isVideoMode,
+    requiresImageInput,
+    requiresVideoInput,
+    requiresAudioInput,
+} from '../types/generationMode';
 import type { ModelConfig } from '../types/models';
 import { ModelSelector } from './ModelSelector';
 import { ModelConfigPanel } from './ModelConfigPanel';

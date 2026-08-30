@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { type GenerationMode, isValidGenerationMode } from '../components/GenerationTabs';
+import { type GenerationMode, isValidGenerationMode } from '../types/generationMode';
 import type { ModelConfig } from '../types/models';
 
 /** Storage key for active mode */

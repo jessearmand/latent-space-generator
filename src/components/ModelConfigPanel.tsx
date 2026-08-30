@@ -10,7 +10,7 @@ import { useConfig } from '../config';
 import { getImageInputConfig } from '../services/modelParams';
 import { VideoConfigOptions } from './VideoConfigOptions';
 import { AudioConfigOptions } from './AudioConfigOptions';
-import type { GenerationMode } from './GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 
 interface ModelConfigPanelProps {
     selectedModel: ModelConfig | null;

@@ -7,8 +7,8 @@
 import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useModels } from '../contexts/ModelsContext';
-import type { GenerationMode } from './GenerationTabs';
-import { isVideoMode, isAudioMode } from './GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
+import { isVideoMode, isAudioMode } from '../types/generationMode';
 import type { ImageModelCategory, VideoModelCategory, AudioModelCategory } from '../types/models';
 
 interface ModelSelectorProps {
