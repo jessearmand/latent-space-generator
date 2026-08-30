@@ -1,15 +1,15 @@
-/* Responsive grid for history cards */
+/* Responsive grid for history cards (Nocturne tokens) */
 
 .history-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  gap: var(--space-6);
   padding: 0;
 }
 
 @media (max-width: 640px) {
   .history-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
+    gap: var(--space-4);
   }
 }

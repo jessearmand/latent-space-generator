@@ -5,9 +5,9 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  border: none;
-  border-radius: 8px;
-  background-color: #f0f0f0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background-color: transparent;
   cursor: pointer;
   transition:
     background-color 0.2s,
@@ -15,12 +15,12 @@
 }
 
 .download-button:hover:not(:disabled) {
-  background-color: #007bff;
+  background-color: var(--chip);
   transform: scale(1.05);
 }
 
 .download-button:hover:not(:disabled) .download-icon {
-  stroke: white;
+  stroke: var(--color-text);
 }
 
 .download-button:disabled {
@@ -31,7 +31,7 @@
 .download-icon {
   width: 20px;
   height: 20px;
-  stroke: #555;
+  stroke: var(--ink2);
   transition: stroke 0.2s;
 }
 

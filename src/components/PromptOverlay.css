@@ -5,14 +5,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 24px 10px 8px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-  color: #fff;
+  padding: 24px 10px var(--space-3);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--color-neutral-900) 92%, transparent));
+  color: var(--color-text);
   pointer-events: none;
 }
 
 .prompt-overlay-text {
-  font-size: 0.78em;
+  font-size: 12px;
   line-height: 1.35;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -29,8 +29,8 @@
 }
 
 .prompt-overlay-model {
-  font-size: 0.7em;
-  opacity: 0.8;
+  font-size: 11px;
+  color: var(--ink3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -39,53 +39,52 @@
 }
 
 .prompt-overlay-time {
-  font-size: 0.68em;
-  opacity: 0.7;
+  font-size: 11px;
+  color: var(--ink4);
   white-space: nowrap;
 }
 
 .prompt-overlay-copy {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--chip);
   border: none;
-  color: #fff;
+  color: var(--color-text);
   cursor: pointer;
   padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 0.72em;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
   line-height: 1;
   flex-shrink: 0;
   transition: background-color 0.15s;
 }
 
 .prompt-overlay-copy:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--color-text) 16%, transparent);
 }
 
 /* Standalone variant (not over an image, e.g. audio cards) */
 .prompt-overlay--standalone {
   position: relative;
-  background: #f5f5f5;
-  color: #333;
-  padding: 8px 10px;
-  border-radius: 0 0 8px 8px;
+  background: var(--chrome);
+  color: var(--color-text);
+  padding: var(--space-3) 10px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .prompt-overlay--standalone .prompt-overlay-model {
-  color: #555;
-  opacity: 1;
+  color: var(--ink3);
 }
 
 .prompt-overlay--standalone .prompt-overlay-time {
-  color: #888;
-  opacity: 1;
+  color: var(--ink4);
 }
 
 .prompt-overlay--standalone .prompt-overlay-copy {
-  background: rgba(0, 0, 0, 0.08);
-  color: #333;
+  background: var(--chip);
+  color: var(--ink2);
 }
 
 .prompt-overlay--standalone .prompt-overlay-copy:hover {
-  background: rgba(0, 0, 0, 0.15);
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+  color: var(--color-text);
 }
