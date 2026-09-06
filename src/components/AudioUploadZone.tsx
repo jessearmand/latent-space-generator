@@ -4,7 +4,8 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
+import { useObjectUrl } from '../hooks/useObjectUrl';
 import './AudioUploadZone.css';
 
 interface AudioUploadZoneProps {
@@ -27,16 +28,11 @@ const ACCEPTED_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
 
 export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({ uploadedFile, onFileChange, disabled = false }) => {
     const [isDragging, setIsDragging] = useState(false);
-    const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+    // Derived from the controlled prop so it stays in sync however the file changes
+    // (dropped here, cleared by the parent, or already set when this mounts).
+    const audioPreviewUrl = useObjectUrl(uploadedFile);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputId = useId();
-
-    // Revoke object URL on unmount to prevent memory leaks
-    useEffect(() => {
-        return () => {
-            if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
-        };
-    }, [audioPreviewUrl]);
 
     const handleFile = useCallback(
         (file: File) => {
@@ -49,16 +45,9 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({ uploadedFile, 
                 return;
             }
 
-            // Create preview URL
-            if (audioPreviewUrl) {
-                URL.revokeObjectURL(audioPreviewUrl);
-            }
-            const url = URL.createObjectURL(file);
-            setAudioPreviewUrl(url);
-
             onFileChange(file);
         },
-        [audioPreviewUrl, onFileChange],
+        [onFileChange],
     );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -100,17 +89,13 @@ export const AudioUploadZone: React.FC<AudioUploadZoneProps> = ({ uploadedFile, 
     );
 
     const handleRemove = useCallback(() => {
-        if (audioPreviewUrl) {
-            URL.revokeObjectURL(audioPreviewUrl);
-        }
-        setAudioPreviewUrl(null);
         onFileChange(null);
 
         // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-    }, [audioPreviewUrl, onFileChange]);
+    }, [onFileChange]);
 
     const handleClick = useCallback(() => {
         if (!disabled) {

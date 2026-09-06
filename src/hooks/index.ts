@@ -11,3 +11,4 @@ export { useVideoGeneration, type UseVideoGenerationParams, type UseVideoGenerat
 export { useAudioGeneration, type UseAudioGenerationParams, type UseAudioGenerationReturn } from './useAudioGeneration';
 export { useGenerationHistory, type AddToHistoryParams, type UseGenerationHistoryReturn } from './useGenerationHistory';
 export { type HistoryFilter, type AppView, outputTypeToHistoryFilter } from '../types/appView';
+export { useObjectUrl } from './useObjectUrl';
