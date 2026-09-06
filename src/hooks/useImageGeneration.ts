@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fal } from '@fal-ai/client';
-import type { GenerationMode } from '../components/GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import type { ServerKeys } from '../contexts/ServerKeysContext';

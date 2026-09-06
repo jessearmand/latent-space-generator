@@ -142,8 +142,8 @@ The core principle: **the capability profile is the single declaration of the en
 5. **Model filtering — `src/contexts/ModelsContext.tsx`**
    `getFilteredVideoModels` filters by `m.category === category`. If fal.ai's catalog labels your model under a *different* category than the UX category you want to expose (e.g. seedance r2v ships labeled as `image-to-video`), seed the curated list back in for the "Show all models" path so the UX category isn't empty.
 
-6. **Mode union & helpers — `src/components/GenerationTabs.tsx`**
-   Update `GenerationMode`, `isVideoMode`, `requiresImageInput` (gates the upload zone in InputSection), `requiresVideoInput`, `requiresAudioInput`, and `isValidGenerationMode`. Do NOT add new modes to the visual `tabs` array — the sidebar handles navigation.
+6. **Mode union & helpers — `src/types/generationMode.ts`**
+   Update `GenerationMode`, `isVideoMode`, `requiresImageInput` (gates the upload zone in InputSection), `requiresVideoInput`, `requiresAudioInput`, and `isValidGenerationMode`. The sidebar handles navigation.
 
 7. **Sidebar entry — `src/components/Sidebar.tsx`**
    Append `{ id: 'your-mode', label: 'Your Label' }` to the `'video'` section's `modes` array.

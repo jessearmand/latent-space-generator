@@ -1,9 +1,9 @@
-/* History view page */
+/* History view page (Nocturne tokens) */
 
 .history-view {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-8);
 }
 
 .history-view-header {
@@ -14,42 +14,42 @@
 
 .history-view-header h2 {
   margin: 0;
-  font-size: 1.3em;
-  color: #333;
+  font-size: 20px;
+  color: var(--color-text);
 }
 
 .history-view-clear-btn {
   background: none;
-  border: 1px solid #dc3545;
-  color: #dc3545;
+  border: 1px solid var(--line);
+  color: var(--ink2);
   padding: 6px 14px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 12px;
   transition:
     background-color 0.2s,
     color 0.2s;
 }
 
 .history-view-clear-btn:hover {
-  background-color: #dc3545;
-  color: #fff;
+  background-color: var(--color-neutral-700);
+  color: var(--color-text);
 }
 
 /* Empty state */
 .history-view-empty {
   text-align: center;
-  padding: 60px 20px;
-  color: #888;
-  font-size: 1em;
+  padding: 60px var(--space-8);
+  color: var(--ink3);
+  font-size: 14px;
 }
 
 .history-view-empty-icon {
   font-size: 2.5em;
-  margin-bottom: 12px;
-  opacity: 0.5;
+  margin-bottom: var(--space-4);
+  color: var(--color-neutral-700);
 }
 
 .history-view-empty p {
-  margin: 4px 0;
+  margin: var(--space-1) 0;
 }

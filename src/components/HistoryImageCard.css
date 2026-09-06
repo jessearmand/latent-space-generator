@@ -1,17 +1,18 @@
-/* History image card */
+/* History image card (Nocturne tokens) */
 
 .history-image-card {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #e0e0e0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   aspect-ratio: 1;
   transition: box-shadow 0.2s;
 }
 
 .history-image-card:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .history-image-card img {
@@ -38,14 +39,14 @@
 }
 
 .history-card-remove {
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--color-neutral-900) 78%, transparent);
   border: none;
-  color: #fff;
+  color: var(--color-text);
   cursor: pointer;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 0.75em;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +54,7 @@
 }
 
 .history-card-remove:hover {
-  background: rgba(220, 53, 69, 0.8);
+  background: var(--color-neutral-700);
 }
 
 /* Multi-image badge */
@@ -61,10 +62,10 @@
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 0.7em;
+  background: color-mix(in srgb, var(--color-neutral-900) 78%, transparent);
+  color: var(--color-text);
+  font-size: 11px;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   z-index: 2;
 }

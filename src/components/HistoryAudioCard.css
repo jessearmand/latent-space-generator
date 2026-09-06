@@ -1,31 +1,31 @@
-/* History audio card */
+/* History audio card (Nocturne tokens) */
 
 .history-audio-card {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s;
 }
 
 .history-audio-card:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 /* Audio player wrapper */
 .history-audio-player {
-  padding: 12px;
+  padding: var(--space-4);
 }
 
 /* Text content card (audio-understanding results) */
 .history-text-content {
-  padding: 12px;
+  padding: var(--space-4);
   max-height: 200px;
   overflow-y: auto;
-  font-size: 0.85em;
+  font-size: 12px;
   line-height: 1.5;
-  color: #333;
+  color: var(--color-text);
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
@@ -48,17 +48,18 @@
 
 /* Copy text button for text entries */
 .history-text-copy {
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   cursor: pointer;
-  font-size: 0.75em;
-  color: #555;
+  font-size: 11px;
+  color: var(--ink2);
 }
 
 .history-text-copy:hover {
-  background: #e5e5e5;
+  background: var(--chip);
+  color: var(--color-text);
 }
 
 /* Compact overrides for audio player inside history grid cells */
@@ -68,7 +69,7 @@
 }
 
 .history-audio-player .audio-player-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-3);
 }
 
 .history-audio-player .audio-play-btn {
@@ -79,5 +80,5 @@
 
 .history-audio-player .audio-time {
   min-width: 36px;
-  font-size: 0.8em;
+  font-size: 11px;
 }

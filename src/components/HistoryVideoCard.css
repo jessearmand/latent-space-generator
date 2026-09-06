@@ -1,16 +1,17 @@
-/* History video card */
+/* History video card (Nocturne tokens) */
 
 .history-video-card {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #1a1a1a;
+  background: var(--color-neutral-900);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: box-shadow 0.2s;
 }
 
 .history-video-card:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 /* Thumbnail state */
@@ -37,9 +38,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.5);
+  width: 42px;
+  height: 42px;
+  background: color-mix(in srgb, var(--color-neutral-900) 55%, transparent);
+  border: 1px solid var(--color-accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -49,7 +51,7 @@
 }
 
 .history-video-card:hover .history-video-play-icon {
-  background: rgba(0, 123, 255, 0.7);
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
 .history-video-play-icon::after {
@@ -59,7 +61,7 @@
   height: 0;
   border-style: solid;
   border-width: 8px 0 8px 14px;
-  border-color: transparent transparent transparent #fff;
+  border-color: transparent transparent transparent var(--color-accent);
   margin-left: 3px;
 }
 
@@ -93,15 +95,15 @@
   display: block;
   width: 100%;
   padding: 6px 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--chip);
   border: none;
-  color: #ccc;
-  font-size: 0.75em;
+  color: var(--ink2);
+  font-size: 11px;
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .history-video-collapse:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: var(--color-neutral-700);
+  color: var(--color-text);
 }

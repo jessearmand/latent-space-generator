@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { GenerationMode } from '../components/GenerationTabs';
+import type { GenerationMode } from '../types/generationMode';
 import type { ModelConfig } from '../types/models';
 import type { ConfigState } from '../config';
 import { parseFalError } from '../services/errors';

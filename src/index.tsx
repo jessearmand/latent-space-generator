@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './styles/nocturne.css';
 import App from './App';
 import { ConfigProvider } from './config';
 import { ServerKeysProvider } from './contexts/ServerKeysContext';
