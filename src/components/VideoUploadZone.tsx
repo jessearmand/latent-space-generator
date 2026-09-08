@@ -4,7 +4,8 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
+import { useObjectUrl } from '../hooks/useObjectUrl';
 import './VideoUploadZone.css';
 
 interface VideoUploadZoneProps {
@@ -18,24 +19,11 @@ const ACCEPTED_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi'];
 
 export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({ uploadedFile, onFileChange, disabled = false }) => {
     const [isDragging, setIsDragging] = useState(false);
-    const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+    // Derived from the controlled prop so it stays in sync however the file changes
+    // (dropped here, cleared by the parent, or already set when this mounts).
+    const videoPreviewUrl = useObjectUrl(uploadedFile);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputId = useId();
-
-    // Sync preview URL when parent clears the file externally
-    useEffect(() => {
-        if (!uploadedFile && videoPreviewUrl) {
-            URL.revokeObjectURL(videoPreviewUrl);
-            setVideoPreviewUrl(null);
-        }
-    }, [uploadedFile, videoPreviewUrl]);
-
-    // Revoke object URL on unmount to prevent memory leaks
-    useEffect(() => {
-        return () => {
-            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-        };
-    }, [videoPreviewUrl]);
 
     const handleFile = useCallback(
         (file: File) => {
@@ -48,16 +36,9 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({ uploadedFile, 
                 return;
             }
 
-            // Create preview URL
-            if (videoPreviewUrl) {
-                URL.revokeObjectURL(videoPreviewUrl);
-            }
-            const url = URL.createObjectURL(file);
-            setVideoPreviewUrl(url);
-
             onFileChange(file);
         },
-        [videoPreviewUrl, onFileChange],
+        [onFileChange],
     );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -99,17 +80,13 @@ export const VideoUploadZone: React.FC<VideoUploadZoneProps> = ({ uploadedFile, 
     );
 
     const handleRemove = useCallback(() => {
-        if (videoPreviewUrl) {
-            URL.revokeObjectURL(videoPreviewUrl);
-        }
-        setVideoPreviewUrl(null);
         onFileChange(null);
 
         // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-    }, [videoPreviewUrl, onFileChange]);
+    }, [onFileChange]);
 
     const handleClick = useCallback(() => {
         if (!disabled) {
