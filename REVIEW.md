@@ -50,7 +50,7 @@ typescript, unicorn, oxc, react, jsx-a11y, import, vitest plugins),
 
 Also skip:
 
-- `bun.lock`, `package-lock.json`, `public/manifest.json`
+- `bun.lock`, `public/manifest.json`
 - Anything under `build/`, `dist/`, or `node_modules/`
 - Comment wording, JSDoc completeness, README polish
 
