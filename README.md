@@ -132,4 +132,6 @@ bun run build         # Production build to build/
 
 ## License
 
-MIT
+Copyright (c) 2026 Jesse Armand
+
+This project is licensed under the Mozilla Public License, version 2.0 ([LICENSE](LICENSE) or <https://www.mozilla.org/MPL/2.0/>).
